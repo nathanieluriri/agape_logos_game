@@ -27,5 +27,6 @@ class ForegroundSyncScheduler implements SyncScheduler {
   @override
   Future<void> requestFlush() => _onFlush();
 
+  @override
   Future<void> dispose() async => _sub?.cancel();
 }

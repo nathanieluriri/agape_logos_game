@@ -22,6 +22,17 @@ class PendingMutationsDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
+  /// Atomically marks a row in-flight before sending. Returns the number of
+  /// rows updated (1 = claimed). Accepts already-`inFlight` rows so a row left
+  /// in-flight by a crash is re-claimable on the next flush. Cross-isolate
+  /// double-send is made safe by the mutation's idempotency key.
+  Future<int> claim(String id) =>
+      (update(pendingMutations)
+            ..where(
+              (t) => t.id.equals(id) & t.status.isIn(const ['pending', 'inFlight']),
+            ))
+          .write(const PendingMutationsCompanion(status: Value('inFlight')));
+
   Future<void> markSynced(String id) =>
       (update(pendingMutations)..where((t) => t.id.equals(id)))
           .write(const PendingMutationsCompanion(status: Value('synced')));

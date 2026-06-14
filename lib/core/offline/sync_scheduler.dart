@@ -6,4 +6,7 @@ abstract interface class SyncScheduler {
 
   /// Request an immediate flush.
   Future<void> requestFlush();
+
+  /// Cancel any listeners/subscriptions. Call when the owner is torn down.
+  Future<void> dispose();
 }

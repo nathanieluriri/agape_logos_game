@@ -12,10 +12,16 @@ import '../core/offline/sync_scheduler.dart';
 import '../core/offline/sync_scheduler_factory.dart';
 import '../core/storage/app_database.dart';
 import '../core/storage/storage_providers.dart';
+import '../features/level_results/data/level_result_repository_impl.dart';
 import 'app.dart';
 
-/// Async app entrypoint: configure logging, open the database, wire the
-/// offline sender, and start the platform sync scheduler.
+/// Flip to `true` once a real backend [MutationSender] is wired. Until then the
+/// app keeps optimistic writes durably queued (pending) and does NOT auto-flush,
+/// so nothing is churned to `failed` against a non-existent server.
+const bool kBackendSyncEnabled = false;
+
+/// Async app entrypoint: configure logging, open the database, wire the offline
+/// sender + reconcilers, and (when enabled) start the platform sync scheduler.
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   configureLogging();
@@ -32,6 +38,13 @@ Future<void> bootstrap() async {
               final ApiClient api = ref.watch(apiClientProvider);
               return (row) => _send(api, row);
             }),
+            mutationReconcilersProvider.overrideWithValue(
+              <String, MutationReconciler>{
+                // On confirmed sync, flip the cached level result's synced flag.
+                kLevelResultKind: (row) =>
+                    db.levelResultsDao.markSynced(row.idempotencyKey),
+              },
+            ),
           ],
           child: const _BootstrapGate(),
         ),
@@ -42,11 +55,10 @@ Future<void> bootstrap() async {
   );
 }
 
-/// Real endpoints don't exist yet. Treat sends as a permanent no-op so the
-/// local-first write still succeeds and the queue doesn't spin. Replace with a
-/// real `ApiClient` call once the backend lands.
+/// Placeholder sender — no backend yet. `transient` keeps writes queued (never
+/// lost) rather than failing them. Replace with a real ApiClient call.
 Future<SendOutcome> _send(ApiClient api, PendingMutation row) async {
-  return SendOutcome.permanent;
+  return SendOutcome.transient;
 }
 
 class _BootstrapGate extends ConsumerStatefulWidget {
@@ -57,12 +69,22 @@ class _BootstrapGate extends ConsumerStatefulWidget {
 }
 
 class _BootstrapGateState extends ConsumerState<_BootstrapGate> {
+  SyncScheduler? _scheduler;
+
   @override
   void initState() {
     super.initState();
-    final SyncEngine engine = ref.read(syncEngineProvider);
-    final SyncScheduler scheduler = createSyncScheduler(engine.flush);
-    unawaited(scheduler.initialize());
+    if (kBackendSyncEnabled) {
+      final SyncEngine engine = ref.read(syncEngineProvider);
+      _scheduler = createSyncScheduler(engine.flush);
+      unawaited(_scheduler!.initialize());
+    }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_scheduler?.dispose());
+    super.dispose();
   }
 
   @override

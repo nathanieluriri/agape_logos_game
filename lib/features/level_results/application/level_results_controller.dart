@@ -9,7 +9,8 @@ final levelResultRepositoryProvider = Provider<LevelResultRepository>(
   (ref) => LevelResultRepositoryImpl(ref.watch(appDatabaseProvider)),
 );
 
-/// Reactive list of local level results as an `AsyncValue`.
-final levelResultsProvider = StreamProvider<List<LevelResult>>(
+/// Reactive list of local level results as an `AsyncValue`. autoDispose so the
+/// drift query stream is cancelled when the screen stops watching it.
+final levelResultsProvider = StreamProvider.autoDispose<List<LevelResult>>(
   (ref) => ref.watch(levelResultRepositoryProvider).watchAll(),
 );

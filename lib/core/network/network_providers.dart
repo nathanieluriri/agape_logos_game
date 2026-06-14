@@ -15,6 +15,7 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     ConnectivityInterceptor(ref.watch(connectivityServiceProvider)),
   );
+  ref.onDispose(() => dio.close(force: true));
   return dio;
 });
 

@@ -27,4 +27,21 @@ void main() {
     expect(mutations.single.kind, kLevelResultKind);
     expect(mutations.single.idempotencyKey, 'r1');
   });
+
+  test('re-recording the same result is locally idempotent and reuses the key', () async {
+    final repo = LevelResultRepositoryImpl(db);
+    const result = LevelResult(id: 'r1', levelId: 3, score: 100, completedAt: 5);
+
+    await repo.recordCompletion(result);
+    await repo.recordCompletion(result);
+
+    // Local upsert keyed on id keeps a single cached row.
+    expect((await repo.watchAll().first), hasLength(1));
+
+    // Each call queues a distinct mutation row, but the server-dedupe key is stable.
+    final mutations = await db.pendingMutationsDao.due(1000);
+    expect(mutations, hasLength(2));
+    expect(mutations.every((m) => m.idempotencyKey == 'r1'), isTrue);
+    expect(mutations.map((m) => m.id).toSet(), hasLength(2));
+  });
 }

@@ -6,6 +6,9 @@ import '../storage/app_database.dart';
 enum SendOutcome { success, transient, permanent }
 
 /// Sends a queued mutation to the server. Injected so tests need no network.
+///
+/// May either return a [SendOutcome] or throw (e.g. a Dio/Socket exception).
+/// A thrown error is treated as [SendOutcome.transient] by the engine.
 typedef MutationSender = Future<SendOutcome> Function(PendingMutation row);
 
 /// Invoked after a mutation is confirmed synced, keyed by `mutation.kind`.
@@ -13,7 +16,7 @@ typedef MutationSender = Future<SendOutcome> Function(PendingMutation row);
 typedef MutationReconciler = Future<void> Function(PendingMutation row);
 
 /// Drains the offline mutation queue with single-flight, exponential backoff,
-/// and a feature-agnostic reconciliation seam.
+/// an atomic in-flight claim, and a feature-agnostic reconciliation seam.
 class SyncEngine {
   SyncEngine({
     required AppDatabase db,
@@ -42,13 +45,20 @@ class SyncEngine {
 
   /// Drains all due mutations. Single-flight: a concurrent call is a no-op.
   Future<void> flush() async {
+    // Claim the guard BEFORE the first await so two calls scheduled close
+    // together cannot both pass the check while still suspended.
     if (_flushing) return;
-    if (!await _connectivity.isOnline) return;
     _flushing = true;
     try {
+      if (!await _connectivity.isOnline) return;
       final List<PendingMutation> due = await _db.pendingMutationsDao.due(_clock());
       for (final PendingMutation row in due) {
-        await _process(row);
+        try {
+          await _process(row);
+        } catch (e, s) {
+          // One bad row must never abort draining the rest of the batch.
+          logger.warning('Mutation ${row.id} processing error', e, s);
+        }
       }
     } finally {
       _flushing = false;
@@ -56,7 +66,19 @@ class SyncEngine {
   }
 
   Future<void> _process(PendingMutation row) async {
-    final SendOutcome outcome = await _sender(row);
+    // Atomically claim the row so an overlapping flush (e.g. a WorkManager
+    // background isolate running while the app is open) cannot double-send it.
+    final int claimed = await _db.pendingMutationsDao.claim(row.id);
+    if (claimed == 0) return; // already claimed/handled elsewhere
+
+    SendOutcome outcome;
+    try {
+      outcome = await _sender(row);
+    } catch (_) {
+      // A thrown error (Dio/Socket) is the common transient case.
+      outcome = SendOutcome.transient;
+    }
+
     switch (outcome) {
       case SendOutcome.success:
         await _db.pendingMutationsDao.markSynced(row.id);
@@ -67,7 +89,10 @@ class SyncEngine {
         if (next > _maxRetries) {
           await _db.pendingMutationsDao.markFailed(row.id, 'max retries exceeded');
         } else {
-          final int delayMs = 1000 * (1 << (next - 1)); // exponential backoff
+          // Exponential backoff with a clamped exponent (avoids shift overflow,
+          // incl. the 32-bit web int model).
+          final int shift = (next - 1).clamp(0, 30);
+          final int delayMs = 1000 * (1 << shift);
           await _db.pendingMutationsDao.scheduleRetry(row.id, next, _clock() + delayMs);
         }
       case SendOutcome.permanent:

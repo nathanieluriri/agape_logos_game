@@ -5,7 +5,8 @@ final connectivityServiceProvider = Provider<ConnectivityService>(
   (ref) => ConnectivityService(),
 );
 
-/// Reachability stream; UI and the sync engine watch this.
-final isOnlineProvider = StreamProvider<bool>(
+/// Reachability stream; UI watches this. autoDispose so the underlying
+/// reachability polling stops when no widget is listening.
+final isOnlineProvider = StreamProvider.autoDispose<bool>(
   (ref) => ref.watch(connectivityServiceProvider).onStatusChange,
 );

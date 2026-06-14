@@ -4,11 +4,36 @@ import 'dart:io' show Platform;
 import 'package:workmanager/workmanager.dart';
 
 import '../connectivity/connectivity_service.dart';
+import '../storage/app_database.dart';
+import 'sync_engine.dart';
 import 'sync_scheduler.dart';
 
-/// Unique name of the periodic WorkManager flush task. The top-level callback
-/// dispatcher (registered in bootstrap) keys off this name.
+/// Unique name of the periodic WorkManager flush task.
 const String kFlushTask = 'agape.flushQueue';
+
+/// WorkManager background entry point. Runs in a FRESH isolate with no Riverpod
+/// scope, so it constructs its own database + engine. Replace the placeholder
+/// sender with the real backend sender when one exists.
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    if (task != kFlushTask) return true;
+    final AppDatabase db = AppDatabase();
+    try {
+      final SyncEngine engine = SyncEngine(
+        db: db,
+        connectivity: ConnectivityService(),
+        // TODO: inject the real backend sender once it exists. Transient keeps
+        // queued mutations pending (never lost) until then.
+        sender: (row) async => SendOutcome.transient,
+      );
+      await engine.flush();
+    } finally {
+      await db.close();
+    }
+    return true;
+  });
+}
 
 SyncScheduler createSyncScheduler(Future<void> Function() onFlush) =>
     AndroidSyncScheduler(onFlush);
@@ -30,6 +55,7 @@ class AndroidSyncScheduler implements SyncScheduler {
       if (online) _onFlush();
     });
     if (Platform.isAndroid) {
+      await Workmanager().initialize(callbackDispatcher);
       await Workmanager().registerPeriodicTask(
         kFlushTask,
         kFlushTask,
@@ -43,5 +69,6 @@ class AndroidSyncScheduler implements SyncScheduler {
   @override
   Future<void> requestFlush() => _onFlush();
 
+  @override
   Future<void> dispose() async => _sub?.cancel();
 }
