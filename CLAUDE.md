@@ -107,5 +107,22 @@ Three **call policies** (`core/offline/call_policy.dart`) — pick one per repos
 ## Non-goals / don't do yet
 
 No real screens, levels, game logic, API endpoints, theme aesthetics, or art. The
-`level_results` feature is a deletable sample proving the optimistic path. Repositories/
-endpoints are stubbed (the offline sender is a permanent no-op until a backend exists).
+`level_results` feature is a deletable sample proving the optimistic path. There is no
+backend yet, so the injected `MutationSender` is a placeholder returning `transient`
+(keeps optimistic writes durably queued, never lost), and auto-flush is gated behind
+`kBackendSyncEnabled` (in `app/bootstrap.dart`). Double-send safety ultimately rests on
+the per-mutation **idempotency key** (at-least-once delivery); single-flight + the
+`inFlight` claim just minimize duplicates.
+
+## Known follow-ups (not blocking)
+
+- **Wire the backend:** replace the placeholder `_send` (and the WorkManager
+  `callbackDispatcher`'s sender) with a real `ApiClient` call, register a reconciler per
+  mutation `kind`, then flip `kBackendSyncEnabled = true`.
+- **Web runtime:** add `sqlite3.wasm` + `drift_worker.js` to `web/` (matching the drift
+  version) or web Drift 404s at first DB use. APK/tests are unaffected.
+- **Env cleanup:** delete the old SDK copy at `C:\Users\Mr Dashi\flutter` (when the IDE is
+  closed) and point the **Machine PATH** at `C:\flutter\bin` (needs admin) so bare
+  `flutter` uses the space-free SDK everywhere.
+- **NDK:** reinstall a clean `28.2.13676358` and revert `ndkVersion` to `flutter.ndkVersion`.
+- **riverpod_lint:** re-add once it supports the current analyzer.
