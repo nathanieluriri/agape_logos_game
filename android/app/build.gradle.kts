@@ -8,7 +8,9 @@ plugins {
 android {
     namespace = "com.example.agape_logos_game"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Pinned to a complete, locally-installed NDK. Flutter's default
+    // (28.2.13676358) was a corrupt/partial install that failed to auto-repair.
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
