@@ -132,3 +132,17 @@ the per-mutation **idempotency key** (at-least-once delivery); single-flight + t
   `flutter` uses the space-free SDK everywhere.
 - **NDK:** reinstall a clean `28.2.13676358` and revert `ndkVersion` to `flutter.ndkVersion`.
 - **riverpod_lint:** re-add once it supports the current analyzer.
+
+## Build-in-public posts (in `post/day N/`, gitignored)
+
+Every post is a **set of three square (1080x1080) images** in the paper / sage / gold token
+palette, plus `social.md` and `medium.md` copy:
+
+1. **Diagram:** the planning phase and the actual execution. A soft logic / flow tree of how
+   the system works.
+2. **Graphic:** the summary / trailer. Good-looking, a little bit of code, a **progress
+   bar/ring**, and a few key numbers.
+3. **Slide:** the narrative. A **famous quote** related to the work, the day's **breaks and
+   fixes**, and a general **overview of progress**.
+
+Keep the look consistent across days (logo `n.png` mark, `anagram_light.png` signature).
