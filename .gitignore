@@ -46,3 +46,7 @@ app.*.map.json
 
 # Project docs / design specs — kept local, not version-controlled (project preference)
 /docs/
+
+# Handoff & marketing material — local only
+/HANDOFF.md
+/post/
