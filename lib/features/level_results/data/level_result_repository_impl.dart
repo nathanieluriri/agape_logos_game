@@ -24,7 +24,7 @@ class LevelResultRepositoryImpl
 
   @override
   Future<void> recordCompletion(LevelResult result) async {
-    // 1) Apply locally NOW — this is the UI source of truth.
+    // 1) Apply locally NOW - this is the UI source of truth.
     await db.levelResultsDao.upsert(
       LevelResultsCompanion.insert(
         id: result.id,

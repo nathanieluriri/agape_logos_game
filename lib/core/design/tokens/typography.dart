@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'colors.dart';
 
 /// Typography tokens, expressed as a [TextTheme] per [Brightness].
-/// Memoized — the two possible outputs are built once for the app's lifetime.
+/// Memoized - the two possible outputs are built once for the app's lifetime.
 abstract final class AppTypography {
   const AppTypography._();
 

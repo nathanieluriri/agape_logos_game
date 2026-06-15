@@ -1,4 +1,4 @@
-/// 4-point spacing scale — the single source of truth for layout spacing.
+/// 4-point spacing scale - the single source of truth for layout spacing.
 ///
 /// No raw padding/margin numbers in widgets; reference these tokens.
 abstract final class AppSpacing {

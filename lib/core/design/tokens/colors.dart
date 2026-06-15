@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Raw color palette — the single source of truth for color.
+/// Raw color palette - the single source of truth for color.
 ///
 /// Widgets must NOT use literal `Color(...)` values; reference these tokens
 /// (or, preferably, the `ColorScheme` produced by `AppTheme`) instead.

@@ -34,7 +34,7 @@ void main() {
     await enqueue('m2');
     await db.pendingMutationsDao.markSynced('m2');
 
-    // The row is NOT deleted — the queue is durable/inspectable.
+    // The row is NOT deleted - the queue is durable/inspectable.
     final row = await (db.select(db.pendingMutations)
           ..where((t) => t.id.equals('m2')))
         .getSingle();

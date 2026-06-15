@@ -9,7 +9,7 @@ class OfflineFailure extends Failure {
   const OfflineFailure([super.message = 'No network connection']);
 }
 
-/// Transient network error (timeout, 5xx) — safe to retry.
+/// Transient network error (timeout, 5xx) - safe to retry.
 class NetworkFailure extends Failure {
   const NetworkFailure([super.message = 'Network error']);
 }

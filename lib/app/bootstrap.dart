@@ -55,7 +55,7 @@ Future<void> bootstrap() async {
   );
 }
 
-/// Placeholder sender — no backend yet. `transient` keeps writes queued (never
+/// Placeholder sender - no backend yet. `transient` keeps writes queued (never
 /// lost) rather than failing them. Replace with a real ApiClient call.
 Future<SendOutcome> _send(ApiClient api, PendingMutation row) async {
   return SendOutcome.transient;
