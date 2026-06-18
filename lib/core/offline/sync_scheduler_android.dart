@@ -48,9 +48,8 @@ class AndroidSyncScheduler implements SyncScheduler {
   AndroidSyncScheduler(
     this._onFlush, {
     ConnectivityService? connectivity,
-    bool enableBackground = false,
-  })  : _connectivity = connectivity ?? ConnectivityService(),
-        _enableBackground = enableBackground;
+    this._enableBackground = false,
+  }) : _connectivity = connectivity ?? ConnectivityService();
 
   final Future<void> Function() _onFlush;
   final ConnectivityService _connectivity;

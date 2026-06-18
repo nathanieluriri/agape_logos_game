@@ -5,22 +5,28 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/logging/app_logger.dart';
-import '../core/network/api_client.dart';
 import '../core/network/network_providers.dart';
+import '../core/offline/http_mutation_sender.dart';
 import '../core/offline/offline_providers.dart';
 import '../core/offline/sync_engine.dart';
 import '../core/offline/sync_scheduler.dart';
 import '../core/offline/sync_scheduler_factory.dart';
 import '../core/storage/app_database.dart';
 import '../core/storage/storage_providers.dart';
+import '../features/auth/application/auth_providers.dart';
 import '../features/level_results/data/level_result_repository_impl.dart';
 import '../firebase_options.dart';
 import 'app.dart';
 
-/// Flip to `true` once a real backend [MutationSender] is wired. Until then the
-/// app keeps optimistic writes durably queued (pending) and does NOT auto-flush,
-/// so nothing is churned to `failed` against a non-existent server.
-const bool kBackendSyncEnabled = false;
+/// Foreground sync is live: the real [HttpMutationSender] replays queued
+/// optimistic writes against the deployed `api` function when the app is open,
+/// online, and signed in.
+const bool kBackendSyncEnabled = true;
+
+/// Background (WorkManager isolate) flushing stays OFF until 2c wires the real
+/// isolate sender. The isolate still uses the placeholder `transient` sender, so
+/// enabling it would burn retries and mark good mutations failed after ~5 cycles.
+const bool kBackgroundFlushEnabled = false;
 
 /// Async app entrypoint: configure logging, open the database, wire the offline
 /// sender + reconcilers, and (when enabled) start the platform sync scheduler.
@@ -40,9 +46,17 @@ Future<void> bootstrap() async {
         ProviderScope(
           overrides: [
             appDatabaseProvider.overrideWithValue(db),
+            // Attach the current user's ID token to outgoing sync requests
+            // without core/network importing the auth feature.
+            authTokenProvider.overrideWith(
+              (ref) => () => ref.read(authRepositoryProvider).idToken(),
+            ),
             mutationSenderProvider.overrideWith((ref) {
-              final ApiClient api = ref.watch(apiClientProvider);
-              return (row) => _send(api, row);
+              final HttpMutationSender sender = HttpMutationSender(
+                api: ref.watch(apiClientProvider),
+                auth: ref.read(authRepositoryProvider),
+              );
+              return sender.send;
             }),
             mutationReconcilersProvider.overrideWithValue(
               <String, MutationReconciler>{
@@ -61,12 +75,6 @@ Future<void> bootstrap() async {
   );
 }
 
-/// Placeholder sender - no backend yet. `transient` keeps writes queued (never
-/// lost) rather than failing them. Replace with a real ApiClient call.
-Future<SendOutcome> _send(ApiClient api, PendingMutation row) async {
-  return SendOutcome.transient;
-}
-
 class _BootstrapGate extends ConsumerStatefulWidget {
   const _BootstrapGate();
 
@@ -82,7 +90,10 @@ class _BootstrapGateState extends ConsumerState<_BootstrapGate> {
     super.initState();
     if (kBackendSyncEnabled) {
       final SyncEngine engine = ref.read(syncEngineProvider);
-      _scheduler = createSyncScheduler(engine.flush);
+      _scheduler = createSyncScheduler(
+        engine.flush,
+        enableBackground: kBackgroundFlushEnabled,
+      );
       unawaited(_scheduler!.initialize());
     }
   }
