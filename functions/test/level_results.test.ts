@@ -47,6 +47,22 @@ describe("POST /levels/:levelId/result", () => {
     expect(res.status).toBe(400);
   });
 
+  test("400 when idempotency-key contains a slash", async () => {
+    const {idToken, uid} = await mintUser();
+    const res = await request(app)
+      .post("/levels/3/result")
+      .set("Authorization", `Bearer ${idToken}`)
+      .set("idempotency-key", "bad/key")
+      .send({levelId: 3, score: 100, completedAt: 5});
+    expect(res.status).toBe(400);
+    const all = await admin
+      .firestore()
+      .collection("users").doc(uid)
+      .collection("levelResults")
+      .get();
+    expect(all.size).toBe(0);
+  });
+
   test("200 writes the doc and replays are idempotent", async () => {
     const {idToken, uid} = await mintUser();
     const key = "r-happy";

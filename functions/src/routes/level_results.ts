@@ -15,6 +15,14 @@ levelResultsRouter.post(
       res.status(400).json({error: "missing idempotency-key header"});
       return;
     }
+    if (
+      idempotencyKey.trim() === "" ||
+      idempotencyKey.includes("/") ||
+      Buffer.byteLength(idempotencyKey, "utf8") > 1500
+    ) {
+      res.status(400).json({error: "invalid idempotency-key"});
+      return;
+    }
 
     const levelId = Number(req.params.levelId);
     const body = (req.body ?? {}) as {score?: unknown; completedAt?: unknown};
@@ -29,16 +37,21 @@ levelResultsRouter.post(
       return;
     }
 
-    await db
-      .collection("users").doc(req.uid as string)
-      .collection("levelResults").doc(idempotencyKey)
-      .set({
-        levelId,
-        score: body.score,
-        completedAt: body.completedAt,
-        uid: req.uid,
-        syncedAt: FieldValue.serverTimestamp(),
-      });
+    try {
+      await db
+        .collection("users").doc(req.uid as string)
+        .collection("levelResults").doc(idempotencyKey)
+        .set({
+          levelId,
+          score: body.score,
+          completedAt: body.completedAt,
+          uid: req.uid,
+          syncedAt: FieldValue.serverTimestamp(),
+        });
+    } catch {
+      res.status(500).json({error: "internal error"});
+      return;
+    }
 
     res.status(200).json({ok: true});
   },
