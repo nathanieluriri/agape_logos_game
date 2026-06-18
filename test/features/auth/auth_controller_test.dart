@@ -36,6 +36,9 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   AuthUser? get currentUser => null;
+
+  @override
+  Future<String?> idToken() async => null;
 }
 
 void main() {
