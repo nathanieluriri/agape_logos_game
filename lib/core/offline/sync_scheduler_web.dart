@@ -6,8 +6,9 @@ import 'sync_scheduler.dart';
 SyncScheduler createSyncScheduler(
   Future<void> Function() onFlush, {
   required bool enableBackground,
+  void Function()? backgroundEntryPoint,
 }) =>
-    // Web has no OS background sync; the flag is accepted for a uniform factory
+    // Web has no OS background sync; the flags are accepted for a uniform factory
     // signature and intentionally ignored.
     ForegroundSyncScheduler(onFlush);
 
