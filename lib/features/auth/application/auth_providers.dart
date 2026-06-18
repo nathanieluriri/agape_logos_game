@@ -12,6 +12,8 @@ final authStateProvider = StreamProvider<AuthUser?>(
   (ref) => ref.watch(authRepositoryProvider).authStateChanges(),
 );
 
+// Phase 2 seam: the sync sender will read this to attach the current user's ID token.
+// Unused in Phase 1.
 /// Convenience snapshot of the current user (null while loading or signed out).
 final currentUserProvider = Provider<AuthUser?>(
   (ref) => ref.watch(authStateProvider).asData?.value,
