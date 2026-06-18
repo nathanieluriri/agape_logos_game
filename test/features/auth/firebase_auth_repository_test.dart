@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:agape_logos_game/features/auth/data/firebase_auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_failure.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
@@ -76,5 +78,39 @@ void main() {
     when(() => auth.currentUser).thenReturn(null);
 
     expect(await repo.idToken(), isNull);
+  });
+
+  test('awaitRestoredUser returns the restored user on first emission', () async {
+    final user = _MockUser();
+    when(() => user.uid).thenReturn('u1');
+    when(() => user.email).thenReturn(null);
+    when(() => user.displayName).thenReturn(null);
+    when(() => user.photoURL).thenReturn(null);
+    when(() => auth.authStateChanges())
+        .thenAnswer((_) => Stream<User?>.value(user));
+
+    final restored = await repo.awaitRestoredUser();
+
+    expect(restored?.uid, 'u1');
+  });
+
+  test('awaitRestoredUser returns null when first emission is signed out', () async {
+    when(() => auth.authStateChanges())
+        .thenAnswer((_) => Stream<User?>.value(null));
+
+    expect(await repo.awaitRestoredUser(), isNull);
+  });
+
+  test('awaitRestoredUser returns null when no state arrives before the timeout',
+      () async {
+    final controller = StreamController<User?>();
+    addTearDown(controller.close);
+    when(() => auth.authStateChanges()).thenAnswer((_) => controller.stream);
+
+    final restored = await repo.awaitRestoredUser(
+      timeout: const Duration(milliseconds: 50),
+    );
+
+    expect(restored, isNull);
   });
 }

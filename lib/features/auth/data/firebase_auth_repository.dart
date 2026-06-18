@@ -54,6 +54,16 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() => _guard(() => _auth.signOut());
 
+  /// Awaits the first restored auth state, with a bounded timeout. Required in a
+  /// fresh isolate where `currentUser` is null until Firebase finishes restoring
+  /// the persisted user from disk. Returns the restored user, or null (signed
+  /// out or timeout).
+  Future<AuthUser?> awaitRestoredUser({
+    Duration timeout = const Duration(seconds: 5),
+  }) {
+    return authStateChanges().first.timeout(timeout, onTimeout: () => null);
+  }
+
   AuthUser? _mapUser(User? u) => u == null
       ? null
       : AuthUser(
