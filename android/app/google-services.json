@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "415010449011",
+    "project_id": "agape-logos",
+    "storage_bucket": "agape-logos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:415010449011:android:29be61d3c06906b3a8ac06",
+        "android_client_info": {
+          "package_name": "com.example.agape_logos_game"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaT1FAuam088uxnYgRfaiDwl0oNADyo0E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
