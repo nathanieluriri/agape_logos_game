@@ -24,7 +24,10 @@ Future<void> signInWithGoogleCredential(FirebaseAuth auth) async {
   } on GoogleSignInException catch (e) {
     // User dismissed the picker: treat as a benign no-op, not an error.
     if (e.code == GoogleSignInExceptionCode.canceled) return;
-    rethrow;
+    // All other codes (unknownError, interrupted, clientConfigurationError,
+    // providerConfigurationError, uiUnavailable, userMismatch) surface as
+    // AuthFailure so the UI never sees a raw platform exception.
+    throw AuthFailure.unknown;
   }
 
   final String? idToken = account.authentication.idToken;
