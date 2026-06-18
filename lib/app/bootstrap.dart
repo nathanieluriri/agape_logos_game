@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../firebase_options.dart';
 import '../core/logging/app_logger.dart';
 import '../core/network/api_client.dart';
 import '../core/network/network_providers.dart';
@@ -25,6 +27,10 @@ const bool kBackendSyncEnabled = false;
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   configureLogging();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   final AppDatabase db = AppDatabase();
 
