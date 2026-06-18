@@ -16,6 +16,7 @@ import '../core/storage/storage_providers.dart';
 import '../features/auth/application/auth_providers.dart';
 import '../firebase_options.dart';
 import 'app.dart';
+import 'background_entrypoint.dart';
 import 'sync_reconcilers.dart';
 
 /// Foreground sync is live: the real [HttpMutationSender] replays queued
@@ -23,10 +24,10 @@ import 'sync_reconcilers.dart';
 /// online, and signed in.
 const bool kBackendSyncEnabled = true;
 
-/// Background (WorkManager isolate) flushing stays OFF until 2c wires the real
-/// isolate sender. The isolate still uses the placeholder `transient` sender, so
-/// enabling it would burn retries and mark good mutations failed after ~5 cycles.
-const bool kBackgroundFlushEnabled = false;
+/// Background (WorkManager isolate) flushing is live: the isolate uses the real
+/// HttpMutationSender (see `background_sync.dart`), guards on the restored user,
+/// and never registers when signed out.
+const bool kBackgroundFlushEnabled = true;
 
 /// Async app entrypoint: configure logging, open the database, wire the offline
 /// sender + reconcilers, and (when enabled) start the platform sync scheduler.
@@ -89,6 +90,7 @@ class _BootstrapGateState extends ConsumerState<_BootstrapGate> {
       _scheduler = createSyncScheduler(
         engine.flush,
         enableBackground: kBackgroundFlushEnabled,
+        backgroundEntryPoint: backgroundFlushEntryPoint,
       );
       unawaited(_scheduler!.initialize());
     }
