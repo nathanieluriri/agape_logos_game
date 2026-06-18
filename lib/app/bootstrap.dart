@@ -14,9 +14,9 @@ import '../core/offline/sync_scheduler_factory.dart';
 import '../core/storage/app_database.dart';
 import '../core/storage/storage_providers.dart';
 import '../features/auth/application/auth_providers.dart';
-import '../features/level_results/data/level_result_repository_impl.dart';
 import '../firebase_options.dart';
 import 'app.dart';
+import 'sync_reconcilers.dart';
 
 /// Foreground sync is live: the real [HttpMutationSender] replays queued
 /// optimistic writes against the deployed `api` function when the app is open,
@@ -59,11 +59,7 @@ Future<void> bootstrap() async {
               return sender.send;
             }),
             mutationReconcilersProvider.overrideWithValue(
-              <String, MutationReconciler>{
-                // On confirmed sync, flip the cached level result's synced flag.
-                kLevelResultKind: (row) =>
-                    db.levelResultsDao.markSynced(row.idempotencyKey),
-              },
+              buildMutationReconcilers(db),
             ),
           ],
           child: const _BootstrapGate(),
