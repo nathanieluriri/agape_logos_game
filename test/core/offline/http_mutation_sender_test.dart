@@ -116,6 +116,16 @@ void main() {
     expect(await sender.send(_row()), SendOutcome.transient);
   });
 
+  test('408 maps to transient', () async {
+    stubRequest(returns: 408);
+    expect(await sender.send(_row()), SendOutcome.transient);
+  });
+
+  test('429 maps to transient', () async {
+    stubRequest(returns: 429);
+    expect(await sender.send(_row()), SendOutcome.transient);
+  });
+
   test('400 maps to permanent', () async {
     stubRequest(returns: 400);
     expect(await sender.send(_row()), SendOutcome.permanent);
