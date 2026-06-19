@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/account_page.dart';
 import '../../features/auth/presentation/pages/sign_in_page.dart';
+import '../../features/home/presentation/pages/home_page.dart';
 import '../../game/placeholder_game_page.dart';
 import 'transitions.dart';
 
@@ -12,8 +12,7 @@ final GoRouter appRouter = GoRouter(
   routes: <RouteBase>[
     GoRoute(
       path: '/',
-      pageBuilder: (context, state) =>
-          fadeThroughPage(const _HomePlaceholder(), state),
+      pageBuilder: (context, state) => fadeThroughPage(const HomePage(), state),
     ),
     GoRoute(
       path: '/sign-in',
@@ -30,23 +29,3 @@ final GoRouter appRouter = GoRouter(
     ),
   ],
 );
-
-class _HomePlaceholder extends StatelessWidget {
-  const _HomePlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle_outlined),
-            onPressed: () => context.push('/account'),
-          ),
-        ],
-      ),
-      body: const Center(child: Text('agape_logos_game')),
-    );
-  }
-}
