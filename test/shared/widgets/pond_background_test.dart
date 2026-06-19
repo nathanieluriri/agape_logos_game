@@ -17,6 +17,6 @@ void main() {
     ));
     await tester.pump();
     expect(find.text('content'), findsOneWidget);
-    expect(find.byType(GameWidget), findsNothing);
+    expect(find.byWidgetPredicate((w) => w is GameWidget), findsNothing);
   });
 }
