@@ -74,6 +74,12 @@ void main() {
 
     expect(find.text('GAME PLACEHOLDER'), findsOneWidget);
     expect(capturedRef.read(homeAmbientPausedProvider), isTrue);
+
+    // Pop back from the game; the ambient should resume.
+    final nav = tester.state<NavigatorState>(find.byType(Navigator).first);
+    nav.pop();
+    await tester.pumpAndSettle();
+    expect(capturedRef.read(homeAmbientPausedProvider), isFalse);
   });
 
   testWidgets('signed-out play opens the sign-in sheet, not the game',
