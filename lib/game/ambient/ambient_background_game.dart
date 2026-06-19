@@ -3,16 +3,14 @@ import 'dart:ui';
 
 import 'package:flame/game.dart';
 
-import 'bokeh_component.dart';
+import 'pad_shadow_component.dart';
+import 'ripple_component.dart';
 
-/// Transparent ambient backdrop: a small, capped field of drifting bokeh painted
-/// over the gradient behind it. Deliberately cheap (no input, no overlays).
+/// Transparent ambient backdrop: a pond field of drifting pad shadows and
+/// surface ripples painted over the gradient behind it.
+/// Deliberately cheap (no input, no overlays).
 class AmbientBackgroundGame extends FlameGame {
-  AmbientBackgroundGame({this.bokehCount = 7, int seed = 7})
-      : _rng = Random(seed);
-
-  final int bokehCount;
-  final Random _rng;
+  AmbientBackgroundGame();
 
   // Fully transparent: the home gradient shows through this canvas.
   @override
@@ -20,6 +18,8 @@ class AmbientBackgroundGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
-    addAll(BokehComponent.field(size, bokehCount, _rng));
+    final rng = Random();
+    addAll(PadShadowComponent.field(size, rng));
+    addAll(RippleComponent.field(size, rng));
   }
 }
