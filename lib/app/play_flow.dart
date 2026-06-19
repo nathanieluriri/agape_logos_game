@@ -1,0 +1,25 @@
+// lib/app/play_flow.dart
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../features/auth/application/auth_providers.dart';
+import '../features/auth/presentation/widgets/auth_sheet.dart';
+import '../features/home/presentation/widgets/home_background.dart'
+    show homeAmbientPausedProvider;
+
+/// Shared Play action for the home and level-complete pages: if the player is
+/// not signed in, prompt sign-in first; then pause the pond ambient, open the
+/// game, and resume when the player returns (the push future completes on pop).
+Future<void> startPlayFlow(BuildContext context, WidgetRef ref) async {
+  if (ref.read(currentUserProvider) == null) {
+    await showAuthSheet(context);
+    if (!context.mounted) return;
+    if (ref.read(currentUserProvider) == null) return;
+  }
+  ref.read(homeAmbientPausedProvider.notifier).pause(true);
+  await context.push('/game');
+  if (context.mounted) {
+    ref.read(homeAmbientPausedProvider.notifier).pause(false);
+  }
+}

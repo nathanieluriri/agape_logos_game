@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../../../app/play_flow.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
@@ -13,34 +13,11 @@ import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_stage.dart';
 import '../../../../shared/widgets/pond_top_bar.dart';
 import '../../../../shared/widgets/wordmark_logo.dart';
-import '../../../auth/application/auth_providers.dart';
-import '../../../auth/presentation/widgets/auth_sheet.dart';
-import '../widgets/home_background.dart' show homeAmbientPausedProvider;
 
 /// The home screen (withdraw state). Thin composition of shared pond widgets.
 /// Shows the wordmark + the Play pad + a Withdraw pad. No progress, no bonus.
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
-
-  Future<void> _onPlay(BuildContext context, WidgetRef ref) async {
-    if (ref.read(currentUserProvider) != null) {
-      await _toGame(context, ref);
-      return;
-    }
-    await showAuthSheet(context);
-    if (!context.mounted) return;
-    if (ref.read(currentUserProvider) != null) await _toGame(context, ref);
-  }
-
-  /// Navigates to the game, pausing the ambient while it is covered and
-  /// resuming when the player returns (the push future completes on pop).
-  Future<void> _toGame(BuildContext context, WidgetRef ref) async {
-    ref.read(homeAmbientPausedProvider.notifier).pause(true);
-    await context.push('/game');
-    if (context.mounted) {
-      ref.read(homeAmbientPausedProvider.notifier).pause(false);
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,7 +40,7 @@ class HomePage extends ConsumerWidget {
               const Spacer(),
               _PlayArea(
                 nextLabel: nextLabel,
-                onPlay: () => _onPlay(context, ref),
+                onPlay: () => startPlayFlow(context, ref),
                 onWithdraw: () => showComingSoon(context, 'Withdraw'),
               ),
               const SizedBox(height: AppSpacing.xxl),
