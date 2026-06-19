@@ -56,3 +56,6 @@ app.*.map.json
 node_modules/
 /package.json
 /package-lock.json
+
+# Subagent-driven-development scratch ledger — local only
+/.superpowers/
