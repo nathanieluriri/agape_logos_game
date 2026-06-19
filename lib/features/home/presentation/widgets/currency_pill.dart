@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/design/tokens/durations.dart';
+import '../../../../core/design/tokens/opacities.dart';
 import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/spacing.dart';
 
@@ -31,7 +32,7 @@ class CurrencyPill extends StatelessWidget {
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.18),
+        color: scheme.surface.withValues(alpha: AppOpacities.scrimLight),
         borderRadius: AppRadii.pill,
       ),
       child: Row(
