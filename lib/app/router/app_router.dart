@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/pages/account_page.dart';
 import '../../features/auth/presentation/pages/sign_in_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/level_complete/presentation/pages/level_complete_page.dart';
 import '../../game/placeholder_game_page.dart';
 import 'transitions.dart';
 
@@ -26,6 +27,11 @@ final GoRouter appRouter = GoRouter(
       path: '/game',
       pageBuilder: (context, state) =>
           fadeThroughPage(const PlaceholderGamePage(), state),
+    ),
+    GoRoute(
+      path: '/level-complete',
+      pageBuilder: (context, state) =>
+          fadeThroughPage(const LevelCompletePage(), state),
     ),
   ],
 );
