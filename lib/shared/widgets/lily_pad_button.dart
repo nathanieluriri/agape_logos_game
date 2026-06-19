@@ -43,11 +43,6 @@ class _LilyPadButtonState extends State<LilyPadButton>
   bool _pressed = false;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
@@ -86,7 +81,7 @@ class _LilyPadButtonState extends State<LilyPadButton>
           child: AnimatedBuilder(
             animation: _idle,
             builder: (context, child) {
-              final dy = -travel * Curves.easeInOut.transform(_idle.value);
+              final dy = -travel * AppCurves.float.transform(_idle.value);
               return Transform.translate(offset: Offset(0, dy), child: child);
             },
             child: LilyPad(

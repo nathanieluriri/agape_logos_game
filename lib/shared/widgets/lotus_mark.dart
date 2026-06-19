@@ -2,6 +2,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../core/design/motion/curves.dart';
 import '../../core/design/tokens/durations.dart';
 import '../../core/design/tokens/shadows.dart';
 import '../../core/design/tokens/sizing.dart';
@@ -53,7 +54,7 @@ class _LotusMarkState extends State<LotusMark>
     return AnimatedBuilder(
       animation: _c,
       builder: (context, child) => Transform.translate(
-        offset: Offset(0, -6 * Curves.easeInOut.transform(_c.value)),
+        offset: Offset(0, -6 * AppCurves.float.transform(_c.value)),
         child: child,
       ),
       child: svg,
