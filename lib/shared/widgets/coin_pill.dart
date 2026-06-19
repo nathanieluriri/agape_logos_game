@@ -30,14 +30,17 @@ class CoinPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return UnconstrainedBox(
-      child: Stack(
+    return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.centerLeft,
       children: [
         Container(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg, AppSpacing.sm, AppSpacing.xl + AppSpacing.md, AppSpacing.sm),
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.xl + AppSpacing.md,
+            AppSpacing.sm,
+          ),
           decoration: BoxDecoration(
             color: AppColors.pillFill,
             borderRadius: AppRadii.pill,
@@ -63,14 +66,14 @@ class CoinPill extends StatelessWidget {
           top: -4,
           child: Transform.rotate(
             angle: -0.384, // ~ -22 degrees
-            child: SvgPicture.asset('assets/branding/coin_petal.svg',
-                width: AppSizing.coinPetal),
+            child: SvgPicture.asset(
+              'assets/branding/coin_petal.svg',
+              width: AppSizing.coinPetal,
+            ),
           ),
         ),
         Positioned(
           right: 3,
-          top: 0,
-          bottom: 0,
           child: Semantics(
             button: true,
             label: 'Add coins',
@@ -85,19 +88,21 @@ class CoinPill extends StatelessWidget {
                   gradient: AppGradients.plusButton,
                 ),
                 child: const ExcludeSemantics(
-                  child: Text('+',
-                      style: TextStyle(
-                          color: AppColors.padLabel,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w700,
-                          height: 1)),
+                  child: Text(
+                    '+',
+                    style: TextStyle(
+                      color: AppColors.padLabel,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w700,
+                      height: 1,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ],
-      ),
     );
   }
 }
