@@ -88,4 +88,28 @@ void main() {
     expect(find.text('Continue as guest'), findsOneWidget);
     expect(find.text('GAME PLACEHOLDER'), findsNothing);
   });
+
+  testWidgets('navigating to the game pauses the home ambient', (tester) async {
+    const user = AuthUser(uid: 'u1');
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
+          homeAmbientEnabledProvider.overrideWithValue(false),
+          currentUserProvider.overrideWithValue(user),
+        ],
+        child: MaterialApp.router(routerConfig: _buildRouter()),
+      ),
+    );
+    await tester.pump();
+
+    final container =
+        ProviderScope.containerOf(tester.element(find.byType(HomePage)));
+    expect(container.read(homeAmbientPausedProvider), isFalse);
+
+    await tester.tap(find.byType(PlayButton));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(container.read(homeAmbientPausedProvider), isTrue);
+  });
 }

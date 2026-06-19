@@ -18,4 +18,34 @@ void main() {
     expect(find.byType(GameWidget), findsNothing);
     expect(find.byType(DecoratedBox), findsWidgets);
   });
+
+  testWidgets('pauses TickerMode when the paused provider is set',
+      (tester) async {
+    final container = ProviderContainer(
+      overrides: [homeAmbientEnabledProvider.overrideWithValue(false)],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: Scaffold(body: HomeBackground())),
+      ),
+    );
+    await tester.pump();
+
+    TickerMode tickerMode() => tester.widget<TickerMode>(
+          find.descendant(
+            of: find.byType(HomeBackground),
+            matching: find.byType(TickerMode),
+          ),
+        );
+
+    expect(tickerMode().enabled, isTrue);
+
+    container.read(homeAmbientPausedProvider.notifier).pause(true);
+    await tester.pump();
+
+    expect(tickerMode().enabled, isFalse);
+  });
 }

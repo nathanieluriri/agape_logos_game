@@ -20,12 +20,22 @@ class HomePage extends ConsumerWidget {
 
   Future<void> _onPlay(BuildContext context, WidgetRef ref) async {
     if (ref.read(currentUserProvider) != null) {
-      context.push('/game');
+      await _toGame(context, ref);
       return;
     }
     await showAuthSheet(context);
     if (!context.mounted) return;
-    if (ref.read(currentUserProvider) != null) context.push('/game');
+    if (ref.read(currentUserProvider) != null) await _toGame(context, ref);
+  }
+
+  /// Navigates to the game, pausing the home's looping motion while it is covered
+  /// and resuming when the player returns (the push future completes on pop).
+  Future<void> _toGame(BuildContext context, WidgetRef ref) async {
+    ref.read(homeAmbientPausedProvider.notifier).pause(true);
+    await context.push('/game');
+    if (context.mounted) {
+      ref.read(homeAmbientPausedProvider.notifier).pause(false);
+    }
   }
 
   void _comingSoon(BuildContext context, String what) {
