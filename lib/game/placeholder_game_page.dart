@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/design/tokens/spacing.dart';
 
@@ -23,12 +24,29 @@ class PlaceholderGamePage extends StatelessWidget {
               ),
             ),
             Center(
-              child: Text(
-                'Game coming soon',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(color: scheme.onPrimary),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Game coming soon',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(color: scheme.onPrimary),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  // TEMP: dev-only seam until real gameplay exists.
+                  Semantics(
+                    button: true,
+                    label: 'Finish level (dev)',
+                    child: FilledButton(
+                      onPressed: () => context.push('/level-complete'),
+                      child: const ExcludeSemantics(
+                        child: Text('Finish level (dev)'),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
