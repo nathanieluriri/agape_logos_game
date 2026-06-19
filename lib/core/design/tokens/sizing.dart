@@ -8,6 +8,7 @@ abstract final class AppSizing {
   static const double stageMaxWidth = 460;
 
   static const double playPad = 180;
+  static const double playAreaHeight = 240;
   static const double secondaryPad = 104;
   static const double settingsButton = 48;
   static const double lotusWidth = 168;

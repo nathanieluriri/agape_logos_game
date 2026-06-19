@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/design/tokens/colors.dart';
+import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../features/player/application/player_controller.dart';
 import '../../../../shared/widgets/coming_soon_sheet.dart';
@@ -90,7 +91,7 @@ class _PlayArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 240,
+      height: AppSizing.playAreaHeight,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
