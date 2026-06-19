@@ -49,6 +49,7 @@ void main() {
     when(() => user.email).thenReturn('a@b.com');
     when(() => user.displayName).thenReturn('Ada');
     when(() => user.photoURL).thenReturn(null);
+    when(() => user.isAnonymous).thenReturn(false);
     when(() => auth.authStateChanges())
         .thenAnswer((_) => Stream<User?>.value(user));
 
@@ -86,6 +87,7 @@ void main() {
     when(() => user.email).thenReturn(null);
     when(() => user.displayName).thenReturn(null);
     when(() => user.photoURL).thenReturn(null);
+    when(() => user.isAnonymous).thenReturn(false);
     when(() => auth.authStateChanges())
         .thenAnswer((_) => Stream<User?>.value(user));
 
@@ -112,5 +114,11 @@ void main() {
     );
 
     expect(restored, isNull);
+  });
+
+  test('signInAnonymously maps FirebaseAuthException to AuthFailure', () {
+    when(() => auth.signInAnonymously())
+        .thenThrow(FirebaseAuthException(code: 'operation-not-allowed'));
+    expect(() => repo.signInAnonymously(), throwsA(AuthFailure.unknown));
   });
 }

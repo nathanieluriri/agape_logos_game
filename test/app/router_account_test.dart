@@ -18,6 +18,8 @@ class _FakeAuthRepository implements AuthRepository {
   @override
   Future<void> signInWithGoogle() async {}
   @override
+  Future<void> signInAnonymously() async {}
+  @override
   Future<void> sendPasswordReset(String e) async {}
   @override
   Future<void> signOut() async {}
