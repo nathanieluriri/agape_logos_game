@@ -8,11 +8,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('shows progress + Bonus, no Withdraw', (tester) async {
-    // Set a tall surface so the full-page column does not overflow in tests.
-    tester.view.physicalSize = const Size(800, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
     await tester.pumpWidget(ProviderScope(
       overrides: [homeAmbientEnabledProvider.overrideWithValue(false)],
       child: const MaterialApp(home: LevelCompletePage()),

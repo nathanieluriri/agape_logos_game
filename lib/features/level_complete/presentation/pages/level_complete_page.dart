@@ -23,14 +23,24 @@ class LevelCompletePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final s = ref.watch(playerStateProvider);
+    final coins = ref.watch(playerStateProvider.select((s) => s.coins));
+    final completedLabel =
+        ref.watch(playerStateProvider.select((s) => s.completedLabel));
+    final fraction =
+        ref.watch(playerStateProvider.select((s) => s.progressFraction));
+    final progressDone =
+        ref.watch(playerStateProvider.select((s) => s.progressDone));
+    final progressTotal =
+        ref.watch(playerStateProvider.select((s) => s.progressTotal));
+    final nextLabel =
+        ref.watch(playerStateProvider.select((s) => s.nextLevelLabel));
     return Scaffold(
       body: PondBackground(
         child: PondStage(
           child: Column(
             children: [
               PondTopBar(
-                coins: s.coins,
+                coins: coins,
                 onSettings: () => showComingSoon(context, 'Settings'),
                 onAddCoins: () => showComingSoon(context, 'Store'),
               ),
@@ -38,13 +48,13 @@ class LevelCompletePage extends ConsumerWidget {
               const WordmarkLogo(),
               const SizedBox(height: AppSpacing.xl),
               LevelProgressBar(
-                label: s.completedLabel,
-                fraction: s.progressFraction,
-                fractionText: '${s.progressDone}/${s.progressTotal}',
+                label: completedLabel,
+                fraction: fraction,
+                fractionText: '$progressDone/$progressTotal',
               ),
               const Spacer(),
               _CompletedPlayArea(
-                nextLabel: s.nextLevelLabel,
+                nextLabel: nextLabel,
                 onPlay: () => startPlayFlow(context, ref),
                 onBonus: () => showComingSoon(context, 'Bonus Gift'),
               ),

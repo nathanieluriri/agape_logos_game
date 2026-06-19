@@ -10,11 +10,6 @@ import 'package:go_router/go_router.dart';
 void main() {
   testWidgets('Finish level (dev) routes to the level-complete page',
       (tester) async {
-    // Use a tall surface so the LevelCompletePage column does not overflow.
-    tester.view.physicalSize = const Size(800, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
     final router = GoRouter(routes: [
       GoRoute(path: '/', builder: (_, __) => const PlaceholderGamePage()),
       GoRoute(
