@@ -12,13 +12,20 @@ final homeAmbientEnabledProvider = Provider<bool>((ref) => true);
 /// Full-screen backdrop: a tokenized gradient with an optional Flame ambient
 /// layer above it. The Flame layer never intercepts taps and degrades to just the
 /// gradient if the game fails to start.
-class HomeBackground extends ConsumerWidget {
+class HomeBackground extends ConsumerStatefulWidget {
   const HomeBackground({super.key, this.child});
 
   final Widget? child;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeBackground> createState() => _HomeBackgroundState();
+}
+
+class _HomeBackgroundState extends ConsumerState<HomeBackground> {
+  late final AmbientBackgroundGame _game = AmbientBackgroundGame();
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final ambient = ref.watch(homeAmbientEnabledProvider);
 
@@ -39,7 +46,7 @@ class HomeBackground extends ConsumerWidget {
             child: IgnorePointer(
               child: RepaintBoundary(
                 child: GameWidget(
-                  game: AmbientBackgroundGame(),
+                  game: _game,
                   // Degrade to the gradient if the game throws; never crash home.
                   errorBuilder: (_, __) => const SizedBox.shrink(),
                   loadingBuilder: (_) => const SizedBox.shrink(),
@@ -47,7 +54,7 @@ class HomeBackground extends ConsumerWidget {
               ),
             ),
           ),
-        if (child != null) child!,
+        if (widget.child != null) widget.child!,
       ],
     );
   }
