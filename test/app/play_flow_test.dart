@@ -3,7 +3,7 @@ import 'package:agape_logos_game/app/play_flow.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
-import 'package:agape_logos_game/features/home/presentation/widgets/home_background.dart';
+import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,12 +60,12 @@ void main() {
       overrides: [
         authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
         currentUserProvider.overrideWithValue(user),
-        homeAmbientEnabledProvider.overrideWithValue(false),
+        ambientEnabledProvider.overrideWithValue(false),
       ],
       child: MaterialApp.router(routerConfig: _router(home)),
     ));
     await tester.pump();
-    expect(capturedRef.read(homeAmbientPausedProvider), isFalse);
+    expect(capturedRef.read(ambientPausedProvider), isFalse);
 
     await tester.tap(find.text('play'));
     await tester.pump();
@@ -73,13 +73,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('GAME PLACEHOLDER'), findsOneWidget);
-    expect(capturedRef.read(homeAmbientPausedProvider), isTrue);
+    expect(capturedRef.read(ambientPausedProvider), isTrue);
 
     // Pop back from the game; the ambient should resume.
     final nav = tester.state<NavigatorState>(find.byType(Navigator).first);
     nav.pop();
     await tester.pumpAndSettle();
-    expect(capturedRef.read(homeAmbientPausedProvider), isFalse);
+    expect(capturedRef.read(ambientPausedProvider), isFalse);
   });
 
   testWidgets('signed-out play opens the sign-in sheet, not the game',
@@ -97,7 +97,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(_FakeAuthRepository(null)),
-        homeAmbientEnabledProvider.overrideWithValue(false),
+        ambientEnabledProvider.overrideWithValue(false),
       ],
       child: MaterialApp.router(routerConfig: _router(home)),
     ));
