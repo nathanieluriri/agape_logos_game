@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/play_flow.dart';
-import '../../../../core/design/tokens/colors.dart';
-import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../features/player/application/player_controller.dart';
 import '../../../../shared/widgets/coming_soon_sheet.dart';
-import '../../../../shared/widgets/lily_pad.dart';
-import '../../../../shared/widgets/lily_pad_button.dart';
+import '../../../../shared/widgets/play_pad_cluster.dart';
 import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_stage.dart';
 import '../../../../shared/widgets/pond_top_bar.dart';
@@ -38,117 +35,18 @@ class HomePage extends ConsumerWidget {
               const Spacer(),
               const WordmarkLogo(),
               const Spacer(),
-              _PlayArea(
+              PlayPadCluster(
                 nextLabel: nextLabel,
                 onPlay: () => startPlayFlow(context, ref),
-                onWithdraw: () => showComingSoon(context, 'Withdraw'),
+                secondaryIcon: Icons.account_balance_wallet,
+                secondaryLabel: 'Withdraw',
+                onSecondary: () => showComingSoon(context, 'Withdraw'),
               ),
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-/// The floating play cluster: the green Play pad centered, with the teal
-/// Withdraw pad floating up and to the right.
-class _PlayArea extends StatelessWidget {
-  const _PlayArea({
-    required this.nextLabel,
-    required this.onPlay,
-    required this.onWithdraw,
-  });
-
-  final String nextLabel;
-  final VoidCallback onPlay;
-  final VoidCallback onWithdraw;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: AppSizing.playAreaHeight,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          LilyPadButton(
-            size: 180,
-            rotationDegrees: 20,
-            palette: LilyPadPalette.green,
-            semanticLabel: 'Play $nextLabel',
-            onPressed: onPlay,
-            content: _PlayContent(label: nextLabel),
-          ),
-          Positioned(
-            right: 4,
-            top: 8,
-            child: LilyPadButton(
-              size: 104,
-              rotationDegrees: -15,
-              palette: LilyPadPalette.teal,
-              idle: IdleMotion.bob,
-              semanticLabel: 'Withdraw',
-              onPressed: onWithdraw,
-              content: const _SecondaryContent(
-                icon: Icons.account_balance_wallet,
-                label: 'Withdraw',
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlayContent extends StatelessWidget {
-  const _PlayContent({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.play_arrow_rounded,
-            size: 56, color: AppColors.playTriangle),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.padLabel,
-            fontSize: 19,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SecondaryContent extends StatelessWidget {
-  const _SecondaryContent({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 28, color: AppColors.padLabel),
-        const SizedBox(height: AppSpacing.xxs),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.padLabel,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
     );
   }
 }
