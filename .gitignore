@@ -57,5 +57,8 @@ node_modules/
 /package.json
 /package-lock.json
 
-# Subagent-driven-development scratch ledger — local only
+# Subagent-driven-development scratch ledger - local only
 /.superpowers/
+
+# Firebase deploy cache - local only
+/.firebase/
