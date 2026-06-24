@@ -16,4 +16,28 @@ void main() {
     final box = tester.getSize(find.byKey(const Key('content')));
     expect(box.width, lessThanOrEqualTo(AppSizing.stageMaxWidth));
   });
+
+  testWidgets('PondStage scrolls instead of overflowing on a short viewport',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: PondStage(
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Container(height: 300, color: const Color(0xFF000000)),
+              const Spacer(),
+              Container(height: 400, color: const Color(0xFF000000)),
+            ],
+          ),
+        ),
+      ),
+    ));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+  });
 }
