@@ -29,7 +29,9 @@ export interface PoolStats {
 }
 
 export async function getStats(): Promise<PoolStats> {
-  const perTier = {easy: 0, medium: 0, hard: 0, expert: 0} as Record<Tier, number>;
+  const perTier = Object.fromEntries(
+    TIER_ORDER.map((t) => [t, 0]),
+  ) as Record<Tier, number>;
   let total = 0;
   for (const tier of TIER_ORDER) {
     const agg = await db.collection(COLLECTION).where("tier", "==", tier).count().get();
