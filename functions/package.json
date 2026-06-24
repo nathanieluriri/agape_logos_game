@@ -9,7 +9,10 @@
     "build": "tsc",
     "lint": "eslint --ext .ts --no-error-on-unmatched-pattern src test",
     "test": "firebase emulators:exec --only auth,firestore \"jest --runInBand\"",
-    "deploy": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only functions",
+    "seed": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/seed.js\"",
+    "extend": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/extend.js\"",
+    "stats": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/stats.js\""
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.0",
