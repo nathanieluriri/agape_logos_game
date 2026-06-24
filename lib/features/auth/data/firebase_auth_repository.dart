@@ -21,6 +21,13 @@ class FirebaseAuthRepository implements AuthRepository {
   AuthUser? get currentUser => _mapUser(_auth.currentUser);
 
   @override
+  Future<String?> idToken() async {
+    final User? user = _auth.currentUser;
+    if (user == null) return null;
+    return user.getIdToken();
+  }
+
+  @override
   Future<void> signInWithEmail(String email, String password) => _guard(
         () => _auth.signInWithEmailAndPassword(
           email: email,
@@ -41,11 +48,25 @@ class FirebaseAuthRepository implements AuthRepository {
       _guard(() => signInWithGoogleCredential(_auth));
 
   @override
+  Future<void> signInAnonymously() =>
+      _guard(() => _auth.signInAnonymously());
+
+  @override
   Future<void> sendPasswordReset(String email) =>
       _guard(() => _auth.sendPasswordResetEmail(email: email));
 
   @override
   Future<void> signOut() => _guard(() => _auth.signOut());
+
+  /// Awaits the first restored auth state, with a bounded timeout. Required in a
+  /// fresh isolate where `currentUser` is null until Firebase finishes restoring
+  /// the persisted user from disk. Returns the restored user, or null (signed
+  /// out or timeout).
+  Future<AuthUser?> awaitRestoredUser({
+    Duration timeout = const Duration(seconds: 5),
+  }) {
+    return authStateChanges().first.timeout(timeout, onTimeout: () => null);
+  }
 
   AuthUser? _mapUser(User? u) => u == null
       ? null
@@ -54,6 +75,7 @@ class FirebaseAuthRepository implements AuthRepository {
           email: u.email,
           displayName: u.displayName,
           photoUrl: u.photoURL,
+          isAnonymous: u.isAnonymous,
         );
 
   Future<void> _guard(Future<void> Function() op) async {

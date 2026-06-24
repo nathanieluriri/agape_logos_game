@@ -10,6 +10,8 @@ class _FakeAuthRepository implements AuthRepository {
 
   final AuthFailure? failure;
 
+  bool guestCalled = false;
+
   @override
   Future<void> signInWithEmail(String email, String password) async {
     if (failure != null) throw failure!;
@@ -26,6 +28,12 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> signInAnonymously() async {
+    guestCalled = true;
+    if (failure != null) throw failure!;
+  }
+
+  @override
   Future<void> sendPasswordReset(String email) async {}
 
   @override
@@ -36,6 +44,9 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   AuthUser? get currentUser => null;
+
+  @override
+  Future<String?> idToken() async => null;
 }
 
 void main() {
@@ -62,5 +73,24 @@ void main() {
     final state = c.read(authControllerProvider);
     expect(state.hasError, isTrue);
     expect(state.error, AuthFailure.wrongPassword);
+  });
+
+  test('signInWithGuest calls the repository and sets AsyncData on success', () async {
+    final repo = _FakeAuthRepository();
+    final c = ProviderContainer(overrides: [
+      authRepositoryProvider.overrideWithValue(repo),
+    ]);
+    addTearDown(c.dispose);
+
+    await c.read(authControllerProvider.notifier).signInWithGuest();
+
+    expect(repo.guestCalled, isTrue);
+    expect(c.read(authControllerProvider).hasError, isFalse);
+  });
+
+  test('signInWithGuest surfaces AuthFailure as AsyncError', () async {
+    final c = containerWith(AuthFailure.unknown);
+    await c.read(authControllerProvider.notifier).signInWithGuest();
+    expect(c.read(authControllerProvider).error, AuthFailure.unknown);
   });
 }

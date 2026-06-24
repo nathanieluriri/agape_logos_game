@@ -1,0 +1,39 @@
+import 'package:flutter/material.dart';
+
+import '../core/design/tokens/spacing.dart';
+
+/// Stand-in for the real Flame game. Reached from Play once the player is signed
+/// in. Intentionally minimal; the actual game replaces this later.
+class PlaceholderGamePage extends StatelessWidget {
+  const PlaceholderGamePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: scheme.primary,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                child: BackButton(color: scheme.onPrimary),
+              ),
+            ),
+            Center(
+              child: Text(
+                'Game coming soon',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(color: scheme.onPrimary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

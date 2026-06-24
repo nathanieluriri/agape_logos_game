@@ -3,7 +3,13 @@ import 'dart:async';
 import '../connectivity/connectivity_service.dart';
 import 'sync_scheduler.dart';
 
-SyncScheduler createSyncScheduler(Future<void> Function() onFlush) =>
+SyncScheduler createSyncScheduler(
+  Future<void> Function() onFlush, {
+  required bool enableBackground,
+  void Function()? backgroundEntryPoint,
+}) =>
+    // Web has no OS background sync; the flags are accepted for a uniform factory
+    // signature and intentionally ignored.
     ForegroundSyncScheduler(onFlush);
 
 /// Web flushes only while a tab is alive: on reachability-return and on demand.

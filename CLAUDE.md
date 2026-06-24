@@ -44,6 +44,13 @@ Zen word game: offline-first, optimistic, **Android + Web only** (no iOS/desktop
 3. `flutter test` - must **pass**.
 4. `flutter build apk --release` - must **succeed** (primary gate).
 
+## Plan execution (workflow preference - never violate)
+
+- When executing an implementation plan, **ALWAYS use subagent-driven development**
+  (`superpowers:subagent-driven-development`): one fresh implementer subagent per task, a
+  task review after each, and a whole-branch review at the end. Proceed automatically; do
+  **not** ask for confirmation of the execution mode.
+
 ## Architecture (feature-first, clean-ish layering)
 
 ```

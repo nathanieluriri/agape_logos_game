@@ -16,7 +16,7 @@ abstract final class AppTheme {
 
   static ThemeData _build(Brightness brightness, Color surface) {
     final ColorScheme scheme = ColorScheme.fromSeed(
-      seedColor: AppColors.seed,
+      seedColor: AppColors.pond2,
       brightness: brightness,
     );
     return ThemeData(

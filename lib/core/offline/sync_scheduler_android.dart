@@ -4,49 +4,37 @@ import 'dart:io' show Platform;
 import 'package:workmanager/workmanager.dart';
 
 import '../connectivity/connectivity_service.dart';
-import '../storage/app_database.dart';
-import 'sync_engine.dart';
 import 'sync_scheduler.dart';
 
 /// Unique name of the periodic WorkManager flush task.
 const String kFlushTask = 'agape.flushQueue';
 
-/// WorkManager background entry point. Runs in a FRESH isolate with no Riverpod
-/// scope, so it constructs its own database + engine. Replace the placeholder
-/// sender with the real backend sender when one exists.
-@pragma('vm:entry-point')
-void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    if (task != kFlushTask) return true;
-    final AppDatabase db = AppDatabase();
-    try {
-      final SyncEngine engine = SyncEngine(
-        db: db,
-        connectivity: ConnectivityService(),
-        // TODO: inject the real backend sender once it exists. Transient keeps
-        // queued mutations pending (never lost) until then.
-        sender: (row) async => SendOutcome.transient,
-      );
-      await engine.flush();
-    } finally {
-      await db.close();
-    }
-    return true;
-  });
-}
-
-SyncScheduler createSyncScheduler(Future<void> Function() onFlush) =>
-    AndroidSyncScheduler(onFlush);
+SyncScheduler createSyncScheduler(
+  Future<void> Function() onFlush, {
+  required bool enableBackground,
+  void Function()? backgroundEntryPoint,
+}) =>
+    AndroidSyncScheduler(
+      onFlush,
+      enableBackground: enableBackground,
+      backgroundEntryPoint: backgroundEntryPoint,
+    );
 
 /// Android gets true background flushing via WorkManager, plus the same
 /// foreground safety net so the queue also drains while the app is open.
 /// (On non-Android `dart:io` platforms only the foreground net is active.)
 class AndroidSyncScheduler implements SyncScheduler {
-  AndroidSyncScheduler(this._onFlush, {ConnectivityService? connectivity})
-      : _connectivity = connectivity ?? ConnectivityService();
+  AndroidSyncScheduler(
+    this._onFlush, {
+    ConnectivityService? connectivity,
+    this._enableBackground = false,
+    this._backgroundEntryPoint,
+  }) : _connectivity = connectivity ?? ConnectivityService();
 
   final Future<void> Function() _onFlush;
   final ConnectivityService _connectivity;
+  final bool _enableBackground;
+  final void Function()? _backgroundEntryPoint;
   StreamSubscription<bool>? _sub;
 
   @override
@@ -54,8 +42,12 @@ class AndroidSyncScheduler implements SyncScheduler {
     _sub = _connectivity.onStatusChange.listen((bool online) {
       if (online) _onFlush();
     });
-    if (Platform.isAndroid) {
-      await Workmanager().initialize(callbackDispatcher);
+    if (_enableBackground && Platform.isAndroid) {
+      assert(
+        _backgroundEntryPoint != null,
+        'enableBackground requires a backgroundEntryPoint',
+      );
+      await Workmanager().initialize(_backgroundEntryPoint!);
       await Workmanager().registerPeriodicTask(
         kFlushTask,
         kFlushTask,
