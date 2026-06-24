@@ -50,3 +50,9 @@ app.*.map.json
 # Handoff & marketing material — local only
 /HANDOFF.md
 /post/
+
+# Node tooling at repo root (firebase-tools CLI installed locally; the future
+# functions/ dir keeps its own committed package.json). node_modules anywhere.
+node_modules/
+/package.json
+/package-lock.json

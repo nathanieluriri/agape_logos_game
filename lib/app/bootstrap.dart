@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,6 +14,7 @@ import '../core/offline/sync_scheduler_factory.dart';
 import '../core/storage/app_database.dart';
 import '../core/storage/storage_providers.dart';
 import '../features/level_results/data/level_result_repository_impl.dart';
+import '../firebase_options.dart';
 import 'app.dart';
 
 /// Flip to `true` once a real backend [MutationSender] is wired. Until then the
@@ -25,6 +27,10 @@ const bool kBackendSyncEnabled = false;
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   configureLogging();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   final AppDatabase db = AppDatabase();
 

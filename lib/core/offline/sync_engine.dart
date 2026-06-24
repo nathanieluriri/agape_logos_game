@@ -19,18 +19,13 @@ typedef MutationReconciler = Future<void> Function(PendingMutation row);
 /// an atomic in-flight claim, and a feature-agnostic reconciliation seam.
 class SyncEngine {
   SyncEngine({
-    required AppDatabase db,
-    required ConnectivityService connectivity,
-    required MutationSender sender,
-    Map<String, MutationReconciler> reconcilers = const {},
+    required this._db,
+    required this._connectivity,
+    required this._sender,
+    this._reconcilers = const {},
     int Function()? clock,
-    int maxRetries = 5,
-  })  : _db = db,
-        _connectivity = connectivity,
-        _sender = sender,
-        _reconcilers = reconcilers,
-        _clock = clock ?? _wallClock,
-        _maxRetries = maxRetries;
+    this._maxRetries = 5,
+  }) : _clock = clock ?? _wallClock;
 
   final AppDatabase _db;
   final ConnectivityService _connectivity;
