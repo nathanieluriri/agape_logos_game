@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/audio/audio_providers.dart';
+import '../core/audio/audio_service.dart';
 import '../core/logging/app_logger.dart';
 import '../core/network/network_providers.dart';
 import '../core/offline/http_mutation_sender.dart';
@@ -41,12 +43,24 @@ Future<void> bootstrap() async {
 
   final AppDatabase db = AppDatabase();
 
+  // Restore the persisted mute state so audio honors the saved Sound setting
+  // from the first frame. Best-effort: a read failure (e.g. web before the
+  // Drift WASM runtime is added) leaves audio unmuted rather than crashing.
+  final FlameAudioService audio = FlameAudioService();
+  try {
+    final settings = await db.gameSettingsDao.watch().first;
+    audio.setMuted(!settings.soundEffects);
+  } catch (e, s) {
+    logger.warning('Could not restore sound setting', e, s);
+  }
+
   runZonedGuarded(
     () {
       runApp(
         ProviderScope(
           overrides: [
             appDatabaseProvider.overrideWithValue(db),
+            audioServiceProvider.overrideWithValue(audio),
             // Attach the current user's ID token to outgoing sync requests
             // without core/network importing the auth feature.
             authTokenProvider.overrideWith(
