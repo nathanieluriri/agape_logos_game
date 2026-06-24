@@ -1,0 +1,31 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:agape_logos_game/shared/widgets/play_pad_cluster.dart';
+
+void main() {
+  testWidgets('PlayPadCluster fires both callbacks and labels both pads',
+      (tester) async {
+    var plays = 0;
+    var secondaries = 0;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: PlayPadCluster(
+            nextLabel: 'Lv.26',
+            onPlay: () => plays++,
+            secondaryIcon: Icons.account_balance_wallet,
+            secondaryLabel: 'Withdraw',
+            onSecondary: () => secondaries++,
+          ),
+        ),
+      ),
+    ));
+    expect(find.bySemanticsLabel('Play Lv.26'), findsOneWidget);
+    expect(find.bySemanticsLabel('Withdraw'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Play Lv.26'));
+    await tester.tap(find.bySemanticsLabel('Withdraw'));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(plays, 1);
+    expect(secondaries, 1);
+  });
+}

@@ -4,12 +4,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/design/tokens/gradients.dart';
-import '../../features/home/presentation/widgets/home_background.dart'
-    show homeAmbientPausedProvider;
+import '../../game/ambient/ambient_providers.dart'
+    show ambientPausedProvider, ambientEnabledProvider;
 import '../../game/ambient/ambient_background_game.dart';
 
 /// Full-viewport pond: a static radial gradient with the drifting Flame
-/// ambient layer above it. Fills its parent; place [child] above the pond.
+/// ambient layer above it (when enabled). Fills its parent; place [child]
+/// above the pond.
 class PondBackground extends ConsumerStatefulWidget {
   const PondBackground({super.key, required this.child});
 
@@ -24,7 +25,10 @@ class _PondBackgroundState extends ConsumerState<PondBackground> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<bool>(homeAmbientPausedProvider, (_, isPaused) {
+    final ambientEnabled = ref.watch(ambientEnabledProvider);
+
+    ref.listen<bool>(ambientPausedProvider, (_, isPaused) {
+      if (!ref.read(ambientEnabledProvider)) return;
       if (isPaused) {
         _game.pauseEngine();
       } else {
@@ -37,16 +41,17 @@ class _PondBackgroundState extends ConsumerState<PondBackground> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          IgnorePointer(
-            child: RepaintBoundary(
-              child: GameWidget(
-                game: _game,
-                // Degrade to the gradient if the game throws; never crash.
-                errorBuilder: (_, __) => const SizedBox.shrink(),
-                loadingBuilder: (_) => const SizedBox.shrink(),
+          if (ambientEnabled)
+            IgnorePointer(
+              child: RepaintBoundary(
+                child: GameWidget(
+                  game: _game,
+                  // Degrade to the gradient if the game throws; never crash.
+                  errorBuilder: (_, __) => const SizedBox.shrink(),
+                  loadingBuilder: (_) => const SizedBox.shrink(),
+                ),
               ),
             ),
-          ),
           widget.child,
         ],
       ),

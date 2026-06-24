@@ -2,7 +2,7 @@ import 'package:agape_logos_game/app/app.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
-import 'package:agape_logos_game/features/home/presentation/widgets/home_background.dart';
+import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -33,7 +33,7 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
-          homeAmbientEnabledProvider.overrideWithValue(false),
+          ambientEnabledProvider.overrideWithValue(false),
         ],
         child: const AgapeApp(),
       ),
