@@ -1,5 +1,5 @@
 // test/game/placeholder_finish_test.dart
-import 'package:agape_logos_game/features/home/presentation/widgets/home_background.dart';
+import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:agape_logos_game/features/level_complete/presentation/pages/level_complete_page.dart';
 import 'package:agape_logos_game/game/placeholder_game_page.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +18,7 @@ void main() {
       ),
     ]);
     await tester.pumpWidget(ProviderScope(
-      overrides: [homeAmbientEnabledProvider.overrideWithValue(false)],
+      overrides: [ambientEnabledProvider.overrideWithValue(false)],
       child: MaterialApp.router(routerConfig: router),
     ));
     await tester.pump();

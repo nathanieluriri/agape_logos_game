@@ -2,7 +2,7 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/home/presentation/pages/home_page.dart';
-import 'package:agape_logos_game/features/home/presentation/widgets/home_background.dart';
+import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,7 +49,7 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
-          homeAmbientEnabledProvider.overrideWithValue(false),
+          ambientEnabledProvider.overrideWithValue(false),
           currentUserProvider.overrideWithValue(user),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
@@ -69,7 +69,7 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
-          homeAmbientEnabledProvider.overrideWithValue(false),
+          ambientEnabledProvider.overrideWithValue(false),
           currentUserProvider.overrideWithValue(user),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
@@ -90,7 +90,7 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(null)),
-          homeAmbientEnabledProvider.overrideWithValue(false),
+          ambientEnabledProvider.overrideWithValue(false),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
@@ -110,7 +110,7 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
-          homeAmbientEnabledProvider.overrideWithValue(false),
+          ambientEnabledProvider.overrideWithValue(false),
           currentUserProvider.overrideWithValue(user),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
@@ -120,11 +120,11 @@ void main() {
 
     final container =
         ProviderScope.containerOf(tester.element(find.byType(HomePage)));
-    expect(container.read(homeAmbientPausedProvider), isFalse);
+    expect(container.read(ambientPausedProvider), isFalse);
 
     await tester.tap(find.bySemanticsLabel('Play Lv.26'));
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(container.read(homeAmbientPausedProvider), isTrue);
+    expect(container.read(ambientPausedProvider), isTrue);
   });
 }

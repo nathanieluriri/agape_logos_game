@@ -4,8 +4,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/design/tokens/gradients.dart';
-import '../../features/home/presentation/widgets/home_background.dart'
-    show homeAmbientPausedProvider, homeAmbientEnabledProvider;
+import '../../game/ambient/ambient_providers.dart'
+    show ambientPausedProvider, ambientEnabledProvider;
 import '../../game/ambient/ambient_background_game.dart';
 
 /// Full-viewport pond: a static radial gradient with the drifting Flame
@@ -25,10 +25,10 @@ class _PondBackgroundState extends ConsumerState<PondBackground> {
 
   @override
   Widget build(BuildContext context) {
-    final ambientEnabled = ref.watch(homeAmbientEnabledProvider);
+    final ambientEnabled = ref.watch(ambientEnabledProvider);
 
-    ref.listen<bool>(homeAmbientPausedProvider, (_, isPaused) {
-      if (!ref.read(homeAmbientEnabledProvider)) return;
+    ref.listen<bool>(ambientPausedProvider, (_, isPaused) {
+      if (!ref.read(ambientEnabledProvider)) return;
       if (isPaused) {
         _game.pauseEngine();
       } else {

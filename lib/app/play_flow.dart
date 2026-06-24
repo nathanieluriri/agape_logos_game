@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/application/auth_providers.dart';
 import '../features/auth/presentation/widgets/auth_sheet.dart';
-import '../features/home/presentation/widgets/home_background.dart'
-    show homeAmbientPausedProvider;
+import '../game/ambient/ambient_providers.dart' show ambientPausedProvider;
 
 /// Shared Play action for the home and level-complete pages: if the player is
 /// not signed in, prompt sign-in first; then pause the pond ambient, open the
@@ -17,9 +16,9 @@ Future<void> startPlayFlow(BuildContext context, WidgetRef ref) async {
     if (!context.mounted) return;
     if (ref.read(currentUserProvider) == null) return;
   }
-  ref.read(homeAmbientPausedProvider.notifier).pause(true);
+  ref.read(ambientPausedProvider.notifier).pause(true);
   await context.push('/game');
   if (context.mounted) {
-    ref.read(homeAmbientPausedProvider.notifier).pause(false);
+    ref.read(ambientPausedProvider.notifier).pause(false);
   }
 }
