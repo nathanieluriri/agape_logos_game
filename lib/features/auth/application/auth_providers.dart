@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/storage/storage_providers.dart';
 import '../data/firebase_auth_repository.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_user.dart';
@@ -47,6 +48,11 @@ class AuthController extends AsyncNotifier<void> {
 
   Future<void> signOut() =>
       _run(() => ref.read(authRepositoryProvider).signOut());
+
+  Future<void> deleteAccount() => _run(() async {
+        await ref.read(authRepositoryProvider).deleteAccount();
+        await ref.read(appDatabaseProvider).clearLocalGameData();
+      });
 }
 
 final authControllerProvider =

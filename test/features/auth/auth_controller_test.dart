@@ -1,7 +1,10 @@
+import 'package:agape_logos_game/core/storage/app_database.dart';
+import 'package:agape_logos_game/core/storage/storage_providers.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_failure.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -97,5 +100,41 @@ void main() {
     final c = containerWith(AuthFailure.unknown);
     await c.read(authControllerProvider.notifier).signInWithGuest();
     expect(c.read(authControllerProvider).error, AuthFailure.unknown);
+  });
+
+  test('deleteAccount clears local data on success', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await db.levelResultsDao.upsert(LevelResultsCompanion.insert(
+        id: 'x', levelId: 1, score: 0, completedAt: 1));
+    final c = ProviderContainer(overrides: [
+      authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
+      appDatabaseProvider.overrideWithValue(db),
+    ]);
+    addTearDown(c.dispose);
+
+    await c.read(authControllerProvider.notifier).deleteAccount();
+
+    expect(c.read(authControllerProvider).hasError, isFalse);
+    expect(await db.levelResultsDao.watchAll().first, isEmpty);
+  });
+
+  test('deleteAccount surfaces requiresRecentLogin and keeps data', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await db.levelResultsDao.upsert(LevelResultsCompanion.insert(
+        id: 'x', levelId: 1, score: 0, completedAt: 1));
+    final c = ProviderContainer(overrides: [
+      authRepositoryProvider.overrideWithValue(
+          _FakeAuthRepository(failure: AuthFailure.requiresRecentLogin)),
+      appDatabaseProvider.overrideWithValue(db),
+    ]);
+    addTearDown(c.dispose);
+
+    await c.read(authControllerProvider.notifier).deleteAccount();
+
+    expect(c.read(authControllerProvider).error,
+        AuthFailure.requiresRecentLogin);
+    expect(await db.levelResultsDao.watchAll().first, isNotEmpty);
   });
 }
