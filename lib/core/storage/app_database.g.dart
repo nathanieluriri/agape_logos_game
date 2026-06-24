@@ -1029,6 +1029,683 @@ class LevelResultsCompanion extends UpdateCompanion<LevelResultRow> {
   }
 }
 
+class $CachedPuzzlesTable extends CachedPuzzles
+    with TableInfo<$CachedPuzzlesTable, CachedPuzzleRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedPuzzlesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _puzzleIdMeta = const VerificationMeta(
+    'puzzleId',
+  );
+  @override
+  late final GeneratedColumn<String> puzzleId = GeneratedColumn<String>(
+    'puzzle_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tierMeta = const VerificationMeta('tier');
+  @override
+  late final GeneratedColumn<String> tier = GeneratedColumn<String>(
+    'tier',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tierRankMeta = const VerificationMeta(
+    'tierRank',
+  );
+  @override
+  late final GeneratedColumn<int> tierRank = GeneratedColumn<int>(
+    'tier_rank',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rackSizeMeta = const VerificationMeta(
+    'rackSize',
+  );
+  @override
+  late final GeneratedColumn<int> rackSize = GeneratedColumn<int>(
+    'rack_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lettersJsonMeta = const VerificationMeta(
+    'lettersJson',
+  );
+  @override
+  late final GeneratedColumn<String> lettersJson = GeneratedColumn<String>(
+    'letters_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _anchorMeta = const VerificationMeta('anchor');
+  @override
+  late final GeneratedColumn<String> anchor = GeneratedColumn<String>(
+    'anchor',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _answersJsonMeta = const VerificationMeta(
+    'answersJson',
+  );
+  @override
+  late final GeneratedColumn<String> answersJson = GeneratedColumn<String>(
+    'answers_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _answerCountMeta = const VerificationMeta(
+    'answerCount',
+  );
+  @override
+  late final GeneratedColumn<int> answerCount = GeneratedColumn<int>(
+    'answer_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _orderIndexMeta = const VerificationMeta(
+    'orderIndex',
+  );
+  @override
+  late final GeneratedColumn<int> orderIndex = GeneratedColumn<int>(
+    'order_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _completedMeta = const VerificationMeta(
+    'completed',
+  );
+  @override
+  late final GeneratedColumn<bool> completed = GeneratedColumn<bool>(
+    'completed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("completed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _assignedAtMeta = const VerificationMeta(
+    'assignedAt',
+  );
+  @override
+  late final GeneratedColumn<int> assignedAt = GeneratedColumn<int>(
+    'assigned_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    puzzleId,
+    tier,
+    tierRank,
+    rackSize,
+    lettersJson,
+    anchor,
+    answersJson,
+    answerCount,
+    orderIndex,
+    completed,
+    assignedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_puzzles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedPuzzleRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('puzzle_id')) {
+      context.handle(
+        _puzzleIdMeta,
+        puzzleId.isAcceptableOrUnknown(data['puzzle_id']!, _puzzleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_puzzleIdMeta);
+    }
+    if (data.containsKey('tier')) {
+      context.handle(
+        _tierMeta,
+        tier.isAcceptableOrUnknown(data['tier']!, _tierMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tierMeta);
+    }
+    if (data.containsKey('tier_rank')) {
+      context.handle(
+        _tierRankMeta,
+        tierRank.isAcceptableOrUnknown(data['tier_rank']!, _tierRankMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tierRankMeta);
+    }
+    if (data.containsKey('rack_size')) {
+      context.handle(
+        _rackSizeMeta,
+        rackSize.isAcceptableOrUnknown(data['rack_size']!, _rackSizeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rackSizeMeta);
+    }
+    if (data.containsKey('letters_json')) {
+      context.handle(
+        _lettersJsonMeta,
+        lettersJson.isAcceptableOrUnknown(
+          data['letters_json']!,
+          _lettersJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lettersJsonMeta);
+    }
+    if (data.containsKey('anchor')) {
+      context.handle(
+        _anchorMeta,
+        anchor.isAcceptableOrUnknown(data['anchor']!, _anchorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_anchorMeta);
+    }
+    if (data.containsKey('answers_json')) {
+      context.handle(
+        _answersJsonMeta,
+        answersJson.isAcceptableOrUnknown(
+          data['answers_json']!,
+          _answersJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_answersJsonMeta);
+    }
+    if (data.containsKey('answer_count')) {
+      context.handle(
+        _answerCountMeta,
+        answerCount.isAcceptableOrUnknown(
+          data['answer_count']!,
+          _answerCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_answerCountMeta);
+    }
+    if (data.containsKey('order_index')) {
+      context.handle(
+        _orderIndexMeta,
+        orderIndex.isAcceptableOrUnknown(data['order_index']!, _orderIndexMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_orderIndexMeta);
+    }
+    if (data.containsKey('completed')) {
+      context.handle(
+        _completedMeta,
+        completed.isAcceptableOrUnknown(data['completed']!, _completedMeta),
+      );
+    }
+    if (data.containsKey('assigned_at')) {
+      context.handle(
+        _assignedAtMeta,
+        assignedAt.isAcceptableOrUnknown(data['assigned_at']!, _assignedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_assignedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {puzzleId};
+  @override
+  CachedPuzzleRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedPuzzleRow(
+      puzzleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}puzzle_id'],
+      )!,
+      tier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tier'],
+      )!,
+      tierRank: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tier_rank'],
+      )!,
+      rackSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rack_size'],
+      )!,
+      lettersJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}letters_json'],
+      )!,
+      anchor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}anchor'],
+      )!,
+      answersJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}answers_json'],
+      )!,
+      answerCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}answer_count'],
+      )!,
+      orderIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}order_index'],
+      )!,
+      completed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}completed'],
+      )!,
+      assignedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}assigned_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedPuzzlesTable createAlias(String alias) {
+    return $CachedPuzzlesTable(attachedDatabase, alias);
+  }
+}
+
+class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
+  final String puzzleId;
+  final String tier;
+  final int tierRank;
+  final int rackSize;
+  final String lettersJson;
+  final String anchor;
+  final String answersJson;
+  final int answerCount;
+  final int orderIndex;
+  final bool completed;
+  final int assignedAt;
+  const CachedPuzzleRow({
+    required this.puzzleId,
+    required this.tier,
+    required this.tierRank,
+    required this.rackSize,
+    required this.lettersJson,
+    required this.anchor,
+    required this.answersJson,
+    required this.answerCount,
+    required this.orderIndex,
+    required this.completed,
+    required this.assignedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['puzzle_id'] = Variable<String>(puzzleId);
+    map['tier'] = Variable<String>(tier);
+    map['tier_rank'] = Variable<int>(tierRank);
+    map['rack_size'] = Variable<int>(rackSize);
+    map['letters_json'] = Variable<String>(lettersJson);
+    map['anchor'] = Variable<String>(anchor);
+    map['answers_json'] = Variable<String>(answersJson);
+    map['answer_count'] = Variable<int>(answerCount);
+    map['order_index'] = Variable<int>(orderIndex);
+    map['completed'] = Variable<bool>(completed);
+    map['assigned_at'] = Variable<int>(assignedAt);
+    return map;
+  }
+
+  CachedPuzzlesCompanion toCompanion(bool nullToAbsent) {
+    return CachedPuzzlesCompanion(
+      puzzleId: Value(puzzleId),
+      tier: Value(tier),
+      tierRank: Value(tierRank),
+      rackSize: Value(rackSize),
+      lettersJson: Value(lettersJson),
+      anchor: Value(anchor),
+      answersJson: Value(answersJson),
+      answerCount: Value(answerCount),
+      orderIndex: Value(orderIndex),
+      completed: Value(completed),
+      assignedAt: Value(assignedAt),
+    );
+  }
+
+  factory CachedPuzzleRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedPuzzleRow(
+      puzzleId: serializer.fromJson<String>(json['puzzleId']),
+      tier: serializer.fromJson<String>(json['tier']),
+      tierRank: serializer.fromJson<int>(json['tierRank']),
+      rackSize: serializer.fromJson<int>(json['rackSize']),
+      lettersJson: serializer.fromJson<String>(json['lettersJson']),
+      anchor: serializer.fromJson<String>(json['anchor']),
+      answersJson: serializer.fromJson<String>(json['answersJson']),
+      answerCount: serializer.fromJson<int>(json['answerCount']),
+      orderIndex: serializer.fromJson<int>(json['orderIndex']),
+      completed: serializer.fromJson<bool>(json['completed']),
+      assignedAt: serializer.fromJson<int>(json['assignedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'puzzleId': serializer.toJson<String>(puzzleId),
+      'tier': serializer.toJson<String>(tier),
+      'tierRank': serializer.toJson<int>(tierRank),
+      'rackSize': serializer.toJson<int>(rackSize),
+      'lettersJson': serializer.toJson<String>(lettersJson),
+      'anchor': serializer.toJson<String>(anchor),
+      'answersJson': serializer.toJson<String>(answersJson),
+      'answerCount': serializer.toJson<int>(answerCount),
+      'orderIndex': serializer.toJson<int>(orderIndex),
+      'completed': serializer.toJson<bool>(completed),
+      'assignedAt': serializer.toJson<int>(assignedAt),
+    };
+  }
+
+  CachedPuzzleRow copyWith({
+    String? puzzleId,
+    String? tier,
+    int? tierRank,
+    int? rackSize,
+    String? lettersJson,
+    String? anchor,
+    String? answersJson,
+    int? answerCount,
+    int? orderIndex,
+    bool? completed,
+    int? assignedAt,
+  }) => CachedPuzzleRow(
+    puzzleId: puzzleId ?? this.puzzleId,
+    tier: tier ?? this.tier,
+    tierRank: tierRank ?? this.tierRank,
+    rackSize: rackSize ?? this.rackSize,
+    lettersJson: lettersJson ?? this.lettersJson,
+    anchor: anchor ?? this.anchor,
+    answersJson: answersJson ?? this.answersJson,
+    answerCount: answerCount ?? this.answerCount,
+    orderIndex: orderIndex ?? this.orderIndex,
+    completed: completed ?? this.completed,
+    assignedAt: assignedAt ?? this.assignedAt,
+  );
+  CachedPuzzleRow copyWithCompanion(CachedPuzzlesCompanion data) {
+    return CachedPuzzleRow(
+      puzzleId: data.puzzleId.present ? data.puzzleId.value : this.puzzleId,
+      tier: data.tier.present ? data.tier.value : this.tier,
+      tierRank: data.tierRank.present ? data.tierRank.value : this.tierRank,
+      rackSize: data.rackSize.present ? data.rackSize.value : this.rackSize,
+      lettersJson: data.lettersJson.present
+          ? data.lettersJson.value
+          : this.lettersJson,
+      anchor: data.anchor.present ? data.anchor.value : this.anchor,
+      answersJson: data.answersJson.present
+          ? data.answersJson.value
+          : this.answersJson,
+      answerCount: data.answerCount.present
+          ? data.answerCount.value
+          : this.answerCount,
+      orderIndex: data.orderIndex.present
+          ? data.orderIndex.value
+          : this.orderIndex,
+      completed: data.completed.present ? data.completed.value : this.completed,
+      assignedAt: data.assignedAt.present
+          ? data.assignedAt.value
+          : this.assignedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedPuzzleRow(')
+          ..write('puzzleId: $puzzleId, ')
+          ..write('tier: $tier, ')
+          ..write('tierRank: $tierRank, ')
+          ..write('rackSize: $rackSize, ')
+          ..write('lettersJson: $lettersJson, ')
+          ..write('anchor: $anchor, ')
+          ..write('answersJson: $answersJson, ')
+          ..write('answerCount: $answerCount, ')
+          ..write('orderIndex: $orderIndex, ')
+          ..write('completed: $completed, ')
+          ..write('assignedAt: $assignedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    puzzleId,
+    tier,
+    tierRank,
+    rackSize,
+    lettersJson,
+    anchor,
+    answersJson,
+    answerCount,
+    orderIndex,
+    completed,
+    assignedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedPuzzleRow &&
+          other.puzzleId == this.puzzleId &&
+          other.tier == this.tier &&
+          other.tierRank == this.tierRank &&
+          other.rackSize == this.rackSize &&
+          other.lettersJson == this.lettersJson &&
+          other.anchor == this.anchor &&
+          other.answersJson == this.answersJson &&
+          other.answerCount == this.answerCount &&
+          other.orderIndex == this.orderIndex &&
+          other.completed == this.completed &&
+          other.assignedAt == this.assignedAt);
+}
+
+class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
+  final Value<String> puzzleId;
+  final Value<String> tier;
+  final Value<int> tierRank;
+  final Value<int> rackSize;
+  final Value<String> lettersJson;
+  final Value<String> anchor;
+  final Value<String> answersJson;
+  final Value<int> answerCount;
+  final Value<int> orderIndex;
+  final Value<bool> completed;
+  final Value<int> assignedAt;
+  final Value<int> rowid;
+  const CachedPuzzlesCompanion({
+    this.puzzleId = const Value.absent(),
+    this.tier = const Value.absent(),
+    this.tierRank = const Value.absent(),
+    this.rackSize = const Value.absent(),
+    this.lettersJson = const Value.absent(),
+    this.anchor = const Value.absent(),
+    this.answersJson = const Value.absent(),
+    this.answerCount = const Value.absent(),
+    this.orderIndex = const Value.absent(),
+    this.completed = const Value.absent(),
+    this.assignedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CachedPuzzlesCompanion.insert({
+    required String puzzleId,
+    required String tier,
+    required int tierRank,
+    required int rackSize,
+    required String lettersJson,
+    required String anchor,
+    required String answersJson,
+    required int answerCount,
+    required int orderIndex,
+    this.completed = const Value.absent(),
+    required int assignedAt,
+    this.rowid = const Value.absent(),
+  }) : puzzleId = Value(puzzleId),
+       tier = Value(tier),
+       tierRank = Value(tierRank),
+       rackSize = Value(rackSize),
+       lettersJson = Value(lettersJson),
+       anchor = Value(anchor),
+       answersJson = Value(answersJson),
+       answerCount = Value(answerCount),
+       orderIndex = Value(orderIndex),
+       assignedAt = Value(assignedAt);
+  static Insertable<CachedPuzzleRow> custom({
+    Expression<String>? puzzleId,
+    Expression<String>? tier,
+    Expression<int>? tierRank,
+    Expression<int>? rackSize,
+    Expression<String>? lettersJson,
+    Expression<String>? anchor,
+    Expression<String>? answersJson,
+    Expression<int>? answerCount,
+    Expression<int>? orderIndex,
+    Expression<bool>? completed,
+    Expression<int>? assignedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (puzzleId != null) 'puzzle_id': puzzleId,
+      if (tier != null) 'tier': tier,
+      if (tierRank != null) 'tier_rank': tierRank,
+      if (rackSize != null) 'rack_size': rackSize,
+      if (lettersJson != null) 'letters_json': lettersJson,
+      if (anchor != null) 'anchor': anchor,
+      if (answersJson != null) 'answers_json': answersJson,
+      if (answerCount != null) 'answer_count': answerCount,
+      if (orderIndex != null) 'order_index': orderIndex,
+      if (completed != null) 'completed': completed,
+      if (assignedAt != null) 'assigned_at': assignedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CachedPuzzlesCompanion copyWith({
+    Value<String>? puzzleId,
+    Value<String>? tier,
+    Value<int>? tierRank,
+    Value<int>? rackSize,
+    Value<String>? lettersJson,
+    Value<String>? anchor,
+    Value<String>? answersJson,
+    Value<int>? answerCount,
+    Value<int>? orderIndex,
+    Value<bool>? completed,
+    Value<int>? assignedAt,
+    Value<int>? rowid,
+  }) {
+    return CachedPuzzlesCompanion(
+      puzzleId: puzzleId ?? this.puzzleId,
+      tier: tier ?? this.tier,
+      tierRank: tierRank ?? this.tierRank,
+      rackSize: rackSize ?? this.rackSize,
+      lettersJson: lettersJson ?? this.lettersJson,
+      anchor: anchor ?? this.anchor,
+      answersJson: answersJson ?? this.answersJson,
+      answerCount: answerCount ?? this.answerCount,
+      orderIndex: orderIndex ?? this.orderIndex,
+      completed: completed ?? this.completed,
+      assignedAt: assignedAt ?? this.assignedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (puzzleId.present) {
+      map['puzzle_id'] = Variable<String>(puzzleId.value);
+    }
+    if (tier.present) {
+      map['tier'] = Variable<String>(tier.value);
+    }
+    if (tierRank.present) {
+      map['tier_rank'] = Variable<int>(tierRank.value);
+    }
+    if (rackSize.present) {
+      map['rack_size'] = Variable<int>(rackSize.value);
+    }
+    if (lettersJson.present) {
+      map['letters_json'] = Variable<String>(lettersJson.value);
+    }
+    if (anchor.present) {
+      map['anchor'] = Variable<String>(anchor.value);
+    }
+    if (answersJson.present) {
+      map['answers_json'] = Variable<String>(answersJson.value);
+    }
+    if (answerCount.present) {
+      map['answer_count'] = Variable<int>(answerCount.value);
+    }
+    if (orderIndex.present) {
+      map['order_index'] = Variable<int>(orderIndex.value);
+    }
+    if (completed.present) {
+      map['completed'] = Variable<bool>(completed.value);
+    }
+    if (assignedAt.present) {
+      map['assigned_at'] = Variable<int>(assignedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedPuzzlesCompanion(')
+          ..write('puzzleId: $puzzleId, ')
+          ..write('tier: $tier, ')
+          ..write('tierRank: $tierRank, ')
+          ..write('rackSize: $rackSize, ')
+          ..write('lettersJson: $lettersJson, ')
+          ..write('anchor: $anchor, ')
+          ..write('answersJson: $answersJson, ')
+          ..write('answerCount: $answerCount, ')
+          ..write('orderIndex: $orderIndex, ')
+          ..write('completed: $completed, ')
+          ..write('assignedAt: $assignedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1036,10 +1713,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $LevelResultsTable levelResults = $LevelResultsTable(this);
+  late final $CachedPuzzlesTable cachedPuzzles = $CachedPuzzlesTable(this);
   late final PendingMutationsDao pendingMutationsDao = PendingMutationsDao(
     this as AppDatabase,
   );
   late final LevelResultsDao levelResultsDao = LevelResultsDao(
+    this as AppDatabase,
+  );
+  late final CachedPuzzlesDao cachedPuzzlesDao = CachedPuzzlesDao(
     this as AppDatabase,
   );
   @override
@@ -1049,6 +1730,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     pendingMutations,
     levelResults,
+    cachedPuzzles,
   ];
 }
 
@@ -1582,6 +2264,330 @@ typedef $$LevelResultsTableProcessedTableManager =
       LevelResultRow,
       PrefetchHooks Function()
     >;
+typedef $$CachedPuzzlesTableCreateCompanionBuilder =
+    CachedPuzzlesCompanion Function({
+      required String puzzleId,
+      required String tier,
+      required int tierRank,
+      required int rackSize,
+      required String lettersJson,
+      required String anchor,
+      required String answersJson,
+      required int answerCount,
+      required int orderIndex,
+      Value<bool> completed,
+      required int assignedAt,
+      Value<int> rowid,
+    });
+typedef $$CachedPuzzlesTableUpdateCompanionBuilder =
+    CachedPuzzlesCompanion Function({
+      Value<String> puzzleId,
+      Value<String> tier,
+      Value<int> tierRank,
+      Value<int> rackSize,
+      Value<String> lettersJson,
+      Value<String> anchor,
+      Value<String> answersJson,
+      Value<int> answerCount,
+      Value<int> orderIndex,
+      Value<bool> completed,
+      Value<int> assignedAt,
+      Value<int> rowid,
+    });
+
+class $$CachedPuzzlesTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedPuzzlesTable> {
+  $$CachedPuzzlesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get puzzleId => $composableBuilder(
+    column: $table.puzzleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tier => $composableBuilder(
+    column: $table.tier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tierRank => $composableBuilder(
+    column: $table.tierRank,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rackSize => $composableBuilder(
+    column: $table.rackSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lettersJson => $composableBuilder(
+    column: $table.lettersJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get anchor => $composableBuilder(
+    column: $table.anchor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get answersJson => $composableBuilder(
+    column: $table.answersJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get answerCount => $composableBuilder(
+    column: $table.answerCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get orderIndex => $composableBuilder(
+    column: $table.orderIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get completed => $composableBuilder(
+    column: $table.completed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get assignedAt => $composableBuilder(
+    column: $table.assignedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedPuzzlesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedPuzzlesTable> {
+  $$CachedPuzzlesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get puzzleId => $composableBuilder(
+    column: $table.puzzleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tier => $composableBuilder(
+    column: $table.tier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tierRank => $composableBuilder(
+    column: $table.tierRank,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rackSize => $composableBuilder(
+    column: $table.rackSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lettersJson => $composableBuilder(
+    column: $table.lettersJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get anchor => $composableBuilder(
+    column: $table.anchor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get answersJson => $composableBuilder(
+    column: $table.answersJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get answerCount => $composableBuilder(
+    column: $table.answerCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get orderIndex => $composableBuilder(
+    column: $table.orderIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get completed => $composableBuilder(
+    column: $table.completed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get assignedAt => $composableBuilder(
+    column: $table.assignedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedPuzzlesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedPuzzlesTable> {
+  $$CachedPuzzlesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get puzzleId =>
+      $composableBuilder(column: $table.puzzleId, builder: (column) => column);
+
+  GeneratedColumn<String> get tier =>
+      $composableBuilder(column: $table.tier, builder: (column) => column);
+
+  GeneratedColumn<int> get tierRank =>
+      $composableBuilder(column: $table.tierRank, builder: (column) => column);
+
+  GeneratedColumn<int> get rackSize =>
+      $composableBuilder(column: $table.rackSize, builder: (column) => column);
+
+  GeneratedColumn<String> get lettersJson => $composableBuilder(
+    column: $table.lettersJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get anchor =>
+      $composableBuilder(column: $table.anchor, builder: (column) => column);
+
+  GeneratedColumn<String> get answersJson => $composableBuilder(
+    column: $table.answersJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get answerCount => $composableBuilder(
+    column: $table.answerCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get orderIndex => $composableBuilder(
+    column: $table.orderIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get completed =>
+      $composableBuilder(column: $table.completed, builder: (column) => column);
+
+  GeneratedColumn<int> get assignedAt => $composableBuilder(
+    column: $table.assignedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$CachedPuzzlesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CachedPuzzlesTable,
+          CachedPuzzleRow,
+          $$CachedPuzzlesTableFilterComposer,
+          $$CachedPuzzlesTableOrderingComposer,
+          $$CachedPuzzlesTableAnnotationComposer,
+          $$CachedPuzzlesTableCreateCompanionBuilder,
+          $$CachedPuzzlesTableUpdateCompanionBuilder,
+          (
+            CachedPuzzleRow,
+            BaseReferences<_$AppDatabase, $CachedPuzzlesTable, CachedPuzzleRow>,
+          ),
+          CachedPuzzleRow,
+          PrefetchHooks Function()
+        > {
+  $$CachedPuzzlesTableTableManager(_$AppDatabase db, $CachedPuzzlesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedPuzzlesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedPuzzlesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedPuzzlesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> puzzleId = const Value.absent(),
+                Value<String> tier = const Value.absent(),
+                Value<int> tierRank = const Value.absent(),
+                Value<int> rackSize = const Value.absent(),
+                Value<String> lettersJson = const Value.absent(),
+                Value<String> anchor = const Value.absent(),
+                Value<String> answersJson = const Value.absent(),
+                Value<int> answerCount = const Value.absent(),
+                Value<int> orderIndex = const Value.absent(),
+                Value<bool> completed = const Value.absent(),
+                Value<int> assignedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CachedPuzzlesCompanion(
+                puzzleId: puzzleId,
+                tier: tier,
+                tierRank: tierRank,
+                rackSize: rackSize,
+                lettersJson: lettersJson,
+                anchor: anchor,
+                answersJson: answersJson,
+                answerCount: answerCount,
+                orderIndex: orderIndex,
+                completed: completed,
+                assignedAt: assignedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String puzzleId,
+                required String tier,
+                required int tierRank,
+                required int rackSize,
+                required String lettersJson,
+                required String anchor,
+                required String answersJson,
+                required int answerCount,
+                required int orderIndex,
+                Value<bool> completed = const Value.absent(),
+                required int assignedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CachedPuzzlesCompanion.insert(
+                puzzleId: puzzleId,
+                tier: tier,
+                tierRank: tierRank,
+                rackSize: rackSize,
+                lettersJson: lettersJson,
+                anchor: anchor,
+                answersJson: answersJson,
+                answerCount: answerCount,
+                orderIndex: orderIndex,
+                completed: completed,
+                assignedAt: assignedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedPuzzlesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CachedPuzzlesTable,
+      CachedPuzzleRow,
+      $$CachedPuzzlesTableFilterComposer,
+      $$CachedPuzzlesTableOrderingComposer,
+      $$CachedPuzzlesTableAnnotationComposer,
+      $$CachedPuzzlesTableCreateCompanionBuilder,
+      $$CachedPuzzlesTableUpdateCompanionBuilder,
+      (
+        CachedPuzzleRow,
+        BaseReferences<_$AppDatabase, $CachedPuzzlesTable, CachedPuzzleRow>,
+      ),
+      CachedPuzzleRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1590,4 +2596,6 @@ class $AppDatabaseManager {
       $$PendingMutationsTableTableManager(_db, _db.pendingMutations);
   $$LevelResultsTableTableManager get levelResults =>
       $$LevelResultsTableTableManager(_db, _db.levelResults);
+  $$CachedPuzzlesTableTableManager get cachedPuzzles =>
+      $$CachedPuzzlesTableTableManager(_db, _db.cachedPuzzles);
 }
