@@ -2,7 +2,7 @@ import {z} from "zod";
 import {registry} from "./registry";
 import {ProfileResponseSchema, ProfileUpdateSchema} from "../schemas/profile";
 import {LevelResultBodySchema} from "../schemas/level_results";
-import {DrawBodySchema} from "../schemas/puzzles";
+import {DrawBodySchema, PuzzleResultBodySchema} from "../schemas/puzzles";
 
 const bearer = [{bearerAuth: [] as string[]}];
 
@@ -69,6 +69,23 @@ registry.registerPath({
   },
   responses: {
     200: {description: "Assigned puzzles grouped by tier"},
+    400: {description: "Validation failed"},
+    401: {description: "Missing or invalid token"},
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/puzzles/{puzzleId}/result",
+  summary: "Record a solved puzzle and mark the assignment completed",
+  security: bearer,
+  request: {
+    params: z.object({puzzleId: z.string()}),
+    headers: z.object({"idempotency-key": z.string()}),
+    body: {content: {"application/json": {schema: PuzzleResultBodySchema}}},
+  },
+  responses: {
+    200: {description: "Stored", content: {"application/json": {schema: z.object({ok: z.boolean()})}}},
     400: {description: "Validation failed"},
     401: {description: "Missing or invalid token"},
   },
