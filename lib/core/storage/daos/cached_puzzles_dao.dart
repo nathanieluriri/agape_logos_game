@@ -23,21 +23,23 @@ class CachedPuzzlesDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<int> unplayedCount() async {
-    final rows = await (select(cachedPuzzles)
-          ..where((t) => t.completed.equals(false)))
-        .get();
-    return rows.length;
+    final count = cachedPuzzles.puzzleId.count();
+    final q = selectOnly(cachedPuzzles)
+      ..addColumns([count])
+      ..where(cachedPuzzles.completed.equals(false));
+    return (await q.getSingle()).read(count) ?? 0;
   }
 
   Future<Map<String, int>> remainingByTier() async {
-    final rows = await (select(cachedPuzzles)
-          ..where((t) => t.completed.equals(false)))
-        .get();
-    final out = <String, int>{};
-    for (final r in rows) {
-      out[r.tier] = (out[r.tier] ?? 0) + 1;
-    }
-    return out;
+    final count = cachedPuzzles.puzzleId.count();
+    final q = selectOnly(cachedPuzzles)
+      ..addColumns([cachedPuzzles.tier, count])
+      ..where(cachedPuzzles.completed.equals(false))
+      ..groupBy([cachedPuzzles.tier]);
+    final rows = await q.get();
+    return {
+      for (final r in rows) r.read(cachedPuzzles.tier)!: r.read(count) ?? 0,
+    };
   }
 
   Stream<CachedPuzzleRow?> watchCurrentPuzzle() => (select(cachedPuzzles)
