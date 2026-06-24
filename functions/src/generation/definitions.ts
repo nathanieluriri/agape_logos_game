@@ -7,8 +7,11 @@ export interface DefinitionCache {
 }
 
 export function loadDefinitionCache(path: string): DefinitionCache {
-  if (!fs.existsSync(path)) return {};
-  return JSON.parse(fs.readFileSync(path, "utf8")) as DefinitionCache;
+  try {
+    return JSON.parse(fs.readFileSync(path, "utf8")) as DefinitionCache;
+  } catch {
+    return {};
+  }
 }
 
 export function saveDefinitionCache(path: string, cache: DefinitionCache): void {

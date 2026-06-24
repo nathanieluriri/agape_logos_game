@@ -4,13 +4,13 @@ import {runGeneration, defaultDeps, TierPlan} from "./generate";
 // Splits N new puzzles across tiers by the pool-target ratio.
 function splitByRatio(total: number): Record<Tier, number> {
   const totalTarget = TIER_ORDER.reduce((acc, t) => acc + TIERS[t].poolTarget, 0);
-  const out = {easy: 0, medium: 0, hard: 0, expert: 0} as Record<Tier, number>;
+  const out = Object.fromEntries(TIER_ORDER.map((t) => [t, 0])) as Record<Tier, number>;
   let assigned = 0;
   TIER_ORDER.forEach((tier, i) => {
     if (i === TIER_ORDER.length - 1) {
-      out[tier] = total - assigned; // remainder to the last tier
+      out[tier] = Math.max(0, total - assigned); // remainder to the last tier
     } else {
-      out[tier] = Math.round((TIERS[tier].poolTarget / totalTarget) * total);
+      out[tier] = Math.max(0, Math.round((TIERS[tier].poolTarget / totalTarget) * total));
       assigned += out[tier];
     }
   });

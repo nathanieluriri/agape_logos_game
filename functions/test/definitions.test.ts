@@ -17,6 +17,14 @@ describe("definition cache file", () => {
     expect(loadDefinitionCache(p)).toEqual({NO: "not any", WON: null});
     fs.unlinkSync(p);
   });
+
+  test("corrupt (non-JSON) cache file returns {} without throwing", () => {
+    const p = path.join(os.tmpdir(), `defcache_corrupt_${Date.now()}.json`);
+    fs.writeFileSync(p, "not valid json {{{{", "utf8");
+    expect(() => loadDefinitionCache(p)).not.toThrow();
+    expect(loadDefinitionCache(p)).toEqual({});
+    fs.unlinkSync(p);
+  });
 });
 
 describe("resolveDefinitions", () => {
