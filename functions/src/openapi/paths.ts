@@ -73,3 +73,16 @@ registry.registerPath({
     401: {description: "Missing or invalid token"},
   },
 });
+
+registry.registerPath({
+  method: "get",
+  path: "/puzzles/assigned",
+  summary: "Recover the caller's assigned puzzles by reference",
+  security: bearer,
+  request: {query: z.object({status: z.enum(["incomplete", "all"]).optional()})},
+  responses: {
+    200: {description: "Assigned puzzles"},
+    400: {description: "Validation failed"},
+    401: {description: "Missing or invalid token"},
+  },
+});

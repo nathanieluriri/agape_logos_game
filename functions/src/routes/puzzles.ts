@@ -2,10 +2,25 @@ import {Response, Router} from "express";
 import {AuthedRequest, requireAuth} from "../middleware/auth";
 import {asyncHandler} from "../middleware/error";
 import {validate, ValidatedRequest} from "../middleware/validate";
-import {DrawBody, DrawBodySchema, DrawHeadersSchema} from "../schemas/puzzles";
-import {draw} from "../services/assignment_service";
+import {AssignedQuerySchema, DrawBody, DrawBodySchema, DrawHeadersSchema} from "../schemas/puzzles";
+import {draw, getAssigned} from "../services/assignment_service";
 
 export const puzzlesRouter = Router();
+
+// GET /puzzles/assigned?status=incomplete|all - recover assigned puzzles by reference.
+puzzlesRouter.get(
+  "/puzzles/assigned",
+  requireAuth,
+  asyncHandler<AuthedRequest>(async (req, res: Response) => {
+    const parsed = AssignedQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({error: "validation failed", issues: parsed.error.issues});
+      return;
+    }
+    const result = await getAssigned(req.uid as string, parsed.data.status);
+    res.status(200).json(result);
+  }),
+);
 
 // POST /puzzles/draw - assign a batch of unseen puzzles per requested tier.
 puzzlesRouter.post(

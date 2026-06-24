@@ -121,3 +121,20 @@ export async function draw(
   }
   return {byTier, shortfall};
 }
+
+export async function getAssigned(
+  uid: string,
+  status: "incomplete" | "all",
+): Promise<{puzzles: (PuzzleDoc & {completed: boolean})[]}> {
+  const col = db.collection("users").doc(uid).collection("assignments");
+  const snap = status === "incomplete"
+    ? await col.where("completed", "==", false).get()
+    : await col.get();
+  const completedById = new Map(
+    snap.docs.map((d) => [d.id, (d.data().completed as boolean) ?? false]),
+  );
+  const puzzles = await fetchPuzzles([...completedById.keys()]);
+  return {
+    puzzles: puzzles.map((p) => ({...p, completed: completedById.get(p.letterKey) ?? false})),
+  };
+}
