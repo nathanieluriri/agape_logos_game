@@ -16,6 +16,11 @@ void main() {
     expect(AuthFailure.fromCode('something-else'), AuthFailure.unknown);
   });
 
+  test('fromCode maps requires-recent-login', () {
+    expect(AuthFailure.fromCode('requires-recent-login'),
+        AuthFailure.requiresRecentLogin);
+  });
+
   test('every failure has a non-empty message', () {
     for (final f in AuthFailure.values) {
       expect(f.message, isNotEmpty);

@@ -40,6 +40,11 @@ class _FakeAuthRepository implements AuthRepository {
   Future<void> signOut() async {}
 
   @override
+  Future<void> deleteAccount() async {
+    if (failure != null) throw failure!;
+  }
+
+  @override
   Stream<AuthUser?> authStateChanges() => const Stream<AuthUser?>.empty();
 
   @override

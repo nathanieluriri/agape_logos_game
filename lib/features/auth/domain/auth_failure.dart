@@ -7,6 +7,7 @@ enum AuthFailure {
   weakPassword,
   invalidEmail,
   offline,
+  requiresRecentLogin,
   unknown;
 
   static AuthFailure fromCode(String code) {
@@ -24,6 +25,8 @@ enum AuthFailure {
         return AuthFailure.invalidEmail;
       case 'network-request-failed':
         return AuthFailure.offline;
+      case 'requires-recent-login':
+        return AuthFailure.requiresRecentLogin;
       default:
         return AuthFailure.unknown;
     }
@@ -43,6 +46,8 @@ enum AuthFailure {
         return 'That email address looks invalid.';
       case AuthFailure.offline:
         return "You're offline. Connect and try again.";
+      case AuthFailure.requiresRecentLogin:
+        return 'Please sign in again to confirm this change.';
       case AuthFailure.unknown:
         return 'Something went wrong. Please try again.';
     }

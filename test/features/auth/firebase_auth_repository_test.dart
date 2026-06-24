@@ -121,4 +121,23 @@ void main() {
         .thenThrow(FirebaseAuthException(code: 'operation-not-allowed'));
     expect(() => repo.signInAnonymously(), throwsA(AuthFailure.unknown));
   });
+
+  test('deleteAccount maps requires-recent-login to AuthFailure', () {
+    final user = _MockUser();
+    when(() => user.delete())
+        .thenThrow(FirebaseAuthException(code: 'requires-recent-login'));
+    when(() => auth.currentUser).thenReturn(user);
+
+    expect(() => repo.deleteAccount(),
+        throwsA(AuthFailure.requiresRecentLogin));
+  });
+
+  test('deleteAccount deletes the current user on success', () async {
+    final user = _MockUser();
+    when(() => user.delete()).thenAnswer((_) async {});
+    when(() => auth.currentUser).thenReturn(user);
+
+    await repo.deleteAccount();
+    verify(() => user.delete()).called(1);
+  });
 }
