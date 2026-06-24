@@ -31,8 +31,8 @@ class AppDatabase extends _$AppDatabase {
 
   /// Wipes local game progress (used when an account is deleted). Leaves the
   /// device-level [GameSettings] untouched.
-  Future<void> clearLocalGameData() async {
-    await delete(levelResults).go();
-    await delete(pendingMutations).go();
-  }
+  Future<void> clearLocalGameData() => transaction(() async {
+        await delete(levelResults).go();
+        await delete(pendingMutations).go();
+      });
 }
