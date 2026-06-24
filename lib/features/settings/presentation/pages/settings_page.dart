@@ -130,7 +130,10 @@ class _AccountSection extends ConsumerWidget {
             user == null
                 ? 'Not signed in'
                 : (user.displayName ?? user.email ?? 'Signed in'),
-            style: const TextStyle(color: AppColors.padLabel, fontSize: 16),
+            style: Theme.of(context)
+                .textTheme
+                .bodyLarge
+                ?.copyWith(color: AppColors.padLabel),
           ),
         ),
         if (user == null)
