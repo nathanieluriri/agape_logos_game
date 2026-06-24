@@ -1,6 +1,7 @@
 // lib/features/level_complete/presentation/pages/level_complete_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../app/play_flow.dart';
 import '../../../../core/design/tokens/spacing.dart';
@@ -38,7 +39,7 @@ class LevelCompletePage extends ConsumerWidget {
             children: [
               PondTopBar(
                 coins: coins,
-                onSettings: () => showComingSoon(context, 'Settings'),
+                onSettings: () => context.push('/settings'),
                 onAddCoins: () => showComingSoon(context, 'Store'),
               ),
               const SizedBox(height: AppSpacing.lg),

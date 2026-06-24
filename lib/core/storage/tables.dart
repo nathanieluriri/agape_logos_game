@@ -53,4 +53,16 @@ class CachedPuzzles extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {puzzleId};
+/// Single-row local game settings (the row id is always 0). Local-only,
+/// never synced. Booleans default ON.
+@DataClassName('GameSettingsRow')
+class GameSettings extends Table {
+  IntColumn get id => integer().withDefault(const Constant(0))();
+  BoolColumn get soundEffects => boolean().withDefault(const Constant(true))();
+  BoolColumn get music => boolean().withDefault(const Constant(true))();
+  BoolColumn get notifications => boolean().withDefault(const Constant(true))();
+  BoolColumn get haptics => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
 }

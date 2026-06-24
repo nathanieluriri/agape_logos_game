@@ -58,6 +58,10 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() => _guard(() => _auth.signOut());
 
+  @override
+  Future<void> deleteAccount() =>
+      _guard(() async => _auth.currentUser?.delete());
+
   /// Awaits the first restored auth state, with a bounded timeout. Required in a
   /// fresh isolate where `currentUser` is null until Firebase finishes restoring
   /// the persisted user from disk. Returns the restored user, or null (signed
