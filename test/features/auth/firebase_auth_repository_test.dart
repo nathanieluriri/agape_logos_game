@@ -63,4 +63,18 @@ void main() {
 
     expect(await repo.authStateChanges().first, isNull);
   });
+
+  test('idToken returns the current user token when signed in', () async {
+    final user = _MockUser();
+    when(() => user.getIdToken()).thenAnswer((_) async => 'tok123');
+    when(() => auth.currentUser).thenReturn(user);
+
+    expect(await repo.idToken(), 'tok123');
+  });
+
+  test('idToken returns null when signed out', () async {
+    when(() => auth.currentUser).thenReturn(null);
+
+    expect(await repo.idToken(), isNull);
+  });
 }

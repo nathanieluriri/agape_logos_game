@@ -21,6 +21,13 @@ class FirebaseAuthRepository implements AuthRepository {
   AuthUser? get currentUser => _mapUser(_auth.currentUser);
 
   @override
+  Future<String?> idToken() async {
+    final User? user = _auth.currentUser;
+    if (user == null) return null;
+    return user.getIdToken();
+  }
+
+  @override
   Future<void> signInWithEmail(String email, String password) => _guard(
         () => _auth.signInWithEmailAndPassword(
           email: email,

@@ -35,18 +35,25 @@ void callbackDispatcher() {
   });
 }
 
-SyncScheduler createSyncScheduler(Future<void> Function() onFlush) =>
-    AndroidSyncScheduler(onFlush);
+SyncScheduler createSyncScheduler(
+  Future<void> Function() onFlush, {
+  required bool enableBackground,
+}) =>
+    AndroidSyncScheduler(onFlush, enableBackground: enableBackground);
 
 /// Android gets true background flushing via WorkManager, plus the same
 /// foreground safety net so the queue also drains while the app is open.
 /// (On non-Android `dart:io` platforms only the foreground net is active.)
 class AndroidSyncScheduler implements SyncScheduler {
-  AndroidSyncScheduler(this._onFlush, {ConnectivityService? connectivity})
-      : _connectivity = connectivity ?? ConnectivityService();
+  AndroidSyncScheduler(
+    this._onFlush, {
+    ConnectivityService? connectivity,
+    this._enableBackground = false,
+  }) : _connectivity = connectivity ?? ConnectivityService();
 
   final Future<void> Function() _onFlush;
   final ConnectivityService _connectivity;
+  final bool _enableBackground;
   StreamSubscription<bool>? _sub;
 
   @override
@@ -54,7 +61,10 @@ class AndroidSyncScheduler implements SyncScheduler {
     _sub = _connectivity.onStatusChange.listen((bool online) {
       if (online) _onFlush();
     });
-    if (Platform.isAndroid) {
+    // Background flushing stays off until 2c wires the real isolate sender; the
+    // placeholder isolate sender returns transient, which would burn retries and
+    // mark good mutations failed after ~5 background cycles.
+    if (_enableBackground && Platform.isAndroid) {
       await Workmanager().initialize(callbackDispatcher);
       await Workmanager().registerPeriodicTask(
         kFlushTask,
