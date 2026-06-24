@@ -26,4 +26,8 @@ abstract interface class AuthRepository {
   Future<void> sendPasswordReset(String email);
 
   Future<void> signOut();
+
+  /// Permanently deletes the current user's account. Throws
+  /// `AuthFailure.requiresRecentLogin` when Firebase needs a fresh sign-in.
+  Future<void> deleteAccount();
 }
