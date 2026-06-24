@@ -62,3 +62,6 @@ node_modules/
 
 # Firebase deploy cache - local only
 /.firebase/
+
+# Puzzle generation: definitions cache (word lists are committed, cache is not)
+functions/data/definitions_cache.json
