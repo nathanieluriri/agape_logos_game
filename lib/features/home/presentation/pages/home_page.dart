@@ -2,19 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/design/tokens/colors.dart';
+import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../features/player/application/player_controller.dart';
+import '../../../../shared/widgets/coming_soon_sheet.dart';
+import '../../../../shared/widgets/lily_pad.dart';
+import '../../../../shared/widgets/lily_pad_button.dart';
+import '../../../../shared/widgets/pond_background.dart';
+import '../../../../shared/widgets/pond_stage.dart';
+import '../../../../shared/widgets/pond_top_bar.dart';
+import '../../../../shared/widgets/wordmark_logo.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../../auth/presentation/widgets/auth_sheet.dart';
-import '../../application/home_controller.dart';
-import '../widgets/home_background.dart';
-import '../widgets/home_branding.dart';
-import '../widgets/home_top_bar.dart';
-import '../widgets/level_progress.dart';
-import '../widgets/play_button.dart';
-import '../widgets/withdraw_gift_button.dart';
+import '../widgets/home_background.dart' show homeAmbientPausedProvider;
 
-/// The home screen. Thin composition: chrome, branding, progress, and the action
-/// cluster over the ambient background. All data comes from [homeControllerProvider].
+/// The home screen (withdraw state). Thin composition of shared pond widgets.
+/// Shows the wordmark + the Play pad + a Withdraw pad. No progress, no bonus.
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
@@ -28,8 +32,8 @@ class HomePage extends ConsumerWidget {
     if (ref.read(currentUserProvider) != null) await _toGame(context, ref);
   }
 
-  /// Navigates to the game, pausing the home's looping motion while it is covered
-  /// and resuming when the player returns (the push future completes on pop).
+  /// Navigates to the game, pausing the ambient while it is covered and
+  /// resuming when the player returns (the push future completes on pop).
   Future<void> _toGame(BuildContext context, WidgetRef ref) async {
     ref.read(homeAmbientPausedProvider.notifier).pause(true);
     await context.push('/game');
@@ -38,56 +42,136 @@ class HomePage extends ConsumerWidget {
     }
   }
 
-  void _comingSoon(BuildContext context, String what) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Text(
-          '$what coming soon',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nextLevel =
-        ref.watch(homeControllerProvider.select((s) => s.nextLevelLabel));
+    final coins = ref.watch(playerStateProvider.select((s) => s.coins));
+    final nextLabel =
+        ref.watch(playerStateProvider.select((s) => s.nextLevelLabel));
 
     return Scaffold(
-      body: HomeBackground(
-        child: SafeArea(
+      body: PondBackground(
+        child: PondStage(
           child: Column(
             children: [
-              HomeTopBar(
-                onSettings: () => _comingSoon(context, 'Settings'),
-                onAdd: () => _comingSoon(context, 'Store'),
+              PondTopBar(
+                coins: coins,
+                onSettings: () => showComingSoon(context, 'Settings'),
+                onAddCoins: () => showComingSoon(context, 'Store'),
               ),
               const Spacer(),
-              const HomeBranding(),
-              const SizedBox(height: AppSpacing.xl),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                child: LevelProgress(),
-              ),
+              const WordmarkLogo(),
               const Spacer(),
-              WithdrawGiftButton(
-                onPressed: () => _comingSoon(context, 'Withdraw'),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              PlayButton(
-                label: nextLevel,
-                onPressed: () => _onPlay(context, ref),
+              _PlayArea(
+                nextLabel: nextLabel,
+                onPlay: () => _onPlay(context, ref),
+                onWithdraw: () => showComingSoon(context, 'Withdraw'),
               ),
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The floating play cluster: the green Play pad centered, with the teal
+/// Withdraw pad floating up and to the right.
+class _PlayArea extends StatelessWidget {
+  const _PlayArea({
+    required this.nextLabel,
+    required this.onPlay,
+    required this.onWithdraw,
+  });
+
+  final String nextLabel;
+  final VoidCallback onPlay;
+  final VoidCallback onWithdraw;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: AppSizing.playAreaHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          LilyPadButton(
+            size: 180,
+            rotationDegrees: 20,
+            palette: LilyPadPalette.green,
+            semanticLabel: 'Play $nextLabel',
+            onPressed: onPlay,
+            content: _PlayContent(label: nextLabel),
+          ),
+          Positioned(
+            right: 4,
+            top: 8,
+            child: LilyPadButton(
+              size: 104,
+              rotationDegrees: -15,
+              palette: LilyPadPalette.teal,
+              idle: IdleMotion.bob,
+              semanticLabel: 'Withdraw',
+              onPressed: onWithdraw,
+              content: const _SecondaryContent(
+                icon: Icons.account_balance_wallet,
+                label: 'Withdraw',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlayContent extends StatelessWidget {
+  const _PlayContent({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.play_arrow_rounded,
+            size: 56, color: AppColors.playTriangle),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.padLabel,
+            fontSize: 19,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SecondaryContent extends StatelessWidget {
+  const _SecondaryContent({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 28, color: AppColors.padLabel),
+        const SizedBox(height: AppSpacing.xxs),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.padLabel,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }

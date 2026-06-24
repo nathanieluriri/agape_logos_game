@@ -3,7 +3,6 @@ import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/home/presentation/pages/home_page.dart';
 import 'package:agape_logos_game/features/home/presentation/widgets/home_background.dart';
-import 'package:agape_logos_game/features/home/presentation/widgets/play_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,6 +43,26 @@ GoRouter _buildRouter() => GoRouter(
     );
 
 void main() {
+  testWidgets('shows the Withdraw pad and no progress or bonus', (tester) async {
+    const user = AuthUser(uid: 'u1');
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
+          homeAmbientEnabledProvider.overrideWithValue(false),
+          currentUserProvider.overrideWithValue(user),
+        ],
+        child: MaterialApp.router(routerConfig: _buildRouter()),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('ZEN WORD'), findsOneWidget);
+    expect(find.bySemanticsLabel('Withdraw'), findsOneWidget);
+    expect(find.bySemanticsLabel('Bonus Gift'), findsNothing);
+    expect(find.textContaining('Completed'), findsNothing);
+  });
+
   testWidgets('Play navigates to the game when signed in', (tester) async {
     const user = AuthUser(uid: 'u1');
     await tester.pumpWidget(
@@ -51,18 +70,14 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
           homeAmbientEnabledProvider.overrideWithValue(false),
-          // Override currentUserProvider directly so ref.read() sees the user
-          // immediately, without waiting for the StreamProvider async cycle.
           currentUserProvider.overrideWithValue(user),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
     );
-    await tester.pump(); // let the widget tree settle
+    await tester.pump();
 
-    expect(find.text('Withdraw Gift'), findsOneWidget);
-
-    await tester.tap(find.byType(PlayButton));
+    await tester.tap(find.bySemanticsLabel('Play Lv.26'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
@@ -82,7 +97,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byType(PlayButton));
+    await tester.tap(find.bySemanticsLabel('Play Lv.26'));
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Continue as guest'), findsOneWidget);
@@ -107,7 +122,7 @@ void main() {
         ProviderScope.containerOf(tester.element(find.byType(HomePage)));
     expect(container.read(homeAmbientPausedProvider), isFalse);
 
-    await tester.tap(find.byType(PlayButton));
+    await tester.tap(find.bySemanticsLabel('Play Lv.26'));
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(container.read(homeAmbientPausedProvider), isTrue);
