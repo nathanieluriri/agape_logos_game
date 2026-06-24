@@ -1,10 +1,11 @@
-import 'package:agape_logos_game/app/router/app_router.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
+import 'package:agape_logos_game/features/auth/presentation/pages/account_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 class _FakeAuthRepository implements AuthRepository {
   @override
@@ -18,6 +19,8 @@ class _FakeAuthRepository implements AuthRepository {
   @override
   Future<void> signInWithGoogle() async {}
   @override
+  Future<void> signInAnonymously() async {}
+  @override
   Future<void> sendPasswordReset(String e) async {}
   @override
   Future<void> signOut() async {}
@@ -26,18 +29,23 @@ class _FakeAuthRepository implements AuthRepository {
 }
 
 void main() {
-  testWidgets('home account icon opens the account page', (tester) async {
+  testWidgets('account route renders the signed-out account view',
+      (tester) async {
+    final router = GoRouter(
+      initialLocation: '/account',
+      routes: [
+        GoRoute(path: '/', builder: (_, __) => const SizedBox()),
+        GoRoute(path: '/account', builder: (_, __) => const AccountPage()),
+      ],
+    );
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
         ],
-        child: MaterialApp.router(routerConfig: appRouter),
+        child: MaterialApp.router(routerConfig: router),
       ),
     );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.account_circle_outlined));
     await tester.pumpAndSettle();
 
     expect(find.text('Sign in to sync your progress'), findsOneWidget);

@@ -19,6 +19,10 @@ abstract interface class AuthRepository {
 
   Future<void> signInWithGoogle();
 
+  /// Signs in as an anonymous guest. The resulting user has a real uid that can
+  /// later be linked to Google or email. Throws `AuthFailure` on failure.
+  Future<void> signInAnonymously();
+
   Future<void> sendPasswordReset(String email);
 
   Future<void> signOut();

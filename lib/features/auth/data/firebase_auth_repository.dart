@@ -48,6 +48,10 @@ class FirebaseAuthRepository implements AuthRepository {
       _guard(() => signInWithGoogleCredential(_auth));
 
   @override
+  Future<void> signInAnonymously() =>
+      _guard(() => _auth.signInAnonymously());
+
+  @override
   Future<void> sendPasswordReset(String email) =>
       _guard(() => _auth.sendPasswordResetEmail(email: email));
 
@@ -71,6 +75,7 @@ class FirebaseAuthRepository implements AuthRepository {
           email: u.email,
           displayName: u.displayName,
           photoUrl: u.photoURL,
+          isAnonymous: u.isAnonymous,
         );
 
   Future<void> _guard(Future<void> Function() op) async {
