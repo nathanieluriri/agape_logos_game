@@ -65,3 +65,6 @@ node_modules/
 
 # Puzzle generation: definitions cache (word lists are committed, cache is not)
 functions/data/definitions_cache.json
+.claire/
+.playwright-mcp/
+.claude/worktrees/
