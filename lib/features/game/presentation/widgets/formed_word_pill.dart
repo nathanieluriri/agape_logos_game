@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/durations.dart';
 import '../../../../core/design/tokens/radii.dart';
+import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 
 /// The in-progress word shown above the wheel while dragging.
@@ -12,11 +13,12 @@ class FormedWordPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return AnimatedOpacity(
       opacity: word.isEmpty ? 0 : 1,
-      duration: AppDurations.fast,
+      duration: reduceMotion ? Duration.zero : AppDurations.fast,
       child: word.isEmpty
-          ? const SizedBox(height: 40)
+          ? const SizedBox(height: AppSizing.pillHeight)
           : Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md,

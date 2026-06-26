@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/radii.dart';
+import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 
 /// The "Praise! Combo Streak xN" banner; renders nothing below combo 2.
@@ -13,7 +14,7 @@ class ComboBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = praise;
-    if (label == null) return const SizedBox(height: 52);
+    if (label == null) return const SizedBox(height: AppSizing.comboBannerHeight);
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,

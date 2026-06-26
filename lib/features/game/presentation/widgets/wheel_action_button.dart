@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/durations.dart';
+import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/motion/curves.dart';
 
 /// A circular Shuffle/Hint button with an optional count badge.
@@ -30,6 +31,7 @@ class _WheelActionButtonState extends State<WheelActionButton> {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return Semantics(
       button: true,
       label: widget.semanticLabel,
@@ -46,14 +48,14 @@ class _WheelActionButtonState extends State<WheelActionButton> {
             : null,
         child: AnimatedScale(
           scale: _pressed ? 0.92 : 1.0,
-          duration: AppDurations.instant,
+          duration: reduceMotion ? Duration.zero : AppDurations.instant,
           curve: AppCurves.emphasized,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: AppSizing.actionButton,
+                height: AppSizing.actionButton,
                 decoration: BoxDecoration(
                   color: AppColors.pillFill,
                   shape: BoxShape.circle,

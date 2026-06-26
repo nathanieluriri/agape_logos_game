@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/design/tokens/colors.dart';
+import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/coin_pill.dart';
 
@@ -66,8 +67,8 @@ class _CircleIcon extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Container(
-          width: 44,
-          height: 44,
+          width: AppSizing.topBarButton,
+          height: AppSizing.topBarButton,
           decoration: BoxDecoration(
             color: AppColors.settingsFill,
             shape: BoxShape.circle,

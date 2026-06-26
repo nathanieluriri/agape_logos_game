@@ -74,8 +74,9 @@ class _Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return AnimatedContainer(
-      duration: AppDurations.normal,
+      duration: reduceMotion ? Duration.zero : AppDurations.normal,
       width: AppSizing.boardTile,
       height: AppSizing.boardTile,
       alignment: Alignment.center,

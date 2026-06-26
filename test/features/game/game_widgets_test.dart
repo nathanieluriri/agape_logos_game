@@ -61,4 +61,33 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.textContaining('200'), findsWidgets);
   });
+
+  testWidgets('WheelActionButton under reduce-motion settles instantly and fires tap',
+      (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: WheelActionButton(
+                icon: Icons.shuffle,
+                semanticLabel: 'Shuffle',
+                onTap: () => taps++,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    // Widget builds without error under disableAnimations.
+    expect(find.bySemanticsLabel('Shuffle'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Shuffle'));
+    // pumpAndSettle must complete (Duration.zero means no lingering animation frames).
+    await tester.pumpAndSettle();
+
+    expect(taps, 1);
+  });
 }
