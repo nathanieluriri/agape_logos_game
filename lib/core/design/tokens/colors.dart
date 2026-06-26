@@ -65,4 +65,14 @@ abstract final class AppColors {
   static const playTriangle = Color(0xFFFBF4DC);
   static const playTriangleShadow = Color(0xFFE3D4AB);
   static const padLabel = Color(0xFFFFFFFF);
+
+  // Game: word-forming board + wheel (approximated from the gameplay screenshots).
+  static const Color tileBlue = Color(0xFF2A9FC9);
+  static const Color tileBlueText = Color(0xFFFFFFFF);
+  static const Color slotEmpty = Color(0xFFCBD2D8);
+  static const Color wheelBase = Color(0xF2F4F7F9);
+  static const Color wheelLetter = Color(0xFF1A1C1A);
+  static const Color connectLine = tileBlue;
+  static const Color comboBannerStart = Color(0xFF8E5BD6);
+  static const Color comboBannerEnd = Color(0xFFC44FB0);
 }
