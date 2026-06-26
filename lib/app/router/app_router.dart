@@ -5,7 +5,7 @@ import '../../features/auth/presentation/pages/sign_in_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/level_complete/presentation/pages/level_complete_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
-import '../../game/placeholder_game_page.dart';
+import '../../features/game/presentation/pages/game_page.dart';
 import 'transitions.dart';
 
 /// App routes. Auth screens are optional surfaces reachable from home; they
@@ -27,7 +27,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/game',
       pageBuilder: (context, state) =>
-          fadeThroughPage(const PlaceholderGamePage(), state),
+          fadeThroughPage(const GamePage(), state),
     ),
     GoRoute(
       path: '/level-complete',
