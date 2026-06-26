@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/design/tokens/colors.dart';
@@ -27,6 +28,7 @@ class LetterWheel extends StatefulWidget {
 
 class _LetterWheelState extends State<LetterWheel> {
   Offset? _finger;
+  int? _lastSlot;
 
   static const double _radius = AppSizing.wheelDiameter / 2;
   static const double _node = AppSizing.wheelNode;
@@ -48,7 +50,10 @@ class _LetterWheelState extends State<LetterWheel> {
     final centers = _centers;
     for (var i = 0; i < centers.length; i++) {
       if ((centers[i] - local).distance <= _node / 2) {
-        widget.onTouch(i);
+        if (i != _lastSlot) {
+          widget.onTouch(i);
+          _lastSlot = i;
+        }
         break;
       }
     }
@@ -62,9 +67,13 @@ class _LetterWheelState extends State<LetterWheel> {
       height: AppSizing.wheelDiameter,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onPanStart: (d) => _hit(d.localPosition),
+        onPanStart: (d) {
+          _lastSlot = null;
+          _hit(d.localPosition);
+        },
         onPanUpdate: (d) => _hit(d.localPosition),
         onPanEnd: (_) {
+          _lastSlot = null;
           setState(() => _finger = null);
           widget.onEnd();
         },
@@ -161,5 +170,5 @@ class _WheelPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_WheelPainter old) =>
-      old.finger != finger || old.selected.length != selected.length;
+      old.finger != finger || !listEquals(old.selected, selected);
 }
