@@ -33,12 +33,12 @@ class ComboBanner extends StatelessWidget {
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: AppColors.tileBlueText,
             ),
           ),
           Text(
             'Combo Streak x$combo',
-            style: const TextStyle(fontSize: 14, color: Colors.white),
+            style: const TextStyle(fontSize: 14, color: AppColors.tileBlueText),
           ),
         ],
       ),

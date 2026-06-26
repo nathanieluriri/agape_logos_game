@@ -78,7 +78,7 @@ class _WheelActionButtonState extends State<WheelActionButton> {
                       '${widget.badge}',
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Colors.white,
+                        color: AppColors.tileBlueText,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
