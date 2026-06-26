@@ -16,4 +16,15 @@ abstract final class AppSizing {
 
   static const double progressTrackWidth = 300;
   static const double progressTrackHeight = 22;
+
+  // Game: letter wheel + board tiles.
+  static const double wheelDiameter = 260;
+  static const double wheelNode = 56;
+  static const double boardTile = 44;
+  static const double boardTileGap = 8;
+
+  static const double actionButton = 56;
+  static const double topBarButton = 44;
+  static const double comboBannerHeight = 52;
+  static const double pillHeight = 40;
 }

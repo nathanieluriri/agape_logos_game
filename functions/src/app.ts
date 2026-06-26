@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import {levelResultsRouter} from "./routes/level_results";
+import {puzzlesRouter} from "./routes/puzzles";
 import {profileRouter} from "./routes/profile";
 import {errorHandler, notFound} from "./middleware/error";
 import {buildOpenApiDocument} from "./openapi/document";
@@ -14,6 +15,7 @@ export function createApp(): express.Express {
   app.use(express.json());
   app.use(profileRouter);
   app.use(levelResultsRouter);
+  app.use(puzzlesRouter);
   app.get("/openapi.json", (_req, res) => {
     res.json(buildOpenApiDocument());
   });

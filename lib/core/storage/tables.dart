@@ -35,6 +35,26 @@ class LevelResults extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// Local cache of drawn puzzles (offline-playable source of truth for gameplay).
+/// Rows are inserted by draw/recover and deleted after the result syncs.
+@DataClassName('CachedPuzzleRow')
+class CachedPuzzles extends Table {
+  TextColumn get puzzleId => text()();
+  TextColumn get tier => text()();
+  IntColumn get tierRank => integer()(); // 0 easy, 1 medium, 2 hard, 3 expert
+  IntColumn get rackSize => integer()();
+  TextColumn get lettersJson => text()();
+  TextColumn get anchor => text()();
+  TextColumn get answersJson => text()();
+  IntColumn get answerCount => integer()();
+  IntColumn get orderIndex => integer()();
+  BoolColumn get completed => boolean().withDefault(const Constant(false))();
+  IntColumn get assignedAt => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {puzzleId};
+}
+
 /// Single-row local game settings (the row id is always 0). Local-only,
 /// never synced. Booleans default ON.
 @DataClassName('GameSettingsRow')

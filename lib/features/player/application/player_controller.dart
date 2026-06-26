@@ -12,6 +12,16 @@ class PlayerController extends Notifier<PlayerState> {
         progressTotal: 8,
         lastCompletedLevel: 3,
       );
+
+  /// Advance progression after finishing the current level.
+  void completeLevel({required int coinsAwarded}) {
+    state = state.copyWith(
+      coins: state.coins + coinsAwarded,
+      lastCompletedLevel: state.currentLevel,
+      currentLevel: state.currentLevel + 1,
+      progressDone: 0,
+    );
+  }
 }
 
 final playerStateProvider =

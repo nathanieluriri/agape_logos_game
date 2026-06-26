@@ -2,6 +2,7 @@ import {z} from "zod";
 import {registry} from "./registry";
 import {ProfileResponseSchema, ProfileUpdateSchema} from "../schemas/profile";
 import {LevelResultBodySchema} from "../schemas/level_results";
+import {DrawBodySchema, PuzzleResultBodySchema} from "../schemas/puzzles";
 
 const bearer = [{bearerAuth: [] as string[]}];
 
@@ -52,6 +53,52 @@ registry.registerPath({
       description: "Stored",
       content: {"application/json": {schema: z.object({ok: z.boolean()})}},
     },
+    400: {description: "Validation failed"},
+    401: {description: "Missing or invalid token"},
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/puzzles/draw",
+  summary: "Draw a batch of unseen puzzles per requested tier",
+  security: bearer,
+  request: {
+    headers: z.object({"idempotency-key": z.string()}),
+    body: {content: {"application/json": {schema: DrawBodySchema}}},
+  },
+  responses: {
+    200: {description: "Assigned puzzles grouped by tier"},
+    400: {description: "Validation failed"},
+    401: {description: "Missing or invalid token"},
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/puzzles/{puzzleId}/result",
+  summary: "Record a solved puzzle and mark the assignment completed",
+  security: bearer,
+  request: {
+    params: z.object({puzzleId: z.string()}),
+    headers: z.object({"idempotency-key": z.string()}),
+    body: {content: {"application/json": {schema: PuzzleResultBodySchema}}},
+  },
+  responses: {
+    200: {description: "Stored", content: {"application/json": {schema: z.object({ok: z.boolean()})}}},
+    400: {description: "Validation failed"},
+    401: {description: "Missing or invalid token"},
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/puzzles/assigned",
+  summary: "Recover the caller's assigned puzzles by reference",
+  security: bearer,
+  request: {query: z.object({status: z.enum(["incomplete", "all"]).optional()})},
+  responses: {
+    200: {description: "Assigned puzzles"},
     400: {description: "Validation failed"},
     401: {description: "Missing or invalid token"},
   },
