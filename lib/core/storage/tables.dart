@@ -53,6 +53,8 @@ class CachedPuzzles extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {puzzleId};
+}
+
 /// Single-row local game settings (the row id is always 0). Local-only,
 /// never synced. Booleans default ON.
 @DataClassName('GameSettingsRow')

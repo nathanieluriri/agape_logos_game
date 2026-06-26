@@ -1136,56 +1136,6 @@ class $CachedPuzzlesTable extends CachedPuzzles
   @override
   late final GeneratedColumn<bool> completed = GeneratedColumn<bool>(
     'completed',
-class $GameSettingsTable extends GameSettings
-    with TableInfo<$GameSettingsTable, GameSettingsRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $GameSettingsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _soundEffectsMeta = const VerificationMeta(
-    'soundEffects',
-  );
-  @override
-  late final GeneratedColumn<bool> soundEffects = GeneratedColumn<bool>(
-    'sound_effects',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("sound_effects" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _musicMeta = const VerificationMeta('music');
-  @override
-  late final GeneratedColumn<bool> music = GeneratedColumn<bool>(
-    'music',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("music" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _notificationsMeta = const VerificationMeta(
-    'notifications',
-  );
-  @override
-  late final GeneratedColumn<bool> notifications = GeneratedColumn<bool>(
-    'notifications',
     aliasedName,
     false,
     type: DriftSqlType.bool,
@@ -1219,32 +1169,6 @@ class $GameSettingsTable extends GameSettings
     orderIndex,
     completed,
     assignedAt,
-      'CHECK ("notifications" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _hapticsMeta = const VerificationMeta(
-    'haptics',
-  );
-  @override
-  late final GeneratedColumn<bool> haptics = GeneratedColumn<bool>(
-    'haptics',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("haptics" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    soundEffects,
-    music,
-    notifications,
-    haptics,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1254,10 +1178,6 @@ class $GameSettingsTable extends GameSettings
   @override
   VerificationContext validateIntegrity(
     Insertable<CachedPuzzleRow> instance, {
-  static const String $name = 'game_settings';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<GameSettingsRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -1356,38 +1276,6 @@ class $GameSettingsTable extends GameSettings
       );
     } else if (isInserting) {
       context.missing(_assignedAtMeta);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('sound_effects')) {
-      context.handle(
-        _soundEffectsMeta,
-        soundEffects.isAcceptableOrUnknown(
-          data['sound_effects']!,
-          _soundEffectsMeta,
-        ),
-      );
-    }
-    if (data.containsKey('music')) {
-      context.handle(
-        _musicMeta,
-        music.isAcceptableOrUnknown(data['music']!, _musicMeta),
-      );
-    }
-    if (data.containsKey('notifications')) {
-      context.handle(
-        _notificationsMeta,
-        notifications.isAcceptableOrUnknown(
-          data['notifications']!,
-          _notificationsMeta,
-        ),
-      );
-    }
-    if (data.containsKey('haptics')) {
-      context.handle(
-        _hapticsMeta,
-        haptics.isAcceptableOrUnknown(data['haptics']!, _hapticsMeta),
-      );
     }
     return context;
   }
@@ -1441,30 +1329,6 @@ class $GameSettingsTable extends GameSettings
       assignedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}assigned_at'],
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  GameSettingsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return GameSettingsRow(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      soundEffects: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}sound_effects'],
-      )!,
-      music: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}music'],
-      )!,
-      notifications: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}notifications'],
-      )!,
-      haptics: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}haptics'],
       )!,
     );
   }
@@ -1499,23 +1363,6 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
     required this.orderIndex,
     required this.completed,
     required this.assignedAt,
-  $GameSettingsTable createAlias(String alias) {
-    return $GameSettingsTable(attachedDatabase, alias);
-  }
-}
-
-class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
-  final int id;
-  final bool soundEffects;
-  final bool music;
-  final bool notifications;
-  final bool haptics;
-  const GameSettingsRow({
-    required this.id,
-    required this.soundEffects,
-    required this.music,
-    required this.notifications,
-    required this.haptics,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1551,25 +1398,6 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
   }
 
   factory CachedPuzzleRow.fromJson(
-    map['id'] = Variable<int>(id);
-    map['sound_effects'] = Variable<bool>(soundEffects);
-    map['music'] = Variable<bool>(music);
-    map['notifications'] = Variable<bool>(notifications);
-    map['haptics'] = Variable<bool>(haptics);
-    return map;
-  }
-
-  GameSettingsCompanion toCompanion(bool nullToAbsent) {
-    return GameSettingsCompanion(
-      id: Value(id),
-      soundEffects: Value(soundEffects),
-      music: Value(music),
-      notifications: Value(notifications),
-      haptics: Value(haptics),
-    );
-  }
-
-  factory GameSettingsRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
@@ -1586,12 +1414,6 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
       orderIndex: serializer.fromJson<int>(json['orderIndex']),
       completed: serializer.fromJson<bool>(json['completed']),
       assignedAt: serializer.fromJson<int>(json['assignedAt']),
-    return GameSettingsRow(
-      id: serializer.fromJson<int>(json['id']),
-      soundEffects: serializer.fromJson<bool>(json['soundEffects']),
-      music: serializer.fromJson<bool>(json['music']),
-      notifications: serializer.fromJson<bool>(json['notifications']),
-      haptics: serializer.fromJson<bool>(json['haptics']),
     );
   }
   @override
@@ -1660,38 +1482,6 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
       assignedAt: data.assignedAt.present
           ? data.assignedAt.value
           : this.assignedAt,
-      'id': serializer.toJson<int>(id),
-      'soundEffects': serializer.toJson<bool>(soundEffects),
-      'music': serializer.toJson<bool>(music),
-      'notifications': serializer.toJson<bool>(notifications),
-      'haptics': serializer.toJson<bool>(haptics),
-    };
-  }
-
-  GameSettingsRow copyWith({
-    int? id,
-    bool? soundEffects,
-    bool? music,
-    bool? notifications,
-    bool? haptics,
-  }) => GameSettingsRow(
-    id: id ?? this.id,
-    soundEffects: soundEffects ?? this.soundEffects,
-    music: music ?? this.music,
-    notifications: notifications ?? this.notifications,
-    haptics: haptics ?? this.haptics,
-  );
-  GameSettingsRow copyWithCompanion(GameSettingsCompanion data) {
-    return GameSettingsRow(
-      id: data.id.present ? data.id.value : this.id,
-      soundEffects: data.soundEffects.present
-          ? data.soundEffects.value
-          : this.soundEffects,
-      music: data.music.present ? data.music.value : this.music,
-      notifications: data.notifications.present
-          ? data.notifications.value
-          : this.notifications,
-      haptics: data.haptics.present ? data.haptics.value : this.haptics,
     );
   }
 
@@ -1709,12 +1499,6 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
           ..write('orderIndex: $orderIndex, ')
           ..write('completed: $completed, ')
           ..write('assignedAt: $assignedAt')
-    return (StringBuffer('GameSettingsRow(')
-          ..write('id: $id, ')
-          ..write('soundEffects: $soundEffects, ')
-          ..write('music: $music, ')
-          ..write('notifications: $notifications, ')
-          ..write('haptics: $haptics')
           ..write(')'))
         .toString();
   }
@@ -1857,6 +1641,335 @@ class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
       completed: completed ?? this.completed,
       assignedAt: assignedAt ?? this.assignedAt,
       rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (puzzleId.present) {
+      map['puzzle_id'] = Variable<String>(puzzleId.value);
+    }
+    if (tier.present) {
+      map['tier'] = Variable<String>(tier.value);
+    }
+    if (tierRank.present) {
+      map['tier_rank'] = Variable<int>(tierRank.value);
+    }
+    if (rackSize.present) {
+      map['rack_size'] = Variable<int>(rackSize.value);
+    }
+    if (lettersJson.present) {
+      map['letters_json'] = Variable<String>(lettersJson.value);
+    }
+    if (anchor.present) {
+      map['anchor'] = Variable<String>(anchor.value);
+    }
+    if (answersJson.present) {
+      map['answers_json'] = Variable<String>(answersJson.value);
+    }
+    if (answerCount.present) {
+      map['answer_count'] = Variable<int>(answerCount.value);
+    }
+    if (orderIndex.present) {
+      map['order_index'] = Variable<int>(orderIndex.value);
+    }
+    if (completed.present) {
+      map['completed'] = Variable<bool>(completed.value);
+    }
+    if (assignedAt.present) {
+      map['assigned_at'] = Variable<int>(assignedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedPuzzlesCompanion(')
+          ..write('puzzleId: $puzzleId, ')
+          ..write('tier: $tier, ')
+          ..write('tierRank: $tierRank, ')
+          ..write('rackSize: $rackSize, ')
+          ..write('lettersJson: $lettersJson, ')
+          ..write('anchor: $anchor, ')
+          ..write('answersJson: $answersJson, ')
+          ..write('answerCount: $answerCount, ')
+          ..write('orderIndex: $orderIndex, ')
+          ..write('completed: $completed, ')
+          ..write('assignedAt: $assignedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $GameSettingsTable extends GameSettings
+    with TableInfo<$GameSettingsTable, GameSettingsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GameSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _soundEffectsMeta = const VerificationMeta(
+    'soundEffects',
+  );
+  @override
+  late final GeneratedColumn<bool> soundEffects = GeneratedColumn<bool>(
+    'sound_effects',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sound_effects" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _musicMeta = const VerificationMeta('music');
+  @override
+  late final GeneratedColumn<bool> music = GeneratedColumn<bool>(
+    'music',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("music" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _notificationsMeta = const VerificationMeta(
+    'notifications',
+  );
+  @override
+  late final GeneratedColumn<bool> notifications = GeneratedColumn<bool>(
+    'notifications',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notifications" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _hapticsMeta = const VerificationMeta(
+    'haptics',
+  );
+  @override
+  late final GeneratedColumn<bool> haptics = GeneratedColumn<bool>(
+    'haptics',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("haptics" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    soundEffects,
+    music,
+    notifications,
+    haptics,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'game_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GameSettingsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('sound_effects')) {
+      context.handle(
+        _soundEffectsMeta,
+        soundEffects.isAcceptableOrUnknown(
+          data['sound_effects']!,
+          _soundEffectsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('music')) {
+      context.handle(
+        _musicMeta,
+        music.isAcceptableOrUnknown(data['music']!, _musicMeta),
+      );
+    }
+    if (data.containsKey('notifications')) {
+      context.handle(
+        _notificationsMeta,
+        notifications.isAcceptableOrUnknown(
+          data['notifications']!,
+          _notificationsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('haptics')) {
+      context.handle(
+        _hapticsMeta,
+        haptics.isAcceptableOrUnknown(data['haptics']!, _hapticsMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GameSettingsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GameSettingsRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      soundEffects: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sound_effects'],
+      )!,
+      music: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}music'],
+      )!,
+      notifications: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notifications'],
+      )!,
+      haptics: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}haptics'],
+      )!,
+    );
+  }
+
+  @override
+  $GameSettingsTable createAlias(String alias) {
+    return $GameSettingsTable(attachedDatabase, alias);
+  }
+}
+
+class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
+  final int id;
+  final bool soundEffects;
+  final bool music;
+  final bool notifications;
+  final bool haptics;
+  const GameSettingsRow({
+    required this.id,
+    required this.soundEffects,
+    required this.music,
+    required this.notifications,
+    required this.haptics,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['sound_effects'] = Variable<bool>(soundEffects);
+    map['music'] = Variable<bool>(music);
+    map['notifications'] = Variable<bool>(notifications);
+    map['haptics'] = Variable<bool>(haptics);
+    return map;
+  }
+
+  GameSettingsCompanion toCompanion(bool nullToAbsent) {
+    return GameSettingsCompanion(
+      id: Value(id),
+      soundEffects: Value(soundEffects),
+      music: Value(music),
+      notifications: Value(notifications),
+      haptics: Value(haptics),
+    );
+  }
+
+  factory GameSettingsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GameSettingsRow(
+      id: serializer.fromJson<int>(json['id']),
+      soundEffects: serializer.fromJson<bool>(json['soundEffects']),
+      music: serializer.fromJson<bool>(json['music']),
+      notifications: serializer.fromJson<bool>(json['notifications']),
+      haptics: serializer.fromJson<bool>(json['haptics']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'soundEffects': serializer.toJson<bool>(soundEffects),
+      'music': serializer.toJson<bool>(music),
+      'notifications': serializer.toJson<bool>(notifications),
+      'haptics': serializer.toJson<bool>(haptics),
+    };
+  }
+
+  GameSettingsRow copyWith({
+    int? id,
+    bool? soundEffects,
+    bool? music,
+    bool? notifications,
+    bool? haptics,
+  }) => GameSettingsRow(
+    id: id ?? this.id,
+    soundEffects: soundEffects ?? this.soundEffects,
+    music: music ?? this.music,
+    notifications: notifications ?? this.notifications,
+    haptics: haptics ?? this.haptics,
+  );
+  GameSettingsRow copyWithCompanion(GameSettingsCompanion data) {
+    return GameSettingsRow(
+      id: data.id.present ? data.id.value : this.id,
+      soundEffects: data.soundEffects.present
+          ? data.soundEffects.value
+          : this.soundEffects,
+      music: data.music.present ? data.music.value : this.music,
+      notifications: data.notifications.present
+          ? data.notifications.value
+          : this.notifications,
+      haptics: data.haptics.present ? data.haptics.value : this.haptics,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GameSettingsRow(')
+          ..write('id: $id, ')
+          ..write('soundEffects: $soundEffects, ')
+          ..write('music: $music, ')
+          ..write('notifications: $notifications, ')
+          ..write('haptics: $haptics')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
   int get hashCode =>
       Object.hash(id, soundEffects, music, notifications, haptics);
   @override
@@ -1925,41 +2038,6 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (puzzleId.present) {
-      map['puzzle_id'] = Variable<String>(puzzleId.value);
-    }
-    if (tier.present) {
-      map['tier'] = Variable<String>(tier.value);
-    }
-    if (tierRank.present) {
-      map['tier_rank'] = Variable<int>(tierRank.value);
-    }
-    if (rackSize.present) {
-      map['rack_size'] = Variable<int>(rackSize.value);
-    }
-    if (lettersJson.present) {
-      map['letters_json'] = Variable<String>(lettersJson.value);
-    }
-    if (anchor.present) {
-      map['anchor'] = Variable<String>(anchor.value);
-    }
-    if (answersJson.present) {
-      map['answers_json'] = Variable<String>(answersJson.value);
-    }
-    if (answerCount.present) {
-      map['answer_count'] = Variable<int>(answerCount.value);
-    }
-    if (orderIndex.present) {
-      map['order_index'] = Variable<int>(orderIndex.value);
-    }
-    if (completed.present) {
-      map['completed'] = Variable<bool>(completed.value);
-    }
-    if (assignedAt.present) {
-      map['assigned_at'] = Variable<int>(assignedAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
@@ -1980,19 +2058,6 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
 
   @override
   String toString() {
-    return (StringBuffer('CachedPuzzlesCompanion(')
-          ..write('puzzleId: $puzzleId, ')
-          ..write('tier: $tier, ')
-          ..write('tierRank: $tierRank, ')
-          ..write('rackSize: $rackSize, ')
-          ..write('lettersJson: $lettersJson, ')
-          ..write('anchor: $anchor, ')
-          ..write('answersJson: $answersJson, ')
-          ..write('answerCount: $answerCount, ')
-          ..write('orderIndex: $orderIndex, ')
-          ..write('completed: $completed, ')
-          ..write('assignedAt: $assignedAt, ')
-          ..write('rowid: $rowid')
     return (StringBuffer('GameSettingsCompanion(')
           ..write('id: $id, ')
           ..write('soundEffects: $soundEffects, ')
@@ -2020,6 +2085,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this as AppDatabase,
   );
   late final CachedPuzzlesDao cachedPuzzlesDao = CachedPuzzlesDao(
+    this as AppDatabase,
+  );
   late final GameSettingsDao gameSettingsDao = GameSettingsDao(
     this as AppDatabase,
   );
@@ -2599,26 +2666,6 @@ typedef $$CachedPuzzlesTableUpdateCompanionBuilder =
 class $$CachedPuzzlesTableFilterComposer
     extends Composer<_$AppDatabase, $CachedPuzzlesTable> {
   $$CachedPuzzlesTableFilterComposer({
-typedef $$GameSettingsTableCreateCompanionBuilder =
-    GameSettingsCompanion Function({
-      Value<int> id,
-      Value<bool> soundEffects,
-      Value<bool> music,
-      Value<bool> notifications,
-      Value<bool> haptics,
-    });
-typedef $$GameSettingsTableUpdateCompanionBuilder =
-    GameSettingsCompanion Function({
-      Value<int> id,
-      Value<bool> soundEffects,
-      Value<bool> music,
-      Value<bool> notifications,
-      Value<bool> haptics,
-    });
-
-class $$GameSettingsTableFilterComposer
-    extends Composer<_$AppDatabase, $GameSettingsTable> {
-  $$GameSettingsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -2677,28 +2724,6 @@ class $$GameSettingsTableFilterComposer
 
   ColumnFilters<int> get assignedAt => $composableBuilder(
     column: $table.assignedAt,
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get soundEffects => $composableBuilder(
-    column: $table.soundEffects,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get music => $composableBuilder(
-    column: $table.music,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get notifications => $composableBuilder(
-    column: $table.notifications,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get haptics => $composableBuilder(
-    column: $table.haptics,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2706,9 +2731,6 @@ class $$GameSettingsTableFilterComposer
 class $$CachedPuzzlesTableOrderingComposer
     extends Composer<_$AppDatabase, $CachedPuzzlesTable> {
   $$CachedPuzzlesTableOrderingComposer({
-class $$GameSettingsTableOrderingComposer
-    extends Composer<_$AppDatabase, $GameSettingsTable> {
-  $$GameSettingsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -2767,28 +2789,6 @@ class $$GameSettingsTableOrderingComposer
 
   ColumnOrderings<int> get assignedAt => $composableBuilder(
     column: $table.assignedAt,
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get soundEffects => $composableBuilder(
-    column: $table.soundEffects,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get music => $composableBuilder(
-    column: $table.music,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get notifications => $composableBuilder(
-    column: $table.notifications,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get haptics => $composableBuilder(
-    column: $table.haptics,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -2796,9 +2796,6 @@ class $$GameSettingsTableOrderingComposer
 class $$CachedPuzzlesTableAnnotationComposer
     extends Composer<_$AppDatabase, $CachedPuzzlesTable> {
   $$CachedPuzzlesTableAnnotationComposer({
-class $$GameSettingsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $GameSettingsTable> {
-  $$GameSettingsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -2868,45 +2865,6 @@ class $$CachedPuzzlesTableTableManager
           PrefetchHooks Function()
         > {
   $$CachedPuzzlesTableTableManager(_$AppDatabase db, $CachedPuzzlesTable table)
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<bool> get soundEffects => $composableBuilder(
-    column: $table.soundEffects,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get music =>
-      $composableBuilder(column: $table.music, builder: (column) => column);
-
-  GeneratedColumn<bool> get notifications => $composableBuilder(
-    column: $table.notifications,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get haptics =>
-      $composableBuilder(column: $table.haptics, builder: (column) => column);
-}
-
-class $$GameSettingsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $GameSettingsTable,
-          GameSettingsRow,
-          $$GameSettingsTableFilterComposer,
-          $$GameSettingsTableOrderingComposer,
-          $$GameSettingsTableAnnotationComposer,
-          $$GameSettingsTableCreateCompanionBuilder,
-          $$GameSettingsTableUpdateCompanionBuilder,
-          (
-            GameSettingsRow,
-            BaseReferences<_$AppDatabase, $GameSettingsTable, GameSettingsRow>,
-          ),
-          GameSettingsRow,
-          PrefetchHooks Function()
-        > {
-  $$GameSettingsTableTableManager(_$AppDatabase db, $GameSettingsTable table)
     : super(
         TableManagerState(
           db: db,
@@ -2972,6 +2930,172 @@ class $$GameSettingsTableTableManager
                 completed: completed,
                 assignedAt: assignedAt,
                 rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedPuzzlesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CachedPuzzlesTable,
+      CachedPuzzleRow,
+      $$CachedPuzzlesTableFilterComposer,
+      $$CachedPuzzlesTableOrderingComposer,
+      $$CachedPuzzlesTableAnnotationComposer,
+      $$CachedPuzzlesTableCreateCompanionBuilder,
+      $$CachedPuzzlesTableUpdateCompanionBuilder,
+      (
+        CachedPuzzleRow,
+        BaseReferences<_$AppDatabase, $CachedPuzzlesTable, CachedPuzzleRow>,
+      ),
+      CachedPuzzleRow,
+      PrefetchHooks Function()
+    >;
+typedef $$GameSettingsTableCreateCompanionBuilder =
+    GameSettingsCompanion Function({
+      Value<int> id,
+      Value<bool> soundEffects,
+      Value<bool> music,
+      Value<bool> notifications,
+      Value<bool> haptics,
+    });
+typedef $$GameSettingsTableUpdateCompanionBuilder =
+    GameSettingsCompanion Function({
+      Value<int> id,
+      Value<bool> soundEffects,
+      Value<bool> music,
+      Value<bool> notifications,
+      Value<bool> haptics,
+    });
+
+class $$GameSettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $GameSettingsTable> {
+  $$GameSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get soundEffects => $composableBuilder(
+    column: $table.soundEffects,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get music => $composableBuilder(
+    column: $table.music,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get notifications => $composableBuilder(
+    column: $table.notifications,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get haptics => $composableBuilder(
+    column: $table.haptics,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$GameSettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GameSettingsTable> {
+  $$GameSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get soundEffects => $composableBuilder(
+    column: $table.soundEffects,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get music => $composableBuilder(
+    column: $table.music,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get notifications => $composableBuilder(
+    column: $table.notifications,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get haptics => $composableBuilder(
+    column: $table.haptics,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GameSettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GameSettingsTable> {
+  $$GameSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<bool> get soundEffects => $composableBuilder(
+    column: $table.soundEffects,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get music =>
+      $composableBuilder(column: $table.music, builder: (column) => column);
+
+  GeneratedColumn<bool> get notifications => $composableBuilder(
+    column: $table.notifications,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get haptics =>
+      $composableBuilder(column: $table.haptics, builder: (column) => column);
+}
+
+class $$GameSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GameSettingsTable,
+          GameSettingsRow,
+          $$GameSettingsTableFilterComposer,
+          $$GameSettingsTableOrderingComposer,
+          $$GameSettingsTableAnnotationComposer,
+          $$GameSettingsTableCreateCompanionBuilder,
+          $$GameSettingsTableUpdateCompanionBuilder,
+          (
+            GameSettingsRow,
+            BaseReferences<_$AppDatabase, $GameSettingsTable, GameSettingsRow>,
+          ),
+          GameSettingsRow,
+          PrefetchHooks Function()
+        > {
+  $$GameSettingsTableTableManager(_$AppDatabase db, $GameSettingsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
               $$GameSettingsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
               $$GameSettingsTableOrderingComposer($db: db, $table: table),
@@ -3013,21 +3137,6 @@ class $$GameSettingsTableTableManager
       );
 }
 
-typedef $$CachedPuzzlesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $CachedPuzzlesTable,
-      CachedPuzzleRow,
-      $$CachedPuzzlesTableFilterComposer,
-      $$CachedPuzzlesTableOrderingComposer,
-      $$CachedPuzzlesTableAnnotationComposer,
-      $$CachedPuzzlesTableCreateCompanionBuilder,
-      $$CachedPuzzlesTableUpdateCompanionBuilder,
-      (
-        CachedPuzzleRow,
-        BaseReferences<_$AppDatabase, $CachedPuzzlesTable, CachedPuzzleRow>,
-      ),
-      CachedPuzzleRow,
 typedef $$GameSettingsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,

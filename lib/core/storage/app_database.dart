@@ -10,10 +10,13 @@ import 'tables.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [PendingMutations, LevelResults, CachedPuzzles],
-  daos: [PendingMutationsDao, LevelResultsDao, CachedPuzzlesDao],
-  tables: [PendingMutations, LevelResults, GameSettings],
-  daos: [PendingMutationsDao, LevelResultsDao, GameSettingsDao],
+  tables: [PendingMutations, LevelResults, CachedPuzzles, GameSettings],
+  daos: [
+    PendingMutationsDao,
+    LevelResultsDao,
+    CachedPuzzlesDao,
+    GameSettingsDao,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
@@ -22,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -31,9 +34,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.createTable(cachedPuzzles);
           }
-        },
-      );
-          if (from < 2) await m.createTable(gameSettings);
+          if (from < 3) {
+            await m.createTable(gameSettings);
+          }
         },
       );
 
