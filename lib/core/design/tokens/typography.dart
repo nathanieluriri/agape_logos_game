@@ -27,6 +27,17 @@ abstract final class AppTypography {
     letterSpacing: 0.5,
   );
 
+  /// Page headings ("Settings"). Serif, calm. Carries no color; callers set
+  /// one for the surface they sit on.
+  static const heading = TextStyle(
+    fontFamily: fontFamily,
+    fontFamilyFallback: ['serif'],
+    fontSize: 26,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.5,
+    height: 1.1,
+  );
+
   static final TextTheme _light = _build(Brightness.light);
   static final TextTheme _dark = _build(Brightness.dark);
 

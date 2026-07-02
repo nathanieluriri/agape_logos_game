@@ -14,33 +14,45 @@ abstract final class AppColors {
   static const Color accent = Color(0xFFD9A441);
   static const Color danger = Color(0xFFB3261E);
 
-  // Pond background gradient stops (top glow -> deep water).
-  static const pondTop = Color(0xFF1FB19C);
-  static const pond2 = Color(0xFF14998C);
-  static const pond3 = Color(0xFF0C7C79);
-  static const pond4 = Color(0xFF086566);
-  static const pondDeep = Color(0xFF064F57);
+  /// Fully transparent, for surfaces that must not paint (e.g. the scaffolding
+  /// behind a custom-decorated bottom sheet).
+  static const Color transparent = Color(0x00000000);
 
-  // Submerged lily-pad shadow blob (dark teal -> transparent).
-  static const padShadowCore = Color(0x8C033A3C);
-  static const padShadowMid = Color(0x4D044848);
-  static const padShadowEdge = Color(0x00065A5A);
+  // Pond background gradient stops (top glow -> deep water).
+  static const pondTop = Color(0xFF1BAFA6);
+  static const pond2 = Color(0xFF12988F);
+  static const pond3 = Color(0xFF0C7F80);
+  static const pond4 = Color(0xFF096870);
+  static const pondDeep = Color(0xFF07535F);
+
+  // Submerged lily-pad silhouettes (flat, faintly darker than the water).
+  static const ambientPadFill = Color(0x30053F44);
+  static const ambientPadFillSoft = Color(0x20053F44);
 
   // Surface ripple.
-  static const ripple = Color(0x0DFFFFFF);
+  static const ripple = Color(0x14FFFFFF);
 
   // Green play lily pad.
   static const lilyGreenLight = Color(0xFF84D8AD);
   static const lilyGreenMid = Color(0xFF5CC295);
   static const lilyGreenDeep = Color(0xFF44A87E);
-  static const lilyGreenStroke = Color(0xFF3C9A78);
+  static const lilyGreenUnder = Color(0xFF37946A);
   static const lilyGreenVein = Color(0xFF3F9D77);
 
   // Teal secondary lily pad.
   static const lilyTealLight = Color(0xFF33B0A0);
   static const lilyTealMid = Color(0xFF1F978B);
   static const lilyTealDeep = Color(0xFF147F78);
-  static const lilyTealStroke = Color(0xFF0F6D68);
+  static const lilyTealUnder = Color(0xFF0F6D68);
+
+  // Blue bonus/secondary pad.
+  static const bonusBlueLight = Color(0xFF54A9BA);
+  static const bonusBlueMid = Color(0xFF3E93A6);
+  static const bonusBlueDeep = Color(0xFF2F8093);
+  static const bonusBlueUnder = Color(0xFF266E82);
+
+  // Light rim glow along the top edge of every pad.
+  static const padRimGlow = Color(0x8CEFFFF6);
 
   // Progress track + lime-gold fill.
   static const progressTrack = Color(0xFF0C6160);
@@ -53,6 +65,11 @@ abstract final class AppColors {
   // Chrome: settings + currency pill + plus button.
   static const settingsFill = Color(0x8C0D786E);
   static const settingsBorder = Color(0x8CBEEEE0);
+  static const settingsHalo = Color(0x40BEEEE0);
+  // Hairline row separator inside settings cards (settingsBorder at low alpha).
+  static const rowDivider = Color(0x1FBEEEE0);
+  static const settingsInnerLight = Color(0xFF2EA795);
+  static const settingsInnerDeep = Color(0xFF0F7C72);
   static const pillFill = Color(0x8C042A2F);
   static const pillBorder = Color(0x0FFFFFFF);
   static const pillText = Color(0xFFFDFAF0);
@@ -65,6 +82,14 @@ abstract final class AppColors {
   static const playTriangle = Color(0xFFFBF4DC);
   static const playTriangleShadow = Color(0xFFE3D4AB);
   static const padLabel = Color(0xFFFFFFFF);
+  static const padLabelSoft = Color(0xD9FFFFFF);
+
+  // Pond overlay chrome: dialog scrim, switch track, danger actions.
+  static const pondScrim = Color(0xB3053F44);
+  static const switchTrackOn = Color(0x8C37946A);
+  static const dangerFill = Color(0x8C5C1A15);
+  static const dangerBorder = Color(0x8CFFC4BC);
+  static const dangerOnPond = Color(0xFFFFB4AB);
 
   // Game: word-forming board + wheel (approximated from the gameplay screenshots).
   static const Color tileBlue = Color(0xFF2A9FC9);
@@ -75,4 +100,17 @@ abstract final class AppColors {
   static const Color connectLine = tileBlue;
   static const Color comboBannerStart = Color(0xFF8E5BD6);
   static const Color comboBannerEnd = Color(0xFFC44FB0);
+
+  // Game: cream wheel pad (the paper disc the letters float on).
+  static const Color wheelPadLight = Color(0xFFFFFCF2);
+  static const Color wheelPadMid = Color(0xFFF3ECD9);
+  static const Color wheelPadDeep = Color(0xFFE6DABD);
+  static const Color wheelPadUnder = Color(0xFFCFC0A0);
+
+  // The drag line over the cream pad.
+  static const Color wheelConnect = lilyGreenDeep;
+
+  // Game: board slots, submerged hollows in the water.
+  static const Color boardSlotFill = Color(0x4D053F44);
+  static const Color boardSlotBorder = Color(0x2EBEEEE0);
 }

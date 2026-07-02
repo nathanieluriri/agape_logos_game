@@ -27,4 +27,12 @@ abstract final class AppSizing {
   static const double topBarButton = 44;
   static const double comboBannerHeight = 52;
   static const double pillHeight = 40;
+
+  // Pond control primitives: switch, capsule button, loader, dialog.
+  static const double switchTrackWidth = 58;
+  static const double switchTrackHeight = 34;
+  static const double switchKnob = 26;
+  static const double pillButtonHeight = 44;
+  static const double loader = 48;
+  static const double dialogMaxWidth = 360;
 }

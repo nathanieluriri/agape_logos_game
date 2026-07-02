@@ -7,8 +7,10 @@ import 'package:flutter/widgets.dart';
 abstract final class AppShadows {
   const AppShadows._();
 
+  /// Cast shadow under the interactive lily pads: dark teal (shadowed water),
+  /// not black, so the pads read as sitting on the pond surface.
   static const pad = [
-    BoxShadow(color: Color(0x3D000000), blurRadius: 11, offset: Offset(0, 9)),
+    BoxShadow(color: Color(0x59043338), blurRadius: 16, offset: Offset(0, 9)),
   ];
 
   static const pill = [
