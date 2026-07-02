@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/durations.dart';
+import '../../../../core/design/tokens/gradients.dart';
 import '../../../../core/design/tokens/radii.dart';
+import '../../../../core/design/tokens/shadows.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../puzzles/domain/puzzle.dart';
 
@@ -72,6 +74,29 @@ class _Tile extends StatelessWidget {
   final String letter;
   final bool filled;
 
+  /// Mini-pad depth: the hard darker underside edge first, then the soft
+  /// cast shadow on the water (the pad painter's layer recipe).
+  static const _filledShadows = <BoxShadow>[
+    BoxShadow(color: AppColors.lilyGreenUnder, offset: Offset(0, 3)),
+    ...AppShadows.pad,
+  ];
+
+  /// Filled cell: a mini lily pad resting on the water.
+  static const _filledDecoration = BoxDecoration(
+    gradient: AppGradients.lilyGreen,
+    borderRadius: AppRadii.card,
+    boxShadow: _filledShadows,
+  );
+
+  /// Empty cell: a submerged hollow in the water.
+  static const _emptyDecoration = BoxDecoration(
+    color: AppColors.boardSlotFill,
+    borderRadius: AppRadii.card,
+    border: Border.fromBorderSide(
+      BorderSide(color: AppColors.boardSlotBorder),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
@@ -80,17 +105,14 @@ class _Tile extends StatelessWidget {
       width: AppSizing.boardTile,
       height: AppSizing.boardTile,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: filled ? AppColors.tileBlue : AppColors.slotEmpty,
-        borderRadius: AppRadii.card,
-      ),
+      decoration: filled ? _filledDecoration : _emptyDecoration,
       child: filled
           ? Text(
               letter,
               style: const TextStyle(
                 fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: AppColors.tileBlueText,
+                fontWeight: FontWeight.w800,
+                color: AppColors.padLabel,
               ),
             )
           : const SizedBox.shrink(),

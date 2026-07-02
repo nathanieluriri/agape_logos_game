@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/design/tokens/colors.dart';
+import '../../../../core/design/tokens/gradients.dart';
+import '../../../../core/design/tokens/shadows.dart';
 import '../../../../core/design/tokens/sizing.dart';
 
 /// Circular letter rack. The player drags across nodes to form a word.
@@ -62,6 +64,9 @@ class _LetterWheelState extends State<LetterWheel> {
 
   @override
   Widget build(BuildContext context) {
+    // Hoisted once per build: the getter allocates a fresh list, and the node
+    // loop below reads it repeatedly (jank rule: no per-frame allocations).
+    final centers = _centers;
     return SizedBox(
       width: AppSizing.wheelDiameter,
       height: AppSizing.wheelDiameter,
@@ -78,34 +83,34 @@ class _LetterWheelState extends State<LetterWheel> {
           widget.onEnd();
         },
         child: RepaintBoundary(
-          child: CustomPaint(
-            painter: _WheelPainter(
-              centers: _centers,
-              selected: widget.selected,
-              finger: _finger,
-            ),
-            child: Stack(
-              children: [
-                const DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: AppColors.wheelBase,
-                    shape: BoxShape.circle,
+          child: Stack(
+            children: [
+              // The cream pad the letters float on, behind everything.
+              const SizedBox.expand(
+                child: CustomPaint(painter: _WheelBasePainter()),
+              ),
+              // The drag line: over the cream pad, under the letter nodes.
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _WheelPainter(
+                    centers: centers,
+                    selected: widget.selected,
+                    finger: _finger,
                   ),
-                  child: SizedBox.expand(),
                 ),
-                for (var i = 0; i < widget.letters.length; i++)
-                  Positioned(
-                    left: _centers[i].dx - _node / 2,
-                    top: _centers[i].dy - _node / 2,
-                    width: _node,
-                    height: _node,
-                    child: _Node(
-                      letter: widget.letters[i],
-                      selected: widget.selected.contains(i),
-                    ),
+              ),
+              for (var i = 0; i < widget.letters.length; i++)
+                Positioned(
+                  left: centers[i].dx - _node / 2,
+                  top: centers[i].dy - _node / 2,
+                  width: _node,
+                  height: _node,
+                  child: _Node(
+                    letter: widget.letters[i],
+                    selected: widget.selected.contains(i),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
@@ -118,14 +123,19 @@ class _Node extends StatelessWidget {
   final String letter;
   final bool selected;
 
+  /// Selected node: a mini lily pad lifted off the cream disc.
+  static const _selectedDecoration = BoxDecoration(
+    gradient: AppGradients.lilyGreen,
+    shape: BoxShape.circle,
+    boxShadow: AppShadows.pill,
+  );
+
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Container(
         alignment: Alignment.center,
-        decoration: selected
-            ? const BoxDecoration(color: AppColors.tileBlue, shape: BoxShape.circle)
-            : null,
+        decoration: selected ? _selectedDecoration : null,
         width: AppSizing.wheelNode,
         height: AppSizing.wheelNode,
         child: Text(
@@ -133,12 +143,72 @@ class _Node extends StatelessWidget {
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w700,
-            color: selected ? AppColors.tileBlueText : AppColors.wheelLetter,
+            color: selected ? AppColors.padLabel : AppColors.wheelLetter,
           ),
         ),
       ),
     );
   }
+}
+
+/// The cream paper pad under the letters: the lily-pad layer recipe (soft
+/// cast shadow, hard underside, sheen fill, rim glow) on a plain circle, so
+/// the wheel stays a perfect circle for the drag hit-testing.
+class _WheelBasePainter extends CustomPainter {
+  const _WheelBasePainter();
+
+  /// How far the darker underside peeks out below the disc (logical px).
+  static const double _undersideDrop = 3;
+
+  /// Rim glow stroke width.
+  static const double _rimStroke = 2;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.shortestSide / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    // 1. Soft cast shadow on the water.
+    final cast = AppShadows.pad.first;
+    canvas.drawCircle(
+      center.translate(0, cast.offset.dy),
+      radius,
+      Paint()
+        ..color = cast.color
+        ..maskFilter = MaskFilter.blur(
+          BlurStyle.normal,
+          Shadow.convertRadiusToSigma(cast.blurRadius),
+        ),
+    );
+
+    // 2. Hard darker underside peeking out below the fill.
+    canvas.drawCircle(
+      center.translate(0, _undersideDrop),
+      radius,
+      Paint()..color = AppColors.wheelPadUnder,
+    );
+
+    // 3. Cream sheen fill (top-left light source).
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()..shader = AppGradients.wheelPad.createShader(rect),
+    );
+
+    // 4. Light rim glow, brightest along the top edge.
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..shader = AppGradients.padRimGlow.createShader(rect)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _rimStroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_WheelBasePainter oldDelegate) => false;
 }
 
 class _WheelPainter extends CustomPainter {
@@ -156,7 +226,7 @@ class _WheelPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (selected.isEmpty) return;
     final paint = Paint()
-      ..color = AppColors.connectLine
+      ..color = AppColors.wheelConnect
       ..strokeWidth = 10
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;

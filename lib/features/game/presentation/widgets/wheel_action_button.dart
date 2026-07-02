@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/design/motion/curves.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/durations.dart';
+import '../../../../core/design/tokens/gradients.dart';
+import '../../../../core/design/tokens/shadows.dart';
 import '../../../../core/design/tokens/sizing.dart';
-import '../../../../core/design/motion/curves.dart';
+import '../../../../core/design/tokens/spacing.dart';
 
-/// A circular Shuffle/Hint button with an optional count badge.
+/// A circular Shuffle/Hint button with an optional count badge, in the pond
+/// chrome: a soft halo ring around a gradient teal disc (a flat water disc
+/// while disabled), with a gold count badge.
 class WheelActionButton extends StatefulWidget {
   const WheelActionButton({
     super.key,
@@ -27,6 +32,32 @@ class WheelActionButton extends StatefulWidget {
 }
 
 class _WheelActionButtonState extends State<WheelActionButton> {
+  /// Halo ring thickness around the inner disc (matches the settings gear).
+  static const double _haloPadding = 5;
+
+  /// Enabled disc: lifted gradient teal.
+  static const _enabledDisc = BoxDecoration(
+    shape: BoxShape.circle,
+    gradient: AppGradients.settingsInner,
+    boxShadow: AppShadows.pill,
+  );
+
+  /// Disabled disc: flat translucent water, no lift.
+  static const _disabledDisc = BoxDecoration(
+    shape: BoxShape.circle,
+    color: AppColors.pillFill,
+    border: Border.fromBorderSide(BorderSide(color: AppColors.pillBorder)),
+  );
+
+  /// Count badge: a gold droplet with a cream rim.
+  static const _badgeDecoration = BoxDecoration(
+    shape: BoxShape.circle,
+    color: AppColors.accent,
+    border: Border.fromBorderSide(
+      BorderSide(color: AppColors.wordmark, width: 1.5),
+    ),
+  );
+
   bool _pressed = false;
 
   @override
@@ -34,8 +65,8 @@ class _WheelActionButtonState extends State<WheelActionButton> {
     final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return Semantics(
       button: true,
+      enabled: widget.enabled,
       label: widget.semanticLabel,
-      onTap: widget.enabled ? widget.onTap : null,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: widget.enabled ? (_) => setState(() => _pressed = true) : null,
@@ -56,14 +87,20 @@ class _WheelActionButtonState extends State<WheelActionButton> {
               Container(
                 width: AppSizing.actionButton,
                 height: AppSizing.actionButton,
-                decoration: BoxDecoration(
-                  color: AppColors.pillFill,
+                padding: const EdgeInsets.all(_haloPadding),
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.pillBorder),
+                  color: AppColors.settingsHalo,
                 ),
-                child: Icon(
-                  widget.icon,
-                  color: widget.enabled ? AppColors.pillText : AppColors.slotEmpty,
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: widget.enabled ? _enabledDisc : _disabledDisc,
+                  child: Icon(
+                    widget.icon,
+                    color: widget.enabled
+                        ? AppColors.wordmark
+                        : AppColors.padLabelSoft,
+                  ),
                 ),
               ),
               if (widget.badge != null && widget.badge! > 0)
@@ -71,17 +108,14 @@ class _WheelActionButtonState extends State<WheelActionButton> {
                   right: -2,
                   top: -2,
                   child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: AppColors.danger,
-                      shape: BoxShape.circle,
-                    ),
+                    padding: const EdgeInsets.all(AppSpacing.xs),
+                    decoration: _badgeDecoration,
                     child: Text(
                       '${widget.badge}',
                       style: const TextStyle(
                         fontSize: 11,
-                        color: AppColors.tileBlueText,
-                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
