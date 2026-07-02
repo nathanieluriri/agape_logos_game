@@ -5,6 +5,7 @@ import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/settings/application/settings_providers.dart';
 import 'package:agape_logos_game/features/settings/presentation/pages/settings_page.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
+import 'package:agape_logos_game/shared/widgets/pond_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,10 +65,11 @@ void main() {
     expect(find.text('Notifications'), findsOneWidget);
     expect(find.text('Haptics'), findsOneWidget);
     expect(find.text('Sign out'), findsOneWidget);
-    expect(find.text('Version 0.1.0'), findsOneWidget);
+    expect(find.text('Version 0.2.0'), findsOneWidget);
 
     // Switches render in order: Sound effects, Music, Notifications, Haptics.
-    final switches = tester.widgetList<Switch>(find.byType(Switch)).toList();
+    final switches =
+        tester.widgetList<PondSwitch>(find.byType(PondSwitch)).toList();
     expect(switches.length, 4);
     expect(switches[0].value, isTrue); // sound effects
     expect(switches[2].value, isFalse); // notifications (false in _row)

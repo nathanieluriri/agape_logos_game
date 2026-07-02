@@ -7,6 +7,7 @@ import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/settings/application/settings_providers.dart';
 import 'package:agape_logos_game/features/settings/presentation/pages/settings_page.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
+import 'package:agape_logos_game/shared/widgets/pond_pill_button.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -89,7 +90,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Delete account?'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+    await tester.tap(find.widgetWithText(PondPillButton, 'Delete'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
@@ -108,7 +109,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete account'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+    await tester.tap(find.widgetWithText(PondPillButton, 'Delete'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 

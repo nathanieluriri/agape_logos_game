@@ -19,8 +19,23 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  test('palettes differ between green and teal', () {
-    expect(LilyPadPalette.green.strokeColor,
-        isNot(LilyPadPalette.teal.strokeColor));
+  testWidgets('LilyPad renders the smooth shape', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Center(
+        child: LilyPad(
+          size: 104,
+          palette: LilyPadPalette.bonusBlue,
+          shape: PadShape.smooth,
+          child: Text('Bonus'),
+        ),
+      ),
+    ));
+    expect(find.text('Bonus'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('palettes differ between green and bonus blue', () {
+    expect(LilyPadPalette.green.fillGradient,
+        isNot(LilyPadPalette.bonusBlue.fillGradient));
   });
 }

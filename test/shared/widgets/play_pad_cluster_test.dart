@@ -13,7 +13,7 @@ void main() {
           child: PlayPadCluster(
             nextLabel: 'Lv.26',
             onPlay: () => plays++,
-            secondaryIcon: Icons.account_balance_wallet,
+            secondaryIcon: const Icon(Icons.account_balance_wallet),
             secondaryLabel: 'Withdraw',
             onSecondary: () => secondaries++,
           ),
