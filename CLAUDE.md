@@ -64,6 +64,7 @@ lib/
   features/<feature>/{domain,data,application,presentation/{pages,widgets}}
   shared/widgets/           # reusable cross-feature widgets
   game/                     # Flame game/components/systems
+  preview/                  # @Preview design harness (flutter widget-preview start)
 ```
 
 ### Separation & composition rules (mandatory)
@@ -117,23 +118,48 @@ Three **call policies** (`core/offline/call_policy.dart`) - pick one per reposit
   shared widget.
 - Audio behind `AudioService` (`flame_audio` impl); SFX keys centralized; respect global mute.
 
-## Non-goals / don't do yet
+## Current state (playable core loop)
 
-No real screens, levels, game logic, API endpoints, theme aesthetics, or art. The
-`level_results` feature is a deletable sample proving the optimistic path. There is no
-backend yet, so the injected `MutationSender` is a placeholder returning `transient`
-(keeps optimistic writes durably queued, never lost), and auto-flush is gated behind
-`kBackendSyncEnabled` (in `app/bootstrap.dart`). Double-send safety ultimately rests on
-the per-mutation **idempotency key** (at-least-once delivery); single-flight + the
-`inFlight` claim just minimize duplicates.
+The game is live end to end on Android: Play gates on Firebase auth (email, Google, or
+guest via `startPlayFlow`), puzzles are drawn from the deployed Cloud Function
+(`kApiBaseUrl` in `core/network/api_config.dart`) and cached in Drift, gameplay runs the
+letter wheel + word board + hints/shuffle/combo, `commitWin` records the result through
+the optimistic queue, and the level-complete screen advances to the next puzzle.
+`kBackendSyncEnabled = true`: foreground and WorkManager background flush both use the
+real `HttpMutationSender`. Double-send safety ultimately rests on the per-mutation
+**idempotency key** (at-least-once delivery); single-flight + the `inFlight` claim just
+minimize duplicates.
+
+- **Offline first run:** when the cache is empty and the backend is unreachable,
+  `PuzzleRepositoryImpl` seeds the bundled pack `assets/puzzles/starter_pack.json`
+  (seam: `PuzzleSeedSource`). Starter results (`kStarterPuzzlePrefix` ids) complete
+  locally and **skip the sync queue**. If truly nothing is playable, the game page shows
+  `EmptyPondNotice` (retry), never an endless spinner.
+- **Still stubbed:** Dictionary, Store, Withdraw, Bonus Gift (coming-soon sheets).
+  `level_results` remains the original optimistic-path sample.
+- **Auth caveat:** guest sign-in needs network the first time, so a never-online fresh
+  install cannot reach gameplay yet (product decision pending).
+
+## Pond design system & widget previews
+
+- **Pad silhouette single source of truth:** `core/design/pad_geometry.dart`
+  (`PadGeometry.notchedPad`/`smoothPad`/`veins`, 100x100 viewBox). Used by the
+  `LilyPad` painter (shared/widgets) and the ambient `PadShadowComponent` (Flame).
+  The base is a softly rounded three-sided shape (not a circle); the play pad adds two
+  rim nicks that never reach the center.
+- **Pad depth layers (painter order):** blurred cast shadow → hard darker `underside`
+  offset → radial sheen fill → vein texture → light rim glow along the top edge. All
+  colors/gradients are tokens (`LilyPadPalette`, `AppGradients.padRimGlow`).
+- **Design previews:** `lib/preview/pond_previews.dart` holds `@Preview` functions
+  (screens, pads, top bar, progress bar). Run `flutter widget-preview start` (or the IDE
+  panel). The previewer is Flutter Web: preview files must stay provider-free and must
+  not import bootstrap, Drift, or Flame.
 
 ## Known follow-ups (not blocking)
 
-- **Wire the backend:** replace the placeholder `_send` (and the WorkManager
-  `callbackDispatcher`'s sender) with a real `ApiClient` call, register a reconciler per
-  mutation `kind`, then flip `kBackendSyncEnabled = true`.
-- **Web runtime:** add `sqlite3.wasm` + `drift_worker.js` to `web/` (matching the drift
-  version) or web Drift 404s at first DB use. APK/tests are unaffected.
+- **Web runtime:** run `tool/fetch_web_runtime.ps1` once to download `sqlite3.wasm` +
+  `drift_worker.js` (pinned to pubspec.lock: drift 2.34.0, sqlite3 3.3.3) into `web/`,
+  or web Drift 404s at first DB use. APK/tests are unaffected.
 - **Env cleanup:** delete the old SDK copy at `C:\Users\Mr Dashi\flutter` (when the IDE is
   closed) and point the **Machine PATH** at `C:\flutter\bin` (needs admin) so bare
   `flutter` uses the space-free SDK everywhere.
