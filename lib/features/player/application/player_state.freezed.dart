@@ -12,40 +12,43 @@ part of 'player_state.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
-mixin _$PlayerState {
+mixin _$LevelSummary {
 
- int get coins; int get currentLevel; int get progressDone; int get progressTotal; int get lastCompletedLevel;
-/// Create a copy of PlayerState
+/// The progression level that was completed (backend `highestLevel` value).
+ int get completedLevel;/// Words found in the puzzle (equals [totalWords] on a full completion).
+ int get wordsFound;/// The puzzle's total answers (`answerCount` from the backend puzzle).
+ int get totalWords;
+/// Create a copy of LevelSummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$PlayerStateCopyWith<PlayerState> get copyWith => _$PlayerStateCopyWithImpl<PlayerState>(this as PlayerState, _$identity);
+$LevelSummaryCopyWith<LevelSummary> get copyWith => _$LevelSummaryCopyWithImpl<LevelSummary>(this as LevelSummary, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerState&&(identical(other.coins, coins) || other.coins == coins)&&(identical(other.currentLevel, currentLevel) || other.currentLevel == currentLevel)&&(identical(other.progressDone, progressDone) || other.progressDone == progressDone)&&(identical(other.progressTotal, progressTotal) || other.progressTotal == progressTotal)&&(identical(other.lastCompletedLevel, lastCompletedLevel) || other.lastCompletedLevel == lastCompletedLevel));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LevelSummary&&(identical(other.completedLevel, completedLevel) || other.completedLevel == completedLevel)&&(identical(other.wordsFound, wordsFound) || other.wordsFound == wordsFound)&&(identical(other.totalWords, totalWords) || other.totalWords == totalWords));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,coins,currentLevel,progressDone,progressTotal,lastCompletedLevel);
+int get hashCode => Object.hash(runtimeType,completedLevel,wordsFound,totalWords);
 
 @override
 String toString() {
-  return 'PlayerState(coins: $coins, currentLevel: $currentLevel, progressDone: $progressDone, progressTotal: $progressTotal, lastCompletedLevel: $lastCompletedLevel)';
+  return 'LevelSummary(completedLevel: $completedLevel, wordsFound: $wordsFound, totalWords: $totalWords)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $PlayerStateCopyWith<$Res>  {
-  factory $PlayerStateCopyWith(PlayerState value, $Res Function(PlayerState) _then) = _$PlayerStateCopyWithImpl;
+abstract mixin class $LevelSummaryCopyWith<$Res>  {
+  factory $LevelSummaryCopyWith(LevelSummary value, $Res Function(LevelSummary) _then) = _$LevelSummaryCopyWithImpl;
 @useResult
 $Res call({
- int coins, int currentLevel, int progressDone, int progressTotal, int lastCompletedLevel
+ int completedLevel, int wordsFound, int totalWords
 });
 
 
@@ -53,22 +56,20 @@ $Res call({
 
 }
 /// @nodoc
-class _$PlayerStateCopyWithImpl<$Res>
-    implements $PlayerStateCopyWith<$Res> {
-  _$PlayerStateCopyWithImpl(this._self, this._then);
+class _$LevelSummaryCopyWithImpl<$Res>
+    implements $LevelSummaryCopyWith<$Res> {
+  _$LevelSummaryCopyWithImpl(this._self, this._then);
 
-  final PlayerState _self;
-  final $Res Function(PlayerState) _then;
+  final LevelSummary _self;
+  final $Res Function(LevelSummary) _then;
 
-/// Create a copy of PlayerState
+/// Create a copy of LevelSummary
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? coins = null,Object? currentLevel = null,Object? progressDone = null,Object? progressTotal = null,Object? lastCompletedLevel = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? completedLevel = null,Object? wordsFound = null,Object? totalWords = null,}) {
   return _then(_self.copyWith(
-coins: null == coins ? _self.coins : coins // ignore: cast_nullable_to_non_nullable
-as int,currentLevel: null == currentLevel ? _self.currentLevel : currentLevel // ignore: cast_nullable_to_non_nullable
-as int,progressDone: null == progressDone ? _self.progressDone : progressDone // ignore: cast_nullable_to_non_nullable
-as int,progressTotal: null == progressTotal ? _self.progressTotal : progressTotal // ignore: cast_nullable_to_non_nullable
-as int,lastCompletedLevel: null == lastCompletedLevel ? _self.lastCompletedLevel : lastCompletedLevel // ignore: cast_nullable_to_non_nullable
+completedLevel: null == completedLevel ? _self.completedLevel : completedLevel // ignore: cast_nullable_to_non_nullable
+as int,wordsFound: null == wordsFound ? _self.wordsFound : wordsFound // ignore: cast_nullable_to_non_nullable
+as int,totalWords: null == totalWords ? _self.totalWords : totalWords // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }
@@ -76,8 +77,8 @@ as int,
 }
 
 
-/// Adds pattern-matching-related methods to [PlayerState].
-extension PlayerStatePatterns on PlayerState {
+/// Adds pattern-matching-related methods to [LevelSummary].
+extension LevelSummaryPatterns on LevelSummary {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -90,10 +91,10 @@ extension PlayerStatePatterns on PlayerState {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _PlayerState value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _LevelSummary value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _PlayerState() when $default != null:
+case _LevelSummary() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -112,10 +113,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _PlayerState value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _LevelSummary value)  $default,){
 final _that = this;
 switch (_that) {
-case _PlayerState():
+case _LevelSummary():
 return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -133,10 +134,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _PlayerState value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _LevelSummary value)?  $default,){
 final _that = this;
 switch (_that) {
-case _PlayerState() when $default != null:
+case _LevelSummary() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -154,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int coins,  int currentLevel,  int progressDone,  int progressTotal,  int lastCompletedLevel)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int completedLevel,  int wordsFound,  int totalWords)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _PlayerState() when $default != null:
-return $default(_that.coins,_that.currentLevel,_that.progressDone,_that.progressTotal,_that.lastCompletedLevel);case _:
+case _LevelSummary() when $default != null:
+return $default(_that.completedLevel,_that.wordsFound,_that.totalWords);case _:
   return orElse();
 
 }
@@ -175,10 +176,10 @@ return $default(_that.coins,_that.currentLevel,_that.progressDone,_that.progress
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int coins,  int currentLevel,  int progressDone,  int progressTotal,  int lastCompletedLevel)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int completedLevel,  int wordsFound,  int totalWords)  $default,) {final _that = this;
 switch (_that) {
-case _PlayerState():
-return $default(_that.coins,_that.currentLevel,_that.progressDone,_that.progressTotal,_that.lastCompletedLevel);case _:
+case _LevelSummary():
+return $default(_that.completedLevel,_that.wordsFound,_that.totalWords);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -195,10 +196,10 @@ return $default(_that.coins,_that.currentLevel,_that.progressDone,_that.progress
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int coins,  int currentLevel,  int progressDone,  int progressTotal,  int lastCompletedLevel)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int completedLevel,  int wordsFound,  int totalWords)?  $default,) {final _that = this;
 switch (_that) {
-case _PlayerState() when $default != null:
-return $default(_that.coins,_that.currentLevel,_that.progressDone,_that.progressTotal,_that.lastCompletedLevel);case _:
+case _LevelSummary() when $default != null:
+return $default(_that.completedLevel,_that.wordsFound,_that.totalWords);case _:
   return null;
 
 }
@@ -209,47 +210,48 @@ return $default(_that.coins,_that.currentLevel,_that.progressDone,_that.progress
 /// @nodoc
 
 
-class _PlayerState extends PlayerState {
-  const _PlayerState({required this.coins, required this.currentLevel, required this.progressDone, required this.progressTotal, required this.lastCompletedLevel}): super._();
+class _LevelSummary extends LevelSummary {
+  const _LevelSummary({required this.completedLevel, required this.wordsFound, required this.totalWords}): super._();
   
 
-@override final  int coins;
-@override final  int currentLevel;
-@override final  int progressDone;
-@override final  int progressTotal;
-@override final  int lastCompletedLevel;
+/// The progression level that was completed (backend `highestLevel` value).
+@override final  int completedLevel;
+/// Words found in the puzzle (equals [totalWords] on a full completion).
+@override final  int wordsFound;
+/// The puzzle's total answers (`answerCount` from the backend puzzle).
+@override final  int totalWords;
 
-/// Create a copy of PlayerState
+/// Create a copy of LevelSummary
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$PlayerStateCopyWith<_PlayerState> get copyWith => __$PlayerStateCopyWithImpl<_PlayerState>(this, _$identity);
+_$LevelSummaryCopyWith<_LevelSummary> get copyWith => __$LevelSummaryCopyWithImpl<_LevelSummary>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlayerState&&(identical(other.coins, coins) || other.coins == coins)&&(identical(other.currentLevel, currentLevel) || other.currentLevel == currentLevel)&&(identical(other.progressDone, progressDone) || other.progressDone == progressDone)&&(identical(other.progressTotal, progressTotal) || other.progressTotal == progressTotal)&&(identical(other.lastCompletedLevel, lastCompletedLevel) || other.lastCompletedLevel == lastCompletedLevel));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LevelSummary&&(identical(other.completedLevel, completedLevel) || other.completedLevel == completedLevel)&&(identical(other.wordsFound, wordsFound) || other.wordsFound == wordsFound)&&(identical(other.totalWords, totalWords) || other.totalWords == totalWords));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,coins,currentLevel,progressDone,progressTotal,lastCompletedLevel);
+int get hashCode => Object.hash(runtimeType,completedLevel,wordsFound,totalWords);
 
 @override
 String toString() {
-  return 'PlayerState(coins: $coins, currentLevel: $currentLevel, progressDone: $progressDone, progressTotal: $progressTotal, lastCompletedLevel: $lastCompletedLevel)';
+  return 'LevelSummary(completedLevel: $completedLevel, wordsFound: $wordsFound, totalWords: $totalWords)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$PlayerStateCopyWith<$Res> implements $PlayerStateCopyWith<$Res> {
-  factory _$PlayerStateCopyWith(_PlayerState value, $Res Function(_PlayerState) _then) = __$PlayerStateCopyWithImpl;
+abstract mixin class _$LevelSummaryCopyWith<$Res> implements $LevelSummaryCopyWith<$Res> {
+  factory _$LevelSummaryCopyWith(_LevelSummary value, $Res Function(_LevelSummary) _then) = __$LevelSummaryCopyWithImpl;
 @override @useResult
 $Res call({
- int coins, int currentLevel, int progressDone, int progressTotal, int lastCompletedLevel
+ int completedLevel, int wordsFound, int totalWords
 });
 
 
@@ -257,22 +259,20 @@ $Res call({
 
 }
 /// @nodoc
-class __$PlayerStateCopyWithImpl<$Res>
-    implements _$PlayerStateCopyWith<$Res> {
-  __$PlayerStateCopyWithImpl(this._self, this._then);
+class __$LevelSummaryCopyWithImpl<$Res>
+    implements _$LevelSummaryCopyWith<$Res> {
+  __$LevelSummaryCopyWithImpl(this._self, this._then);
 
-  final _PlayerState _self;
-  final $Res Function(_PlayerState) _then;
+  final _LevelSummary _self;
+  final $Res Function(_LevelSummary) _then;
 
-/// Create a copy of PlayerState
+/// Create a copy of LevelSummary
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? coins = null,Object? currentLevel = null,Object? progressDone = null,Object? progressTotal = null,Object? lastCompletedLevel = null,}) {
-  return _then(_PlayerState(
-coins: null == coins ? _self.coins : coins // ignore: cast_nullable_to_non_nullable
-as int,currentLevel: null == currentLevel ? _self.currentLevel : currentLevel // ignore: cast_nullable_to_non_nullable
-as int,progressDone: null == progressDone ? _self.progressDone : progressDone // ignore: cast_nullable_to_non_nullable
-as int,progressTotal: null == progressTotal ? _self.progressTotal : progressTotal // ignore: cast_nullable_to_non_nullable
-as int,lastCompletedLevel: null == lastCompletedLevel ? _self.lastCompletedLevel : lastCompletedLevel // ignore: cast_nullable_to_non_nullable
+@override @pragma('vm:prefer-inline') $Res call({Object? completedLevel = null,Object? wordsFound = null,Object? totalWords = null,}) {
+  return _then(_LevelSummary(
+completedLevel: null == completedLevel ? _self.completedLevel : completedLevel // ignore: cast_nullable_to_non_nullable
+as int,wordsFound: null == wordsFound ? _self.wordsFound : wordsFound // ignore: cast_nullable_to_non_nullable
+as int,totalWords: null == totalWords ? _self.totalWords : totalWords // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }

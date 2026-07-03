@@ -2,27 +2,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'player_state.dart';
 
-/// Holds the placeholder player state. Swappable with real game state later.
-class PlayerController extends Notifier<PlayerState> {
+/// Holds the most recent [LevelSummary] for the level-complete screen. Written
+/// by the game controller on a win from real puzzle data; null until then.
+/// Level numbering and the wallet live on the backend profile (see
+/// `nextLevelProvider` / `coinsProvider`), not here.
+class PlayerController extends Notifier<LevelSummary?> {
   @override
-  PlayerState build() => const PlayerState(
-        coins: 9999,
-        currentLevel: 26,
-        progressDone: 5,
-        progressTotal: 8,
-        lastCompletedLevel: 3,
-      );
+  LevelSummary? build() => null;
 
-  /// Advance progression after finishing the current level.
-  void completeLevel({required int coinsAwarded}) {
-    state = state.copyWith(
-      coins: state.coins + coinsAwarded,
-      lastCompletedLevel: state.currentLevel,
-      currentLevel: state.currentLevel + 1,
-      progressDone: 0,
+  /// Record the just-completed level for the summary screen.
+  void recordCompletion({
+    required int completedLevel,
+    required int wordsFound,
+    required int totalWords,
+  }) {
+    state = LevelSummary(
+      completedLevel: completedLevel,
+      wordsFound: wordsFound,
+      totalWords: totalWords,
     );
   }
 }
 
-final playerStateProvider =
-    NotifierProvider<PlayerController, PlayerState>(PlayerController.new);
+final levelCompletionProvider =
+    NotifierProvider<PlayerController, LevelSummary?>(PlayerController.new);
