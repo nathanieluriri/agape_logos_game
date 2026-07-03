@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 
 import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/durations.dart';
+import '../../core/design/tokens/gradients.dart';
+import '../../core/design/tokens/shadows.dart';
 import '../../core/design/tokens/sizing.dart';
+import '../../core/haptics/haptics.dart';
 
-/// Round translucent settings gear; scales down slightly on press.
+/// Round settings gear: a soft translucent halo ring around a gradient teal
+/// disc with a filled cream gear. Scales down slightly on press.
 class SettingsButton extends StatefulWidget {
   const SettingsButton({super.key, required this.onPressed});
 
@@ -28,6 +32,7 @@ class _SettingsButtonState extends State<SettingsButton> {
         onTapCancel: () => setState(() => _pressed = false),
         onTap: () {
           setState(() => _pressed = false);
+          Haptics.instance.lightImpact();
           widget.onPressed();
         },
         child: AnimatedScale(
@@ -36,14 +41,21 @@ class _SettingsButtonState extends State<SettingsButton> {
           child: Container(
             width: AppSizing.settingsButton,
             height: AppSizing.settingsButton,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
+            padding: const EdgeInsets.all(5),
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.settingsFill,
-              border: Border.all(color: AppColors.settingsBorder, width: 2.5),
+              color: AppColors.settingsHalo,
             ),
-            child: const ExcludeSemantics(
-              child: Icon(Icons.settings, color: AppColors.wordmark, size: 24),
+            child: Container(
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: AppGradients.settingsInner,
+                boxShadow: AppShadows.pill,
+              ),
+              child: const ExcludeSemantics(
+                child: Icon(Icons.settings, color: AppColors.wordmark, size: 22),
+              ),
             ),
           ),
         ),

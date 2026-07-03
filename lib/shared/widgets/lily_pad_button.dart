@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../core/design/motion/curves.dart';
 import '../../core/design/tokens/durations.dart';
+import '../../core/haptics/haptics.dart';
 import 'lily_pad.dart';
 
 enum IdleMotion { float, bob }
@@ -17,17 +18,21 @@ class LilyPadButton extends StatefulWidget {
     required this.palette,
     required this.content,
     required this.onPressed,
+    this.shape = PadShape.notched,
     this.rotationDegrees = 0,
     this.idle = IdleMotion.float,
+    this.shadow = true,
     this.semanticLabel,
   });
 
   final double size;
   final LilyPadPalette palette;
+  final PadShape shape;
   final double rotationDegrees;
   final Widget content;
   final VoidCallback onPressed;
   final IdleMotion idle;
+  final bool shadow;
   final String? semanticLabel;
 
   @override
@@ -72,6 +77,7 @@ class _LilyPadButtonState extends State<LilyPadButton>
         onTapCancel: () => setState(() => _pressed = false),
         onTap: () {
           setState(() => _pressed = false);
+          Haptics.instance.mediumImpact();
           widget.onPressed();
         },
         child: AnimatedScale(
@@ -87,7 +93,9 @@ class _LilyPadButtonState extends State<LilyPadButton>
             child: LilyPad(
               size: widget.size,
               palette: widget.palette,
+              shape: widget.shape,
               rotationDegrees: widget.rotationDegrees,
+              shadow: widget.shadow,
               child: ExcludeSemantics(child: widget.content),
             ),
           ),

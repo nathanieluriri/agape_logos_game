@@ -5,6 +5,7 @@ import '../../core/design/tokens/sizing.dart';
 import '../../core/design/tokens/spacing.dart';
 import 'lily_pad.dart';
 import 'lily_pad_button.dart';
+import 'play_triangle.dart';
 
 /// The floating play cluster shared by the home and level-complete pages:
 /// a green Play pad centered, with a teal secondary pad floating up and to the
@@ -21,7 +22,10 @@ class PlayPadCluster extends StatelessWidget {
 
   final String nextLabel;
   final VoidCallback onPlay;
-  final IconData secondaryIcon;
+
+  /// The icon widget shown on the secondary pad (e.g. a [FilmPlayIcon] or a
+  /// filled Material [Icon]).
+  final Widget secondaryIcon;
   final String secondaryLabel;
   final VoidCallback onSecondary;
 
@@ -31,23 +35,27 @@ class PlayPadCluster extends StatelessWidget {
       height: AppSizing.playAreaHeight,
       child: Stack(
         clipBehavior: Clip.none,
-        alignment: Alignment.center,
         children: [
-          LilyPadButton(
-            size: AppSizing.playPad,
-            rotationDegrees: 20,
-            palette: LilyPadPalette.green,
-            semanticLabel: 'Play $nextLabel',
-            onPressed: onPlay,
-            content: _PlayContent(label: nextLabel),
+          // Play pad: lower-left of the cluster, notch pointing up-left.
+          Align(
+            alignment: const Alignment(-0.5, 0.55),
+            child: LilyPadButton(
+              size: AppSizing.playPad,
+              rotationDegrees: -135,
+              palette: LilyPadPalette.green,
+              semanticLabel: 'Play $nextLabel',
+              onPressed: onPlay,
+              content: _PlayContent(label: nextLabel),
+            ),
           ),
-          Positioned(
-            right: 4,
-            top: 8,
+          // Secondary pad: a smooth blue pad floating up and to the right.
+          Align(
+            alignment: const Alignment(0.72, -0.72),
             child: LilyPadButton(
               size: AppSizing.secondaryPad,
-              rotationDegrees: -15,
-              palette: LilyPadPalette.teal,
+              shape: PadShape.smooth,
+              rotationDegrees: 25,
+              palette: LilyPadPalette.bonusBlue,
               idle: IdleMotion.bob,
               semanticLabel: secondaryLabel,
               onPressed: onSecondary,
@@ -69,9 +77,13 @@ class _PlayContent extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.play_arrow_rounded,
-            size: 56, color: AppColors.playTriangle),
-        const SizedBox(height: AppSpacing.xs),
+        // Nudged right: a play triangle only looks centered when its visual
+        // mass (not its bounding box) sits in the middle of the pad.
+        const Padding(
+          padding: EdgeInsets.only(left: AppSpacing.xs),
+          child: PlayTriangle(size: 52),
+        ),
+        const SizedBox(height: AppSpacing.sm),
         Text(
           label,
           style: const TextStyle(
@@ -87,7 +99,7 @@ class _PlayContent extends StatelessWidget {
 
 class _SecondaryContent extends StatelessWidget {
   const _SecondaryContent({required this.icon, required this.label});
-  final IconData icon;
+  final Widget icon;
   final String label;
 
   @override
@@ -95,7 +107,7 @@ class _SecondaryContent extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 28, color: AppColors.padLabel),
+        icon,
         const SizedBox(height: AppSpacing.xxs),
         Text(
           label,

@@ -1,58 +1,78 @@
 // lib/shared/widgets/lily_pad.dart
 import 'dart:math' as math;
+import 'dart:typed_data' show Float64List;
 
 import 'package:flutter/widgets.dart';
-import 'package:path_drawing/path_drawing.dart';
 
+import '../../core/design/pad_geometry.dart';
 import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/gradients.dart';
 import '../../core/design/tokens/shadows.dart';
 
-/// The recolorable surface of a lily pad. One painter serves every pad; the
-/// palette swaps the fill sheen, stroke, and vein colors.
+/// The recolorable surface of a pad. One painter serves every pad; the
+/// palette swaps the fill sheen, the darker underside, and the vein texture.
 @immutable
 class LilyPadPalette {
   const LilyPadPalette({
     required this.fillGradient,
-    required this.strokeColor,
-    required this.veinColor,
-    required this.veinOpacity,
+    required this.underside,
+    this.veinColor,
+    this.veinOpacity = 0,
   });
 
   final Gradient fillGradient;
-  final Color strokeColor;
-  final Color veinColor;
+
+  /// The darker copy peeking out under the bottom edge (pressed-clay depth).
+  final Color underside;
+
+  /// Optional radial vein texture; null paints no veins.
+  final Color? veinColor;
   final double veinOpacity;
 
   static const green = LilyPadPalette(
     fillGradient: AppGradients.lilyGreen,
-    strokeColor: AppColors.lilyGreenStroke,
+    underside: AppColors.lilyGreenUnder,
     veinColor: AppColors.lilyGreenVein,
-    veinOpacity: 0.55,
+    veinOpacity: 0.30,
   );
 
   static const teal = LilyPadPalette(
     fillGradient: AppGradients.lilyTeal,
-    strokeColor: AppColors.lilyTealStroke,
-    veinColor: AppColors.lilyTealStroke,
-    veinOpacity: 0.40,
+    underside: AppColors.lilyTealUnder,
+  );
+
+  static const bonusBlue = LilyPadPalette(
+    fillGradient: AppGradients.bonusBlue,
+    underside: AppColors.bonusBlueUnder,
   );
 }
 
-/// A lily pad: notched-circle silhouette with a radial sheen, stroke, and
-/// radial vein lines, rotated, with optional centered [child] content.
+/// The silhouette a pad is drawn with. Both are the softly rounded
+/// three-sided base; [notched] adds the two rim nicks of the play pad.
+enum PadShape { notched, smooth }
+
+/// A pad resting on the water: a soft cast shadow, a darker underside, a
+/// radial-sheen fill, subtle vein texture, and a light rim glow along the
+/// top edge, with optional centered [child] content.
 class LilyPad extends StatelessWidget {
   const LilyPad({
     super.key,
     required this.size,
     required this.palette,
+    this.shape = PadShape.notched,
     this.rotationDegrees = 0,
+    this.shadow = true,
     this.child,
   });
 
   final double size;
   final LilyPadPalette palette;
+  final PadShape shape;
   final double rotationDegrees;
+
+  /// Whether to paint the soft cast shadow under the pad. On by default: the
+  /// reference pads all sit on a pool of shadowed water.
+  final bool shadow;
   final Widget? child;
 
   @override
@@ -63,7 +83,9 @@ class LilyPad extends StatelessWidget {
       child: CustomPaint(
         painter: _LilyPadPainter(
           palette: palette,
+          shape: shape,
           rotationDegrees: rotationDegrees,
+          shadow: shadow,
         ),
         child: Center(child: child),
       ),
@@ -72,69 +94,94 @@ class LilyPad extends StatelessWidget {
 }
 
 class _LilyPadPainter extends CustomPainter {
-  _LilyPadPainter({required this.palette, required this.rotationDegrees});
+  _LilyPadPainter({
+    required this.palette,
+    required this.shape,
+    required this.rotationDegrees,
+    required this.shadow,
+  });
 
   final LilyPadPalette palette;
+  final PadShape shape;
   final double rotationDegrees;
+  final bool shadow;
 
-  // Reference geometry authored in a 100x100 viewBox.
-  static const double _viewBox = 100;
-  static final Path _pad = parseSvgPathData(
-    'M 50 50 L 94.3 57.8 A 45 45 0 0 1 7.7 65.4 L 16.2 59.1 L 5.7 57.8 '
-    'A 45 45 0 0 1 21.1 15.5 L 29.9 21.3 L 27.5 11.0 A 45 45 0 0 1 78.9 15.5 Z',
-  );
-  static final Path _veins = parseSvgPathData(
-    'M 50 50 L 78.9 84.5 M 50 50 L 42.2 94.3 M 50 50 L 16.2 59.1 '
-    'M 50 50 L 7.7 34.6 M 50 50 L 29.9 21.3 M 50 50 L 53.9 5.2',
-  );
+  /// How far the darker underside peeks out below the fill (viewBox units).
+  static const double _undersideDrop = 3.2;
+
+  /// The silhouette rotated in place; the canvas itself stays unrotated so
+  /// gradients, shadow offsets, and the rim glow remain in screen space.
+  late final Float64List _rotation = (Matrix4.identity()
+        ..translateByDouble(PadGeometry.center.dx, PadGeometry.center.dy, 0, 1)
+        ..rotateZ(rotationDegrees * math.pi / 180)
+        ..translateByDouble(
+            -PadGeometry.center.dx, -PadGeometry.center.dy, 0, 1))
+      .storage;
+
+  late final Path _outline =
+      (shape == PadShape.smooth ? PadGeometry.smoothPad : PadGeometry.notchedPad)
+          .transform(_rotation);
+
+  late final Path _veins = PadGeometry.veins.transform(_rotation);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final scale = size.width / _viewBox;
+    final scale = size.width / PadGeometry.viewBox;
     canvas
       ..save()
-      ..translate(size.width / 2, size.height / 2)
-      ..rotate(rotationDegrees * math.pi / 180)
-      ..translate(-size.width / 2, -size.height / 2)
       ..scale(scale);
 
-    const rect = Rect.fromLTWH(0, 0, _viewBox, _viewBox);
+    const rect = Rect.fromLTWH(0, 0, PadGeometry.viewBox, PadGeometry.viewBox);
 
-    // Soft cast shadow under the pad.
-    final shadow = AppShadows.pad.first;
-    final shadowPaint = Paint()
-      ..color = shadow.color
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, shadow.blurRadius / scale);
+    // 1. Soft cast shadow on the water.
+    if (shadow) {
+      final cast = AppShadows.pad.first;
+      final shadowPaint = Paint()
+        ..color = cast.color
+        ..maskFilter = MaskFilter.blur(
+          BlurStyle.normal,
+          Shadow.convertRadiusToSigma(cast.blurRadius) / scale,
+        );
+      canvas
+        ..save()
+        ..translate(0, cast.offset.dy / scale)
+        ..drawPath(_outline, shadowPaint)
+        ..restore();
+    }
+
+    // 2. Hard darker underside peeking out below the fill.
     canvas
       ..save()
-      ..translate(0, shadow.offset.dy / scale)
-      ..drawPath(_pad, shadowPaint)
+      ..translate(0, _undersideDrop)
+      ..drawPath(_outline, Paint()..color = palette.underside)
       ..restore();
 
-    // Fill sheen.
+    // 3. Fill sheen (top-left light source).
     canvas.drawPath(
-      _pad,
+      _outline,
       Paint()..shader = palette.fillGradient.createShader(rect),
     );
 
-    // Edge stroke.
-    canvas.drawPath(
-      _pad,
-      Paint()
-        ..color = palette.strokeColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6
-        ..strokeJoin = StrokeJoin.round,
-    );
+    // 4. Subtle radial vein texture.
+    final veinColor = palette.veinColor;
+    if (veinColor != null && palette.veinOpacity > 0) {
+      canvas.drawPath(
+        _veins,
+        Paint()
+          ..color = veinColor.withValues(alpha: palette.veinOpacity)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.3
+          ..strokeCap = StrokeCap.round,
+      );
+    }
 
-    // Radial veins.
+    // 5. Light rim glow, brightest along the top edge.
     canvas.drawPath(
-      _veins,
+      _outline,
       Paint()
-        ..color = palette.veinColor.withValues(alpha: palette.veinOpacity)
+        ..shader = AppGradients.padRimGlow.createShader(rect)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4
-        ..strokeCap = StrokeCap.round,
+        ..strokeWidth = 1.8,
     );
 
     canvas.restore();
@@ -142,5 +189,8 @@ class _LilyPadPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_LilyPadPainter old) =>
-      old.palette != palette || old.rotationDegrees != rotationDegrees;
+      old.palette != palette ||
+      old.shape != shape ||
+      old.rotationDegrees != rotationDegrees ||
+      old.shadow != shadow;
 }

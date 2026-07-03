@@ -1,6 +1,5 @@
 // lib/shared/widgets/coin_pill.dart
 import 'package:flutter/widgets.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/durations.dart';
@@ -9,6 +8,7 @@ import '../../core/design/tokens/radii.dart';
 import '../../core/design/tokens/shadows.dart';
 import '../../core/design/tokens/sizing.dart';
 import '../../core/design/tokens/spacing.dart';
+import '../../core/haptics/haptics.dart';
 
 /// Currency chip: a pink petal coin over a translucent pill with the
 /// animated count-up amount and a round plus button.
@@ -36,7 +36,7 @@ class CoinPill extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
+            AppSpacing.xl + AppSpacing.sm,
             AppSpacing.sm,
             AppSpacing.xl + AppSpacing.md,
             AppSpacing.sm,
@@ -63,13 +63,12 @@ class CoinPill extends StatelessWidget {
         ),
         Positioned(
           left: -18,
-          top: -4,
-          child: Transform.rotate(
-            angle: -0.384, // ~ -22 degrees
-            child: SvgPicture.asset(
-              'assets/branding/coin_petal.svg',
-              width: AppSizing.coinPetal,
-            ),
+          top: -16,
+          // The petal is the provided artwork, placed as-is.
+          child: Image.asset(
+            'assets/branding/coin_petal.png',
+            width: AppSizing.coinPetal,
+            filterQuality: FilterQuality.medium,
           ),
         ),
         Positioned(
@@ -78,24 +77,26 @@ class CoinPill extends StatelessWidget {
             button: true,
             label: 'Add coins',
             child: GestureDetector(
-              onTap: onAdd,
+              onTap: onAdd == null
+                  ? null
+                  : () {
+                      Haptics.instance.lightImpact();
+                      onAdd!();
+                    },
               child: Container(
                 width: 30,
                 height: 30,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: AppGradients.plusButton,
+                  border: Border.all(color: AppColors.plusButtonBorder, width: 2),
+                  boxShadow: AppShadows.pill,
                 ),
                 child: const ExcludeSemantics(
-                  child: Text(
-                    '+',
-                    style: TextStyle(
-                      color: AppColors.padLabel,
-                      fontSize: 21,
-                      fontWeight: FontWeight.w700,
-                      height: 1,
-                    ),
+                  child: CustomPaint(
+                    size: Size(13, 13),
+                    painter: _PlusCrossPainter(),
                   ),
                 ),
               ),
@@ -105,4 +106,42 @@ class CoinPill extends StatelessWidget {
       ],
     );
   }
+}
+
+/// A chunky rounded cross, matching the reference plus button.
+class _PlusCrossPainter extends CustomPainter {
+  const _PlusCrossPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = AppColors.padLabel;
+    final bar = size.width * 0.3;
+    final radius = Radius.circular(bar / 2);
+    canvas
+      ..drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: size.center(Offset.zero),
+            width: size.width,
+            height: bar,
+          ),
+          radius,
+        ),
+        paint,
+      )
+      ..drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: size.center(Offset.zero),
+            width: bar,
+            height: size.height,
+          ),
+          radius,
+        ),
+        paint,
+      );
+  }
+
+  @override
+  bool shouldRepaint(covariant _PlusCrossPainter oldDelegate) => false;
 }
