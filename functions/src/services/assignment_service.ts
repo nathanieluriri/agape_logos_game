@@ -1,4 +1,5 @@
 import {db} from "../firebase";
+import {deriveAnswerKey, encryptAnswerFields} from "../crypto/answer_cipher";
 import {Tier, TIER_ORDER} from "../generation/config";
 import {Rng} from "../generation/random";
 import {selectUnseen} from "./select_unseen";
@@ -13,15 +14,29 @@ export interface PuzzleDoc {
   answerCount: number;
 }
 
+// Wire form sent to clients: answers are encrypted per-user. Only the length
+// stays in the clear (the board renders blanks from it).
+export interface WireAnswer {
+  length: number;
+  enc: string;
+}
+export type WirePuzzle = Omit<PuzzleDoc, "answers"> & {answers: WireAnswer[]};
+
 export interface DrawTierResult {
   requested: number;
   assigned: number;
-  puzzles: PuzzleDoc[];
+  puzzles: WirePuzzle[];
 }
 
 export interface DrawResult {
   byTier: Partial<Record<Tier, DrawTierResult>>;
   shortfall: boolean;
+}
+
+// Encrypts a puzzle's answers with the caller's per-user key. Derive the key
+// once per request and reuse it across the batch.
+function encryptPuzzle(key: Buffer, p: PuzzleDoc): WirePuzzle {
+  return {...p, answers: p.answers.map((a) => encryptAnswerFields(key, a))};
 }
 
 const defaultRng: Rng = () => Math.random();
@@ -52,12 +67,15 @@ interface DrawRecordTier {
   puzzleIds: string[];
 }
 
-async function replayDraw(tiers: Record<string, DrawRecordTier>): Promise<DrawResult> {
+async function replayDraw(
+  key: Buffer,
+  tiers: Record<string, DrawRecordTier>,
+): Promise<DrawResult> {
   const byTier: Partial<Record<Tier, DrawTierResult>> = {};
   let shortfall = false;
   for (const tier of Object.keys(tiers) as Tier[]) {
     const rec = tiers[tier];
-    const puzzles = await fetchPuzzles(rec.puzzleIds);
+    const puzzles = (await fetchPuzzles(rec.puzzleIds)).map((p) => encryptPuzzle(key, p));
     byTier[tier] = {requested: rec.requested, assigned: rec.puzzleIds.length, puzzles};
     if (rec.puzzleIds.length < rec.requested) shortfall = true;
   }
@@ -73,11 +91,12 @@ export async function draw(
   idempotencyKey: string,
   rng: Rng = defaultRng,
 ): Promise<DrawResult> {
+  const key = deriveAnswerKey(uid);
   const drawRef = db.collection("users").doc(uid).collection("draws").doc(idempotencyKey);
   const existing = await drawRef.get();
   if (existing.exists) {
     const tiers = (existing.data()?.tiers ?? {}) as Record<string, DrawRecordTier>;
-    return replayDraw(tiers);
+    return replayDraw(key, tiers);
   }
 
   const assignedSnap = await db
@@ -100,7 +119,7 @@ export async function draw(
       chosenAll.push({id, tier});
     });
     if (sf > 0) shortfall = true;
-    const puzzles = await fetchPuzzles(chosen);
+    const puzzles = (await fetchPuzzles(chosen)).map((p) => encryptPuzzle(key, p));
     byTier[tier] = {requested: n, assigned: chosen.length, puzzles};
     tiersRecord[tier] = {requested: n, puzzleIds: chosen};
   }
@@ -125,7 +144,8 @@ export async function draw(
 export async function getAssigned(
   uid: string,
   status: "incomplete" | "all",
-): Promise<{puzzles: (PuzzleDoc & {completed: boolean})[]}> {
+): Promise<{puzzles: (WirePuzzle & {completed: boolean})[]}> {
+  const key = deriveAnswerKey(uid);
   const col = db.collection("users").doc(uid).collection("assignments");
   const snap = status === "incomplete"
     ? await col.where("completed", "==", false).get()
@@ -135,6 +155,9 @@ export async function getAssigned(
   );
   const puzzles = await fetchPuzzles([...completedById.keys()]);
   return {
-    puzzles: puzzles.map((p) => ({...p, completed: completedById.get(p.letterKey) ?? false})),
+    puzzles: puzzles.map((p) => ({
+      ...encryptPuzzle(key, p),
+      completed: completedById.get(p.letterKey) ?? false,
+    })),
   };
 }

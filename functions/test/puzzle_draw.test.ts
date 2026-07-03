@@ -2,6 +2,7 @@ import {describe, test, expect, beforeEach} from "@jest/globals";
 import * as admin from "firebase-admin";
 import request from "supertest";
 import {createApp} from "../src/app";
+import {decryptAnswer} from "../src/crypto/answer_cipher";
 
 const app = createApp();
 
@@ -37,6 +38,25 @@ describe("POST /puzzles/draw", () => {
   test("401 without a token", async () => {
     const res = await request(app).post("/puzzles/draw").set("idempotency-key", "d1").send({easy: 1});
     expect(res.status).toBe(401);
+  });
+
+  test("answers are encrypted per-user and decrypt with the answer key", async () => {
+    const {idToken} = await mintUser();
+    const draw = await request(app).post("/puzzles/draw")
+      .set("Authorization", `Bearer ${idToken}`).set("idempotency-key", "enc1").send({easy: 1});
+    const puzzle = draw.body.byTier.easy.puzzles[0];
+    // No plaintext answer leaks over the wire.
+    expect(puzzle.answers[0].word).toBeUndefined();
+    expect(puzzle.answers[0].definition).toBeUndefined();
+    expect(typeof puzzle.answers[0].enc).toBe("string");
+    expect(puzzle.answers[0].length).toBeGreaterThan(0);
+    // The caller's key (from /me/answer-key) decrypts it. In this seed the word
+    // equals the letterKey.
+    const keyRes = await request(app).get("/me/answer-key")
+      .set("Authorization", `Bearer ${idToken}`);
+    const key = Buffer.from(keyRes.body.key, "base64");
+    const clear = JSON.parse(decryptAnswer(key, puzzle.answers[0].enc));
+    expect(clear.w).toBe(puzzle.letterKey);
   });
 
   test("400 when all counts are zero", async () => {
