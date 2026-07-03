@@ -7,6 +7,7 @@ import '../../../../core/design/tokens/gradients.dart';
 import '../../../../core/design/tokens/shadows.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../core/haptics/haptics.dart';
 
 /// A circular Shuffle/Hint button with an optional count badge, in the pond
 /// chrome: a soft halo ring around a gradient teal disc (a flat water disc
@@ -74,53 +75,59 @@ class _WheelActionButtonState extends State<WheelActionButton> {
         onTap: widget.enabled
             ? () {
                 setState(() => _pressed = false);
+                Haptics.instance.gameImpact();
                 widget.onTap();
               }
             : null,
-        child: AnimatedScale(
-          scale: _pressed ? 0.92 : 1.0,
-          duration: reduceMotion ? Duration.zero : AppDurations.instant,
-          curve: AppCurves.emphasized,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: AppSizing.actionButton,
-                height: AppSizing.actionButton,
-                padding: const EdgeInsets.all(_haloPadding),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.settingsHalo,
-                ),
-                child: Container(
-                  alignment: Alignment.center,
-                  decoration: widget.enabled ? _enabledDisc : _disabledDisc,
-                  child: Icon(
-                    widget.icon,
-                    color: widget.enabled
-                        ? AppColors.wordmark
-                        : AppColors.padLabelSoft,
+        // The disc icon and count badge are decorative: the Semantics label
+        // above already conveys the action, so exclude them from the tree.
+        // (Otherwise the badge number merges into the button's label.)
+        child: ExcludeSemantics(
+          child: AnimatedScale(
+            scale: _pressed ? 0.92 : 1.0,
+            duration: reduceMotion ? Duration.zero : AppDurations.instant,
+            curve: AppCurves.emphasized,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: AppSizing.actionButton,
+                  height: AppSizing.actionButton,
+                  padding: const EdgeInsets.all(_haloPadding),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.settingsHalo,
                   ),
-                ),
-              ),
-              if (widget.badge != null && widget.badge! > 0)
-                Positioned(
-                  right: -2,
-                  top: -2,
                   child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.xs),
-                    decoration: _badgeDecoration,
-                    child: Text(
-                      '${widget.badge}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.ink,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    alignment: Alignment.center,
+                    decoration: widget.enabled ? _enabledDisc : _disabledDisc,
+                    child: Icon(
+                      widget.icon,
+                      color: widget.enabled
+                          ? AppColors.wordmark
+                          : AppColors.padLabelSoft,
                     ),
                   ),
                 ),
-            ],
+                if (widget.badge != null && widget.badge! > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.xs),
+                      decoration: _badgeDecoration,
+                      child: Text(
+                        '${widget.badge}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.ink,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

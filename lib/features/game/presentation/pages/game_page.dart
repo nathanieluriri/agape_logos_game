@@ -4,11 +4,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/pond_background.dart';
-import '../../../player/application/player_controller.dart';
+import '../../../../shared/widgets/pond_loader.dart';
+import '../../../profile/application/profile_providers.dart';
 import '../../../puzzles/application/puzzle_providers.dart';
+import '../../../tutorial/presentation/widgets/tutorial_overlay.dart';
 import '../../application/game_controller.dart';
 import '../../application/game_session.dart';
 import '../widgets/combo_banner.dart';
+import '../widgets/dictionary_sheet.dart';
+import '../widgets/empty_pond_notice.dart';
 import '../widgets/formed_word_pill.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/letter_wheel.dart';
@@ -24,6 +28,10 @@ class GamePage extends ConsumerStatefulWidget {
 
 class _GamePageState extends ConsumerState<GamePage> {
   bool _navigating = false;
+
+  // Anchors for the tutorial overlay's spotlight cutouts.
+  final _wheelKey = GlobalKey();
+  final _boardKey = GlobalKey();
 
   void _loadFromCurrent() {
     final puzzle = ref.read(currentPuzzleProvider).asData?.value;
@@ -67,71 +75,102 @@ class _GamePageState extends ConsumerState<GamePage> {
     });
 
     final session = ref.watch(gameSessionProvider);
-    final coins = ref.watch(playerStateProvider.select((s) => s.coins));
-    final level = ref.watch(playerStateProvider.select((s) => s.currentLevel));
+    final puzzleAsync = ref.watch(currentPuzzleProvider);
+    final coins = ref.watch(coinsProvider);
+    final level = ref.watch(nextLevelProvider);
     final controller = ref.read(gameSessionProvider.notifier);
+
+    // The stream resolved to "no unplayed puzzles" and nothing is loading:
+    // show a retry notice instead of spinning forever.
+    final pondEmpty = session == null &&
+        !puzzleAsync.isLoading &&
+        puzzleAsync.asData?.value == null;
 
     return Scaffold(
       body: PondBackground(
         child: SafeArea(
           child: session == null
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
+              ? (pondEmpty
+                  ? EmptyPondNotice(
+                      onRetry: () =>
+                          ref.read(puzzleControllerProvider).refresh(),
+                    )
+                  : const Center(child: PondLoader(label: 'Loading puzzle')))
+              : Stack(
                   children: [
-                    GameTopBar(
-                      level: level,
-                      coins: coins,
-                      onBack: () => context.pop(),
-                      onDictionary: () =>
-                          ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Dictionary coming soon')),
-                      ),
-                    ),
-                    Expanded(
-                      child: WordBoard(
-                        targets: session.targets,
-                        found: session.found,
-                        revealed: session.revealed,
-                      ),
-                    ),
-                    ComboBanner(praise: session.praise, combo: session.combo),
-                    FormedWordPill(word: session.formedWord),
-                    const SizedBox(height: AppSpacing.md),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.lg,
-                      ),
-                      // FittedBox scales the fixed-width cluster down on narrow
-                      // phones so the wheel + flanking buttons never overflow.
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            WheelActionButton(
-                              icon: Icons.shuffle,
-                              semanticLabel: 'Shuffle',
-                              onTap: controller.shuffle,
-                            ),
-                            const SizedBox(width: AppSpacing.lg),
-                            LetterWheel(
-                              letters: session.wheelLetters,
-                              selected: session.selection,
-                              onTouch: controller.touchLetter,
-                              onEnd: controller.endSelection,
-                            ),
-                            const SizedBox(width: AppSpacing.lg),
-                            WheelActionButton(
-                              icon: Icons.lightbulb_outline,
-                              semanticLabel: 'Hint',
-                              onTap: controller.useHint,
-                              badge: session.hintsLeft,
-                              enabled: session.hintsLeft > 0,
-                            ),
-                          ],
+                    Column(
+                      children: [
+                        GameTopBar(
+                          level: level,
+                          coins: coins,
+                          onBack: () => context.pop(),
+                          onDictionary: () => showDictionarySheet(
+                            context,
+                            targets: session.targets,
+                            found: session.found,
+                            revealed: session.revealed,
+                          ),
                         ),
+                        Expanded(
+                          child: WordBoard(
+                            key: _boardKey,
+                            targets: session.targets,
+                            found: session.found,
+                            revealed: session.revealed,
+                          ),
+                        ),
+                        ComboBanner(
+                            praise: session.praise, combo: session.combo),
+                        FormedWordPill(word: session.formedWord),
+                        const SizedBox(height: AppSpacing.md),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: AppSpacing.lg,
+                          ),
+                          // FittedBox scales the fixed-width cluster down on
+                          // narrow phones so the wheel + flanking buttons
+                          // never overflow.
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                WheelActionButton(
+                                  icon: Icons.shuffle,
+                                  semanticLabel: 'Shuffle',
+                                  onTap: controller.shuffle,
+                                ),
+                                const SizedBox(width: AppSpacing.lg),
+                                LetterWheel(
+                                  key: _wheelKey,
+                                  letters: session.wheelLetters,
+                                  selected: session.selection,
+                                  onTouch: controller.touchLetter,
+                                  onEnd: controller.endSelection,
+                                ),
+                                const SizedBox(width: AppSpacing.lg),
+                                WheelActionButton(
+                                  icon: Icons.lightbulb_outline,
+                                  semanticLabel: 'Hint',
+                                  onTap: controller.useHint,
+                                  badge: session.hintsLeft,
+                                  enabled: session.hintsLeft > 0,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Built whenever a session exists (it decides its own
+                    // visibility): watching tutorialProvider from here is
+                    // what wires the tutorial controller's listeners.
+                    Positioned.fill(
+                      child: TutorialOverlay(
+                        wheelKey: _wheelKey,
+                        boardKey: _boardKey,
                       ),
                     ),
                   ],

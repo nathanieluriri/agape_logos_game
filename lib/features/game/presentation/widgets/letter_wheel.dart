@@ -7,6 +7,7 @@ import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/gradients.dart';
 import '../../../../core/design/tokens/shadows.dart';
 import '../../../../core/design/tokens/sizing.dart';
+import '../../../../core/haptics/haptics.dart';
 
 /// Circular letter rack. The player drags across nodes to form a word.
 /// Reports each newly entered node via [onTouch] and release via [onEnd].
@@ -24,6 +25,27 @@ class LetterWheel extends StatefulWidget {
   final void Function(int slot) onTouch;
   final VoidCallback onEnd;
 
+  /// Node centers for a wheel rendered at [size], first letter at 12 o'clock.
+  ///
+  /// The single source of truth for the wheel's slot geometry: the wheel
+  /// itself lays nodes out with it, and the tutorial overlay reuses it to
+  /// draw the guided trace over the on-screen wheel (passing the wheel's
+  /// laid-out size, which may be scaled down by the page's FittedBox).
+  static List<Offset> centersIn(Size size, int letterCount) {
+    final radius = size.shortestSide / 2;
+    final node =
+        AppSizing.wheelNode * (size.shortestSide / AppSizing.wheelDiameter);
+    final c = Offset(radius, radius);
+    return [
+      for (var i = 0; i < letterCount; i++)
+        c +
+            Offset.fromDirection(
+              -math.pi / 2 + (2 * math.pi * i / letterCount),
+              radius - node / 2,
+            ),
+    ];
+  }
+
   @override
   State<LetterWheel> createState() => _LetterWheelState();
 }
@@ -32,27 +54,24 @@ class _LetterWheelState extends State<LetterWheel> {
   Offset? _finger;
   int? _lastSlot;
 
-  static const double _radius = AppSizing.wheelDiameter / 2;
   static const double _node = AppSizing.wheelNode;
 
-  List<Offset> get _centers {
-    final n = widget.letters.length;
-    const c = Offset(_radius, _radius);
-    return [
-      for (var i = 0; i < n; i++)
-        c +
-            Offset.fromDirection(
-              -math.pi / 2 + (2 * math.pi * i / n),
-              _radius - _node / 2,
-            ),
-    ];
-  }
+  /// Internally the wheel always renders at its fixed diameter, so the node
+  /// scale inside [LetterWheel.centersIn] is exactly 1.
+  List<Offset> get _centers => LetterWheel.centersIn(
+        const Size(AppSizing.wheelDiameter, AppSizing.wheelDiameter),
+        widget.letters.length,
+      );
 
   void _hit(Offset local) {
     final centers = _centers;
     for (var i = 0; i < centers.length; i++) {
       if ((centers[i] - local).distance <= _node / 2) {
         if (i != _lastSlot) {
+          // A crisp tick per newly entered letter. Kept light (not a heavy
+          // buzz) so a fast drag across the rack feels like discrete selections
+          // rather than one long rumble.
+          Haptics.instance.selectionClick();
           widget.onTouch(i);
           _lastSlot = i;
         }

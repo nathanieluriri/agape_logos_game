@@ -69,6 +69,15 @@ void main() {
         ),
       ),
     );
+    // The coin pill's petal is an Image.asset (PNG), which decodes
+    // asynchronously; precache it under runAsync so it paints into the golden
+    // instead of snapshotting a blank frame.
+    await tester.runAsync(() async {
+      await precacheImage(
+        const AssetImage('assets/branding/coin_petal.png'),
+        tester.element(find.byKey(_stageKey)),
+      );
+    });
     await tester.pumpAndSettle();
     await expectLater(
       find.byKey(_stageKey),
@@ -103,14 +112,14 @@ void main() {
       _stage(
         width: 300,
         height: 240,
-        child: WordBoard(
-          targets: const [
+        child: const WordBoard(
+          targets: [
             PuzzleAnswer(word: 'FIT', length: 3, definition: null),
             PuzzleAnswer(word: 'FAIR', length: 4, definition: null),
             PuzzleAnswer(word: 'FRIST', length: 5, definition: null),
           ],
-          found: const {'FIT'},
-          revealed: const {'FAIR': 2},
+          found: {'FIT'},
+          revealed: {'FAIR': 2},
         ),
       ),
     );

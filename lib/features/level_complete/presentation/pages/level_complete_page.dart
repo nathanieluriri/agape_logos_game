@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/play_flow.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../features/player/application/player_controller.dart';
+import '../../../../features/profile/application/profile_providers.dart';
 import '../../../../shared/widgets/coming_soon_sheet.dart';
+import '../../../../shared/widgets/film_play_icon.dart';
 import '../../../../shared/widgets/play_pad_cluster.dart';
 import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_stage.dart';
@@ -21,17 +23,12 @@ class LevelCompletePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final coins = ref.watch(playerStateProvider.select((s) => s.coins));
-    final completedLabel =
-        ref.watch(playerStateProvider.select((s) => s.completedLabel));
-    final fraction =
-        ref.watch(playerStateProvider.select((s) => s.progressFraction));
-    final progressDone =
-        ref.watch(playerStateProvider.select((s) => s.progressDone));
-    final progressTotal =
-        ref.watch(playerStateProvider.select((s) => s.progressTotal));
-    final nextLabel =
-        ref.watch(playerStateProvider.select((s) => s.nextLevelLabel));
+    final coins = ref.watch(coinsProvider);
+    final summary = ref.watch(levelCompletionProvider);
+    final completedLabel = summary?.completedLabel ?? '';
+    final fraction = summary?.progressFraction ?? 0;
+    final fractionText = summary?.fractionText ?? '0/0';
+    final nextLabel = 'Lv.${ref.watch(nextLevelProvider)}';
     return Scaffold(
       body: PondBackground(
         child: PondStage(
@@ -48,13 +45,13 @@ class LevelCompletePage extends ConsumerWidget {
               LevelProgressBar(
                 label: completedLabel,
                 fraction: fraction,
-                fractionText: '$progressDone/$progressTotal',
+                fractionText: fractionText,
               ),
               const Spacer(),
               PlayPadCluster(
                 nextLabel: nextLabel,
                 onPlay: () => startPlayFlow(context, ref),
-                secondaryIcon: Icons.local_movies,
+                secondaryIcon: const FilmPlayIcon(size: 30),
                 secondaryLabel: 'Bonus Gift',
                 onSecondary: () => showComingSoon(context, 'Bonus Gift'),
               ),

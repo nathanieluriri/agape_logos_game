@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/play_flow.dart';
+import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/spacing.dart';
-import '../../../../features/player/application/player_controller.dart';
+import '../../../../features/profile/application/profile_providers.dart';
 import '../../../../shared/widgets/coming_soon_sheet.dart';
 import '../../../../shared/widgets/play_pad_cluster.dart';
 import '../../../../shared/widgets/pond_background.dart';
@@ -19,9 +20,8 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final coins = ref.watch(playerStateProvider.select((s) => s.coins));
-    final nextLabel =
-        ref.watch(playerStateProvider.select((s) => s.nextLevelLabel));
+    final coins = ref.watch(coinsProvider);
+    final nextLabel = 'Lv.${ref.watch(nextLevelProvider)}';
 
     return Scaffold(
       body: PondBackground(
@@ -39,7 +39,11 @@ class HomePage extends ConsumerWidget {
               PlayPadCluster(
                 nextLabel: nextLabel,
                 onPlay: () => startPlayFlow(context, ref),
-                secondaryIcon: Icons.account_balance_wallet,
+                secondaryIcon: const Icon(
+                  Icons.account_balance_wallet,
+                  size: 26,
+                  color: AppColors.padLabel,
+                ),
                 secondaryLabel: 'Withdraw',
                 onSecondary: () => showComingSoon(context, 'Withdraw'),
               ),

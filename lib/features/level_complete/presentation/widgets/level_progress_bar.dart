@@ -34,8 +34,8 @@ class LevelProgressBar extends StatelessWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: AppColors.padLabel,
-            fontSize: 21,
-            fontWeight: FontWeight.w700,
+            fontSize: 23,
+            fontWeight: FontWeight.w600,
             letterSpacing: 0.3,
           ),
         ),
@@ -47,7 +47,7 @@ class LevelProgressBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.progressTrack,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.progressTrackBorder, width: 3),
+            border: Border.all(color: AppColors.progressTrackBorder, width: 2),
             boxShadow: AppShadows.track,
           ),
           child: Align(
@@ -55,7 +55,7 @@ class LevelProgressBar extends StatelessWidget {
             child: TweenAnimationBuilder<double>(
               duration: AppDurations.slow,
               curve: AppCurves.emphasized,
-              tween: Tween(begin: 0, end: fraction.clamp(0, 1)),
+              tween: Tween(begin: 0, end: fraction.clamp(0.0, 1.0)),
               builder: (context, value, _) => FractionallySizedBox(
                 widthFactor: value == 0 ? 0.0001 : value,
                 child: Container(

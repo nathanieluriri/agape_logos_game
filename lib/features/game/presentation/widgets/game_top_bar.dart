@@ -7,7 +7,7 @@ import '../../../../core/design/tokens/typography.dart';
 import '../../../../shared/widgets/coin_pill.dart';
 import '../../../../shared/widgets/pond_icon_button.dart';
 
-/// Game header: back, dictionary (stub), centered level title, coins.
+/// Game header: back, dictionary, centered level title, coins.
 class GameTopBar extends StatelessWidget {
   const GameTopBar({
     super.key,

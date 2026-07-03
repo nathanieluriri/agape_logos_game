@@ -1,8 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/haptics/haptic_providers.dart';
+import '../../auth/application/auth_providers.dart';
 import '../../player/application/player_controller.dart';
+import '../../profile/application/profile_providers.dart';
 import '../../puzzles/application/puzzle_providers.dart';
 import '../../puzzles/domain/puzzle.dart';
+import '../../puzzles/puzzles_config.dart';
 import 'game_session.dart';
 
 /// Free hints granted at the start of each level.
@@ -46,10 +50,13 @@ class GameController extends Notifier<GameSession?> {
         score: s.score + word.length * combo,
         selection: const [],
       );
+      // Strongest in-game feedback: a correct, scoring word.
+      ref.read(hapticServiceProvider).heavyImpact();
     } else if (isAnswer) {
       state = s.copyWith(selection: const []); // duplicate
     } else {
       state = s.copyWith(selection: const [], combo: 0); // invalid
+      ref.read(hapticServiceProvider).lightImpact(); // soft "not a word"
     }
   }
 
@@ -83,13 +90,41 @@ class GameController extends Notifier<GameSession?> {
   Future<void> commitWin() async {
     final s = state;
     if (s == null || !s.isComplete) return;
+    // Celebrate the level win with the strongest pulse.
+    ref.read(hapticServiceProvider).gameImpact();
     final completedAt = DateTime.now().millisecondsSinceEpoch;
+    final String puzzleId = s.puzzle.letterKey;
+
+    // The level being played is the backend next-level (highestLevel + 1); all
+    // of it is derived from the profile. Progress is real: words found over the
+    // puzzle's total answers (answerCount comes from the backend puzzle).
+    final int completedLevel = ref.read(nextLevelProvider);
+    final int totalWords = s.puzzle.answerCount;
+    final int wordsFound = s.found.length;
+
     await ref
         .read(puzzleControllerProvider)
-        .recordResult(s.puzzle.letterKey, s.score, completedAt);
-    ref
-        .read(playerStateProvider.notifier)
-        .completeLevel(coinsAwarded: _coinsFor(s.score));
+        .recordResult(puzzleId, s.score, completedAt, level: completedLevel);
+
+    // Optimistic profile bumps so the coin pill and next-level label update
+    // immediately. The server is authoritative (mints coins, applies the level
+    // max) when the puzzle result syncs and reconciles on the next GET /me.
+    // Starter puzzles are local-only (never synced), so skip them to avoid
+    // values the server will later contradict.
+    if (!puzzleId.startsWith(kStarterPuzzlePrefix)) {
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        final repo = ref.read(profileRepositoryProvider);
+        await repo.addCoinsLocally(user.uid, _coinsFor(s.score));
+        await repo.advanceLevelLocally(user.uid, completedLevel);
+      }
+    }
+
+    ref.read(levelCompletionProvider.notifier).recordCompletion(
+          completedLevel: completedLevel,
+          wordsFound: wordsFound,
+          totalWords: totalWords,
+        );
   }
 }
 

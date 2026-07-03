@@ -13,6 +13,7 @@ import 'package:flutter/widget_previews.dart';
 import '../core/design/tokens/gradients.dart';
 import '../core/design/tokens/spacing.dart';
 import '../features/game/presentation/widgets/combo_banner.dart';
+import '../features/game/presentation/widgets/dictionary_sheet.dart';
 import '../features/game/presentation/widgets/formed_word_pill.dart';
 import '../features/game/presentation/widgets/game_top_bar.dart';
 import '../features/game/presentation/widgets/letter_wheel.dart';
@@ -37,8 +38,13 @@ Widget _stage({double width = 390, double height = 844, required Widget child}) 
 }
 
 /// Sample targets: one found, one partially hint-revealed, one untouched.
+/// POND carries a definition so the dictionary preview shows a real entry.
 const _answers = [
-  PuzzleAnswer(word: 'POND', length: 4, definition: null),
+  PuzzleAnswer(
+    word: 'POND',
+    length: 4,
+    definition: 'A small body of still water.',
+  ),
   PuzzleAnswer(word: 'PODS', length: 4, definition: null),
   PuzzleAnswer(word: 'SNAP', length: 4, definition: null),
 ];
@@ -108,6 +114,20 @@ Widget wordBoardStatesPreview() {
     height: 360,
     child: const Center(
       child: WordBoard(
+        targets: _answers,
+        found: {'POND'},
+        revealed: {'PODS': 2},
+      ),
+    ),
+  );
+}
+
+@Preview(name: 'Dictionary sheet (static)')
+Widget dictionarySheetPreview() {
+  return _stage(
+    child: const Align(
+      alignment: Alignment.bottomCenter,
+      child: DictionarySheetContent(
         targets: _answers,
         found: {'POND'},
         revealed: {'PODS': 2},

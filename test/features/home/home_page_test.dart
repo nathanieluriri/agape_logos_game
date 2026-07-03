@@ -2,6 +2,7 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/home/presentation/pages/home_page.dart';
+import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,6 +54,9 @@ void main() {
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
           ambientEnabledProvider.overrideWithValue(false),
           currentUserProvider.overrideWithValue(user),
+          // Backend-derived values stubbed so the widget test stays DB-free.
+          coinsProvider.overrideWithValue(0),
+          nextLevelProvider.overrideWithValue(26),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
@@ -73,6 +77,9 @@ void main() {
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
           ambientEnabledProvider.overrideWithValue(false),
           currentUserProvider.overrideWithValue(user),
+          // Backend-derived values stubbed so the widget test stays DB-free.
+          coinsProvider.overrideWithValue(0),
+          nextLevelProvider.overrideWithValue(26),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
@@ -93,6 +100,8 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(null)),
           ambientEnabledProvider.overrideWithValue(false),
+          coinsProvider.overrideWithValue(0),
+          nextLevelProvider.overrideWithValue(26),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
@@ -114,6 +123,9 @@ void main() {
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
           ambientEnabledProvider.overrideWithValue(false),
           currentUserProvider.overrideWithValue(user),
+          // Backend-derived values stubbed so the widget test stays DB-free.
+          coinsProvider.overrideWithValue(0),
+          nextLevelProvider.overrideWithValue(26),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
