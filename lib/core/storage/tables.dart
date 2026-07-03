@@ -50,13 +50,18 @@ class CachedPuzzles extends Table {
   IntColumn get orderIndex => integer()();
   BoolColumn get completed => boolean().withDefault(const Constant(false))();
   IntColumn get assignedAt => integer()();
+  // True when [answersJson] holds per-answer ciphertext tokens (backend
+  // puzzles). The read seam decrypts these before handing the puzzle to the
+  // game. False for the bundled plaintext starter pack.
+  BoolColumn get encrypted => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column<Object>> get primaryKey => {puzzleId};
 }
 
 /// Single-row local game settings (the row id is always 0). Local-only,
-/// never synced. Booleans default ON.
+/// never synced. Booleans default ON, except [tutorialSeen] which defaults
+/// OFF (a fresh install has not seen the first-play tutorial yet).
 @DataClassName('GameSettingsRow')
 class GameSettings extends Table {
   IntColumn get id => integer().withDefault(const Constant(0))();
@@ -64,6 +69,33 @@ class GameSettings extends Table {
   BoolColumn get music => boolean().withDefault(const Constant(true))();
   BoolColumn get notifications => boolean().withDefault(const Constant(true))();
   BoolColumn get haptics => boolean().withDefault(const Constant(true))();
+  BoolColumn get tutorialSeen => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Single-row cache of the signed-in user's server profile (the row id is
+/// always 0). Written through on a successful `GET /me`; served offline. The
+/// stored [uid] guards reads so a previous user's profile is never surfaced
+/// after a different account signs in on the same device.
+@DataClassName('CachedProfileRow')
+class CachedProfile extends Table {
+  IntColumn get id => integer().withDefault(const Constant(0))();
+  TextColumn get uid => text()();
+  TextColumn get displayName => text()();
+  TextColumn get avatarId => text()();
+  TextColumn get locale => text()();
+  BoolColumn get soundEnabled => boolean()();
+  BoolColumn get musicEnabled => boolean()();
+  IntColumn get highestLevel => integer()();
+  IntColumn get totalScore => integer()();
+  // Server-owned wallet balance. Defaulted so the v4 -> v5 migration can add the
+  // column to existing rows without a value; a real balance arrives on the next
+  // `GET /me` write-through.
+  IntColumn get coins => integer().withDefault(const Constant(0))();
+  IntColumn get createdAt => integer()();
+  IntColumn get updatedAt => integer()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

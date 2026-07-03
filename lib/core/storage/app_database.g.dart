@@ -1156,6 +1156,21 @@ class $CachedPuzzlesTable extends CachedPuzzles
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _encryptedMeta = const VerificationMeta(
+    'encrypted',
+  );
+  @override
+  late final GeneratedColumn<bool> encrypted = GeneratedColumn<bool>(
+    'encrypted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("encrypted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     puzzleId,
@@ -1169,6 +1184,7 @@ class $CachedPuzzlesTable extends CachedPuzzles
     orderIndex,
     completed,
     assignedAt,
+    encrypted,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1277,6 +1293,12 @@ class $CachedPuzzlesTable extends CachedPuzzles
     } else if (isInserting) {
       context.missing(_assignedAtMeta);
     }
+    if (data.containsKey('encrypted')) {
+      context.handle(
+        _encryptedMeta,
+        encrypted.isAcceptableOrUnknown(data['encrypted']!, _encryptedMeta),
+      );
+    }
     return context;
   }
 
@@ -1330,6 +1352,10 @@ class $CachedPuzzlesTable extends CachedPuzzles
         DriftSqlType.int,
         data['${effectivePrefix}assigned_at'],
       )!,
+      encrypted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}encrypted'],
+      )!,
     );
   }
 
@@ -1351,6 +1377,7 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
   final int orderIndex;
   final bool completed;
   final int assignedAt;
+  final bool encrypted;
   const CachedPuzzleRow({
     required this.puzzleId,
     required this.tier,
@@ -1363,6 +1390,7 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
     required this.orderIndex,
     required this.completed,
     required this.assignedAt,
+    required this.encrypted,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1378,6 +1406,7 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
     map['order_index'] = Variable<int>(orderIndex);
     map['completed'] = Variable<bool>(completed);
     map['assigned_at'] = Variable<int>(assignedAt);
+    map['encrypted'] = Variable<bool>(encrypted);
     return map;
   }
 
@@ -1394,6 +1423,7 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
       orderIndex: Value(orderIndex),
       completed: Value(completed),
       assignedAt: Value(assignedAt),
+      encrypted: Value(encrypted),
     );
   }
 
@@ -1414,6 +1444,7 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
       orderIndex: serializer.fromJson<int>(json['orderIndex']),
       completed: serializer.fromJson<bool>(json['completed']),
       assignedAt: serializer.fromJson<int>(json['assignedAt']),
+      encrypted: serializer.fromJson<bool>(json['encrypted']),
     );
   }
   @override
@@ -1431,6 +1462,7 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
       'orderIndex': serializer.toJson<int>(orderIndex),
       'completed': serializer.toJson<bool>(completed),
       'assignedAt': serializer.toJson<int>(assignedAt),
+      'encrypted': serializer.toJson<bool>(encrypted),
     };
   }
 
@@ -1446,6 +1478,7 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
     int? orderIndex,
     bool? completed,
     int? assignedAt,
+    bool? encrypted,
   }) => CachedPuzzleRow(
     puzzleId: puzzleId ?? this.puzzleId,
     tier: tier ?? this.tier,
@@ -1458,6 +1491,7 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
     orderIndex: orderIndex ?? this.orderIndex,
     completed: completed ?? this.completed,
     assignedAt: assignedAt ?? this.assignedAt,
+    encrypted: encrypted ?? this.encrypted,
   );
   CachedPuzzleRow copyWithCompanion(CachedPuzzlesCompanion data) {
     return CachedPuzzleRow(
@@ -1482,6 +1516,7 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
       assignedAt: data.assignedAt.present
           ? data.assignedAt.value
           : this.assignedAt,
+      encrypted: data.encrypted.present ? data.encrypted.value : this.encrypted,
     );
   }
 
@@ -1498,7 +1533,8 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
           ..write('answerCount: $answerCount, ')
           ..write('orderIndex: $orderIndex, ')
           ..write('completed: $completed, ')
-          ..write('assignedAt: $assignedAt')
+          ..write('assignedAt: $assignedAt, ')
+          ..write('encrypted: $encrypted')
           ..write(')'))
         .toString();
   }
@@ -1516,6 +1552,7 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
     orderIndex,
     completed,
     assignedAt,
+    encrypted,
   );
   @override
   bool operator ==(Object other) =>
@@ -1531,7 +1568,8 @@ class CachedPuzzleRow extends DataClass implements Insertable<CachedPuzzleRow> {
           other.answerCount == this.answerCount &&
           other.orderIndex == this.orderIndex &&
           other.completed == this.completed &&
-          other.assignedAt == this.assignedAt);
+          other.assignedAt == this.assignedAt &&
+          other.encrypted == this.encrypted);
 }
 
 class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
@@ -1546,6 +1584,7 @@ class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
   final Value<int> orderIndex;
   final Value<bool> completed;
   final Value<int> assignedAt;
+  final Value<bool> encrypted;
   final Value<int> rowid;
   const CachedPuzzlesCompanion({
     this.puzzleId = const Value.absent(),
@@ -1559,6 +1598,7 @@ class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
     this.orderIndex = const Value.absent(),
     this.completed = const Value.absent(),
     this.assignedAt = const Value.absent(),
+    this.encrypted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CachedPuzzlesCompanion.insert({
@@ -1573,6 +1613,7 @@ class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
     required int orderIndex,
     this.completed = const Value.absent(),
     required int assignedAt,
+    this.encrypted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : puzzleId = Value(puzzleId),
        tier = Value(tier),
@@ -1596,6 +1637,7 @@ class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
     Expression<int>? orderIndex,
     Expression<bool>? completed,
     Expression<int>? assignedAt,
+    Expression<bool>? encrypted,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1610,6 +1652,7 @@ class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
       if (orderIndex != null) 'order_index': orderIndex,
       if (completed != null) 'completed': completed,
       if (assignedAt != null) 'assigned_at': assignedAt,
+      if (encrypted != null) 'encrypted': encrypted,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1626,6 +1669,7 @@ class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
     Value<int>? orderIndex,
     Value<bool>? completed,
     Value<int>? assignedAt,
+    Value<bool>? encrypted,
     Value<int>? rowid,
   }) {
     return CachedPuzzlesCompanion(
@@ -1640,6 +1684,7 @@ class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
       orderIndex: orderIndex ?? this.orderIndex,
       completed: completed ?? this.completed,
       assignedAt: assignedAt ?? this.assignedAt,
+      encrypted: encrypted ?? this.encrypted,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1680,6 +1725,9 @@ class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
     if (assignedAt.present) {
       map['assigned_at'] = Variable<int>(assignedAt.value);
     }
+    if (encrypted.present) {
+      map['encrypted'] = Variable<bool>(encrypted.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1700,6 +1748,7 @@ class CachedPuzzlesCompanion extends UpdateCompanion<CachedPuzzleRow> {
           ..write('orderIndex: $orderIndex, ')
           ..write('completed: $completed, ')
           ..write('assignedAt: $assignedAt, ')
+          ..write('encrypted: $encrypted, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1780,6 +1829,21 @@ class $GameSettingsTable extends GameSettings
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _tutorialSeenMeta = const VerificationMeta(
+    'tutorialSeen',
+  );
+  @override
+  late final GeneratedColumn<bool> tutorialSeen = GeneratedColumn<bool>(
+    'tutorial_seen',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("tutorial_seen" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1787,6 +1851,7 @@ class $GameSettingsTable extends GameSettings
     music,
     notifications,
     haptics,
+    tutorialSeen,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1833,6 +1898,15 @@ class $GameSettingsTable extends GameSettings
         haptics.isAcceptableOrUnknown(data['haptics']!, _hapticsMeta),
       );
     }
+    if (data.containsKey('tutorial_seen')) {
+      context.handle(
+        _tutorialSeenMeta,
+        tutorialSeen.isAcceptableOrUnknown(
+          data['tutorial_seen']!,
+          _tutorialSeenMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1862,6 +1936,10 @@ class $GameSettingsTable extends GameSettings
         DriftSqlType.bool,
         data['${effectivePrefix}haptics'],
       )!,
+      tutorialSeen: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}tutorial_seen'],
+      )!,
     );
   }
 
@@ -1877,12 +1955,14 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
   final bool music;
   final bool notifications;
   final bool haptics;
+  final bool tutorialSeen;
   const GameSettingsRow({
     required this.id,
     required this.soundEffects,
     required this.music,
     required this.notifications,
     required this.haptics,
+    required this.tutorialSeen,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1892,6 +1972,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
     map['music'] = Variable<bool>(music);
     map['notifications'] = Variable<bool>(notifications);
     map['haptics'] = Variable<bool>(haptics);
+    map['tutorial_seen'] = Variable<bool>(tutorialSeen);
     return map;
   }
 
@@ -1902,6 +1983,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
       music: Value(music),
       notifications: Value(notifications),
       haptics: Value(haptics),
+      tutorialSeen: Value(tutorialSeen),
     );
   }
 
@@ -1916,6 +1998,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
       music: serializer.fromJson<bool>(json['music']),
       notifications: serializer.fromJson<bool>(json['notifications']),
       haptics: serializer.fromJson<bool>(json['haptics']),
+      tutorialSeen: serializer.fromJson<bool>(json['tutorialSeen']),
     );
   }
   @override
@@ -1927,6 +2010,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
       'music': serializer.toJson<bool>(music),
       'notifications': serializer.toJson<bool>(notifications),
       'haptics': serializer.toJson<bool>(haptics),
+      'tutorialSeen': serializer.toJson<bool>(tutorialSeen),
     };
   }
 
@@ -1936,12 +2020,14 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
     bool? music,
     bool? notifications,
     bool? haptics,
+    bool? tutorialSeen,
   }) => GameSettingsRow(
     id: id ?? this.id,
     soundEffects: soundEffects ?? this.soundEffects,
     music: music ?? this.music,
     notifications: notifications ?? this.notifications,
     haptics: haptics ?? this.haptics,
+    tutorialSeen: tutorialSeen ?? this.tutorialSeen,
   );
   GameSettingsRow copyWithCompanion(GameSettingsCompanion data) {
     return GameSettingsRow(
@@ -1954,6 +2040,9 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
           ? data.notifications.value
           : this.notifications,
       haptics: data.haptics.present ? data.haptics.value : this.haptics,
+      tutorialSeen: data.tutorialSeen.present
+          ? data.tutorialSeen.value
+          : this.tutorialSeen,
     );
   }
 
@@ -1964,14 +2053,21 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
           ..write('soundEffects: $soundEffects, ')
           ..write('music: $music, ')
           ..write('notifications: $notifications, ')
-          ..write('haptics: $haptics')
+          ..write('haptics: $haptics, ')
+          ..write('tutorialSeen: $tutorialSeen')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, soundEffects, music, notifications, haptics);
+  int get hashCode => Object.hash(
+    id,
+    soundEffects,
+    music,
+    notifications,
+    haptics,
+    tutorialSeen,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1980,7 +2076,8 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
           other.soundEffects == this.soundEffects &&
           other.music == this.music &&
           other.notifications == this.notifications &&
-          other.haptics == this.haptics);
+          other.haptics == this.haptics &&
+          other.tutorialSeen == this.tutorialSeen);
 }
 
 class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
@@ -1989,12 +2086,14 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
   final Value<bool> music;
   final Value<bool> notifications;
   final Value<bool> haptics;
+  final Value<bool> tutorialSeen;
   const GameSettingsCompanion({
     this.id = const Value.absent(),
     this.soundEffects = const Value.absent(),
     this.music = const Value.absent(),
     this.notifications = const Value.absent(),
     this.haptics = const Value.absent(),
+    this.tutorialSeen = const Value.absent(),
   });
   GameSettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -2002,6 +2101,7 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
     this.music = const Value.absent(),
     this.notifications = const Value.absent(),
     this.haptics = const Value.absent(),
+    this.tutorialSeen = const Value.absent(),
   });
   static Insertable<GameSettingsRow> custom({
     Expression<int>? id,
@@ -2009,6 +2109,7 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
     Expression<bool>? music,
     Expression<bool>? notifications,
     Expression<bool>? haptics,
+    Expression<bool>? tutorialSeen,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2016,6 +2117,7 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
       if (music != null) 'music': music,
       if (notifications != null) 'notifications': notifications,
       if (haptics != null) 'haptics': haptics,
+      if (tutorialSeen != null) 'tutorial_seen': tutorialSeen,
     });
   }
 
@@ -2025,6 +2127,7 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
     Value<bool>? music,
     Value<bool>? notifications,
     Value<bool>? haptics,
+    Value<bool>? tutorialSeen,
   }) {
     return GameSettingsCompanion(
       id: id ?? this.id,
@@ -2032,6 +2135,7 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
       music: music ?? this.music,
       notifications: notifications ?? this.notifications,
       haptics: haptics ?? this.haptics,
+      tutorialSeen: tutorialSeen ?? this.tutorialSeen,
     );
   }
 
@@ -2053,6 +2157,9 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
     if (haptics.present) {
       map['haptics'] = Variable<bool>(haptics.value);
     }
+    if (tutorialSeen.present) {
+      map['tutorial_seen'] = Variable<bool>(tutorialSeen.value);
+    }
     return map;
   }
 
@@ -2063,7 +2170,720 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
           ..write('soundEffects: $soundEffects, ')
           ..write('music: $music, ')
           ..write('notifications: $notifications, ')
-          ..write('haptics: $haptics')
+          ..write('haptics: $haptics, ')
+          ..write('tutorialSeen: $tutorialSeen')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CachedProfileTable extends CachedProfile
+    with TableInfo<$CachedProfileTable, CachedProfileRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedProfileTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _avatarIdMeta = const VerificationMeta(
+    'avatarId',
+  );
+  @override
+  late final GeneratedColumn<String> avatarId = GeneratedColumn<String>(
+    'avatar_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _localeMeta = const VerificationMeta('locale');
+  @override
+  late final GeneratedColumn<String> locale = GeneratedColumn<String>(
+    'locale',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _soundEnabledMeta = const VerificationMeta(
+    'soundEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> soundEnabled = GeneratedColumn<bool>(
+    'sound_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sound_enabled" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _musicEnabledMeta = const VerificationMeta(
+    'musicEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> musicEnabled = GeneratedColumn<bool>(
+    'music_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("music_enabled" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _highestLevelMeta = const VerificationMeta(
+    'highestLevel',
+  );
+  @override
+  late final GeneratedColumn<int> highestLevel = GeneratedColumn<int>(
+    'highest_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalScoreMeta = const VerificationMeta(
+    'totalScore',
+  );
+  @override
+  late final GeneratedColumn<int> totalScore = GeneratedColumn<int>(
+    'total_score',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _coinsMeta = const VerificationMeta('coins');
+  @override
+  late final GeneratedColumn<int> coins = GeneratedColumn<int>(
+    'coins',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    displayName,
+    avatarId,
+    locale,
+    soundEnabled,
+    musicEnabled,
+    highestLevel,
+    totalScore,
+    coins,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_profile';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedProfileRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(
+        _uidMeta,
+        uid.isAcceptableOrUnknown(data['uid']!, _uidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('avatar_id')) {
+      context.handle(
+        _avatarIdMeta,
+        avatarId.isAcceptableOrUnknown(data['avatar_id']!, _avatarIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_avatarIdMeta);
+    }
+    if (data.containsKey('locale')) {
+      context.handle(
+        _localeMeta,
+        locale.isAcceptableOrUnknown(data['locale']!, _localeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_localeMeta);
+    }
+    if (data.containsKey('sound_enabled')) {
+      context.handle(
+        _soundEnabledMeta,
+        soundEnabled.isAcceptableOrUnknown(
+          data['sound_enabled']!,
+          _soundEnabledMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_soundEnabledMeta);
+    }
+    if (data.containsKey('music_enabled')) {
+      context.handle(
+        _musicEnabledMeta,
+        musicEnabled.isAcceptableOrUnknown(
+          data['music_enabled']!,
+          _musicEnabledMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_musicEnabledMeta);
+    }
+    if (data.containsKey('highest_level')) {
+      context.handle(
+        _highestLevelMeta,
+        highestLevel.isAcceptableOrUnknown(
+          data['highest_level']!,
+          _highestLevelMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_highestLevelMeta);
+    }
+    if (data.containsKey('total_score')) {
+      context.handle(
+        _totalScoreMeta,
+        totalScore.isAcceptableOrUnknown(data['total_score']!, _totalScoreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_totalScoreMeta);
+    }
+    if (data.containsKey('coins')) {
+      context.handle(
+        _coinsMeta,
+        coins.isAcceptableOrUnknown(data['coins']!, _coinsMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CachedProfileRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedProfileRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      uid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uid'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      avatarId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}avatar_id'],
+      )!,
+      locale: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}locale'],
+      )!,
+      soundEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sound_enabled'],
+      )!,
+      musicEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}music_enabled'],
+      )!,
+      highestLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}highest_level'],
+      )!,
+      totalScore: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_score'],
+      )!,
+      coins: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}coins'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedProfileTable createAlias(String alias) {
+    return $CachedProfileTable(attachedDatabase, alias);
+  }
+}
+
+class CachedProfileRow extends DataClass
+    implements Insertable<CachedProfileRow> {
+  final int id;
+  final String uid;
+  final String displayName;
+  final String avatarId;
+  final String locale;
+  final bool soundEnabled;
+  final bool musicEnabled;
+  final int highestLevel;
+  final int totalScore;
+  final int coins;
+  final int createdAt;
+  final int updatedAt;
+  const CachedProfileRow({
+    required this.id,
+    required this.uid,
+    required this.displayName,
+    required this.avatarId,
+    required this.locale,
+    required this.soundEnabled,
+    required this.musicEnabled,
+    required this.highestLevel,
+    required this.totalScore,
+    required this.coins,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    map['display_name'] = Variable<String>(displayName);
+    map['avatar_id'] = Variable<String>(avatarId);
+    map['locale'] = Variable<String>(locale);
+    map['sound_enabled'] = Variable<bool>(soundEnabled);
+    map['music_enabled'] = Variable<bool>(musicEnabled);
+    map['highest_level'] = Variable<int>(highestLevel);
+    map['total_score'] = Variable<int>(totalScore);
+    map['coins'] = Variable<int>(coins);
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  CachedProfileCompanion toCompanion(bool nullToAbsent) {
+    return CachedProfileCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      displayName: Value(displayName),
+      avatarId: Value(avatarId),
+      locale: Value(locale),
+      soundEnabled: Value(soundEnabled),
+      musicEnabled: Value(musicEnabled),
+      highestLevel: Value(highestLevel),
+      totalScore: Value(totalScore),
+      coins: Value(coins),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CachedProfileRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedProfileRow(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      avatarId: serializer.fromJson<String>(json['avatarId']),
+      locale: serializer.fromJson<String>(json['locale']),
+      soundEnabled: serializer.fromJson<bool>(json['soundEnabled']),
+      musicEnabled: serializer.fromJson<bool>(json['musicEnabled']),
+      highestLevel: serializer.fromJson<int>(json['highestLevel']),
+      totalScore: serializer.fromJson<int>(json['totalScore']),
+      coins: serializer.fromJson<int>(json['coins']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'displayName': serializer.toJson<String>(displayName),
+      'avatarId': serializer.toJson<String>(avatarId),
+      'locale': serializer.toJson<String>(locale),
+      'soundEnabled': serializer.toJson<bool>(soundEnabled),
+      'musicEnabled': serializer.toJson<bool>(musicEnabled),
+      'highestLevel': serializer.toJson<int>(highestLevel),
+      'totalScore': serializer.toJson<int>(totalScore),
+      'coins': serializer.toJson<int>(coins),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  CachedProfileRow copyWith({
+    int? id,
+    String? uid,
+    String? displayName,
+    String? avatarId,
+    String? locale,
+    bool? soundEnabled,
+    bool? musicEnabled,
+    int? highestLevel,
+    int? totalScore,
+    int? coins,
+    int? createdAt,
+    int? updatedAt,
+  }) => CachedProfileRow(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    displayName: displayName ?? this.displayName,
+    avatarId: avatarId ?? this.avatarId,
+    locale: locale ?? this.locale,
+    soundEnabled: soundEnabled ?? this.soundEnabled,
+    musicEnabled: musicEnabled ?? this.musicEnabled,
+    highestLevel: highestLevel ?? this.highestLevel,
+    totalScore: totalScore ?? this.totalScore,
+    coins: coins ?? this.coins,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CachedProfileRow copyWithCompanion(CachedProfileCompanion data) {
+    return CachedProfileRow(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      avatarId: data.avatarId.present ? data.avatarId.value : this.avatarId,
+      locale: data.locale.present ? data.locale.value : this.locale,
+      soundEnabled: data.soundEnabled.present
+          ? data.soundEnabled.value
+          : this.soundEnabled,
+      musicEnabled: data.musicEnabled.present
+          ? data.musicEnabled.value
+          : this.musicEnabled,
+      highestLevel: data.highestLevel.present
+          ? data.highestLevel.value
+          : this.highestLevel,
+      totalScore: data.totalScore.present
+          ? data.totalScore.value
+          : this.totalScore,
+      coins: data.coins.present ? data.coins.value : this.coins,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedProfileRow(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('displayName: $displayName, ')
+          ..write('avatarId: $avatarId, ')
+          ..write('locale: $locale, ')
+          ..write('soundEnabled: $soundEnabled, ')
+          ..write('musicEnabled: $musicEnabled, ')
+          ..write('highestLevel: $highestLevel, ')
+          ..write('totalScore: $totalScore, ')
+          ..write('coins: $coins, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    displayName,
+    avatarId,
+    locale,
+    soundEnabled,
+    musicEnabled,
+    highestLevel,
+    totalScore,
+    coins,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedProfileRow &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.displayName == this.displayName &&
+          other.avatarId == this.avatarId &&
+          other.locale == this.locale &&
+          other.soundEnabled == this.soundEnabled &&
+          other.musicEnabled == this.musicEnabled &&
+          other.highestLevel == this.highestLevel &&
+          other.totalScore == this.totalScore &&
+          other.coins == this.coins &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CachedProfileCompanion extends UpdateCompanion<CachedProfileRow> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<String> displayName;
+  final Value<String> avatarId;
+  final Value<String> locale;
+  final Value<bool> soundEnabled;
+  final Value<bool> musicEnabled;
+  final Value<int> highestLevel;
+  final Value<int> totalScore;
+  final Value<int> coins;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  const CachedProfileCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.avatarId = const Value.absent(),
+    this.locale = const Value.absent(),
+    this.soundEnabled = const Value.absent(),
+    this.musicEnabled = const Value.absent(),
+    this.highestLevel = const Value.absent(),
+    this.totalScore = const Value.absent(),
+    this.coins = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  CachedProfileCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required String displayName,
+    required String avatarId,
+    required String locale,
+    required bool soundEnabled,
+    required bool musicEnabled,
+    required int highestLevel,
+    required int totalScore,
+    this.coins = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+  }) : uid = Value(uid),
+       displayName = Value(displayName),
+       avatarId = Value(avatarId),
+       locale = Value(locale),
+       soundEnabled = Value(soundEnabled),
+       musicEnabled = Value(musicEnabled),
+       highestLevel = Value(highestLevel),
+       totalScore = Value(totalScore),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CachedProfileRow> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<String>? displayName,
+    Expression<String>? avatarId,
+    Expression<String>? locale,
+    Expression<bool>? soundEnabled,
+    Expression<bool>? musicEnabled,
+    Expression<int>? highestLevel,
+    Expression<int>? totalScore,
+    Expression<int>? coins,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (displayName != null) 'display_name': displayName,
+      if (avatarId != null) 'avatar_id': avatarId,
+      if (locale != null) 'locale': locale,
+      if (soundEnabled != null) 'sound_enabled': soundEnabled,
+      if (musicEnabled != null) 'music_enabled': musicEnabled,
+      if (highestLevel != null) 'highest_level': highestLevel,
+      if (totalScore != null) 'total_score': totalScore,
+      if (coins != null) 'coins': coins,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  CachedProfileCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<String>? displayName,
+    Value<String>? avatarId,
+    Value<String>? locale,
+    Value<bool>? soundEnabled,
+    Value<bool>? musicEnabled,
+    Value<int>? highestLevel,
+    Value<int>? totalScore,
+    Value<int>? coins,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+  }) {
+    return CachedProfileCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      displayName: displayName ?? this.displayName,
+      avatarId: avatarId ?? this.avatarId,
+      locale: locale ?? this.locale,
+      soundEnabled: soundEnabled ?? this.soundEnabled,
+      musicEnabled: musicEnabled ?? this.musicEnabled,
+      highestLevel: highestLevel ?? this.highestLevel,
+      totalScore: totalScore ?? this.totalScore,
+      coins: coins ?? this.coins,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (avatarId.present) {
+      map['avatar_id'] = Variable<String>(avatarId.value);
+    }
+    if (locale.present) {
+      map['locale'] = Variable<String>(locale.value);
+    }
+    if (soundEnabled.present) {
+      map['sound_enabled'] = Variable<bool>(soundEnabled.value);
+    }
+    if (musicEnabled.present) {
+      map['music_enabled'] = Variable<bool>(musicEnabled.value);
+    }
+    if (highestLevel.present) {
+      map['highest_level'] = Variable<int>(highestLevel.value);
+    }
+    if (totalScore.present) {
+      map['total_score'] = Variable<int>(totalScore.value);
+    }
+    if (coins.present) {
+      map['coins'] = Variable<int>(coins.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedProfileCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('displayName: $displayName, ')
+          ..write('avatarId: $avatarId, ')
+          ..write('locale: $locale, ')
+          ..write('soundEnabled: $soundEnabled, ')
+          ..write('musicEnabled: $musicEnabled, ')
+          ..write('highestLevel: $highestLevel, ')
+          ..write('totalScore: $totalScore, ')
+          ..write('coins: $coins, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
@@ -2078,6 +2898,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LevelResultsTable levelResults = $LevelResultsTable(this);
   late final $CachedPuzzlesTable cachedPuzzles = $CachedPuzzlesTable(this);
   late final $GameSettingsTable gameSettings = $GameSettingsTable(this);
+  late final $CachedProfileTable cachedProfile = $CachedProfileTable(this);
   late final PendingMutationsDao pendingMutationsDao = PendingMutationsDao(
     this as AppDatabase,
   );
@@ -2090,6 +2911,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final GameSettingsDao gameSettingsDao = GameSettingsDao(
     this as AppDatabase,
   );
+  late final CachedProfileDao cachedProfileDao = CachedProfileDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2099,6 +2923,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     levelResults,
     cachedPuzzles,
     gameSettings,
+    cachedProfile,
   ];
 }
 
@@ -2645,6 +3470,7 @@ typedef $$CachedPuzzlesTableCreateCompanionBuilder =
       required int orderIndex,
       Value<bool> completed,
       required int assignedAt,
+      Value<bool> encrypted,
       Value<int> rowid,
     });
 typedef $$CachedPuzzlesTableUpdateCompanionBuilder =
@@ -2660,6 +3486,7 @@ typedef $$CachedPuzzlesTableUpdateCompanionBuilder =
       Value<int> orderIndex,
       Value<bool> completed,
       Value<int> assignedAt,
+      Value<bool> encrypted,
       Value<int> rowid,
     });
 
@@ -2724,6 +3551,11 @@ class $$CachedPuzzlesTableFilterComposer
 
   ColumnFilters<int> get assignedAt => $composableBuilder(
     column: $table.assignedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get encrypted => $composableBuilder(
+    column: $table.encrypted,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2791,6 +3623,11 @@ class $$CachedPuzzlesTableOrderingComposer
     column: $table.assignedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get encrypted => $composableBuilder(
+    column: $table.encrypted,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CachedPuzzlesTableAnnotationComposer
@@ -2844,6 +3681,9 @@ class $$CachedPuzzlesTableAnnotationComposer
     column: $table.assignedAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get encrypted =>
+      $composableBuilder(column: $table.encrypted, builder: (column) => column);
 }
 
 class $$CachedPuzzlesTableTableManager
@@ -2888,6 +3728,7 @@ class $$CachedPuzzlesTableTableManager
                 Value<int> orderIndex = const Value.absent(),
                 Value<bool> completed = const Value.absent(),
                 Value<int> assignedAt = const Value.absent(),
+                Value<bool> encrypted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CachedPuzzlesCompanion(
                 puzzleId: puzzleId,
@@ -2901,6 +3742,7 @@ class $$CachedPuzzlesTableTableManager
                 orderIndex: orderIndex,
                 completed: completed,
                 assignedAt: assignedAt,
+                encrypted: encrypted,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2916,6 +3758,7 @@ class $$CachedPuzzlesTableTableManager
                 required int orderIndex,
                 Value<bool> completed = const Value.absent(),
                 required int assignedAt,
+                Value<bool> encrypted = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CachedPuzzlesCompanion.insert(
                 puzzleId: puzzleId,
@@ -2929,6 +3772,7 @@ class $$CachedPuzzlesTableTableManager
                 orderIndex: orderIndex,
                 completed: completed,
                 assignedAt: assignedAt,
+                encrypted: encrypted,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -2963,6 +3807,7 @@ typedef $$GameSettingsTableCreateCompanionBuilder =
       Value<bool> music,
       Value<bool> notifications,
       Value<bool> haptics,
+      Value<bool> tutorialSeen,
     });
 typedef $$GameSettingsTableUpdateCompanionBuilder =
     GameSettingsCompanion Function({
@@ -2971,6 +3816,7 @@ typedef $$GameSettingsTableUpdateCompanionBuilder =
       Value<bool> music,
       Value<bool> notifications,
       Value<bool> haptics,
+      Value<bool> tutorialSeen,
     });
 
 class $$GameSettingsTableFilterComposer
@@ -3004,6 +3850,11 @@ class $$GameSettingsTableFilterComposer
 
   ColumnFilters<bool> get haptics => $composableBuilder(
     column: $table.haptics,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get tutorialSeen => $composableBuilder(
+    column: $table.tutorialSeen,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3041,6 +3892,11 @@ class $$GameSettingsTableOrderingComposer
     column: $table.haptics,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get tutorialSeen => $composableBuilder(
+    column: $table.tutorialSeen,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$GameSettingsTableAnnotationComposer
@@ -3070,6 +3926,11 @@ class $$GameSettingsTableAnnotationComposer
 
   GeneratedColumn<bool> get haptics =>
       $composableBuilder(column: $table.haptics, builder: (column) => column);
+
+  GeneratedColumn<bool> get tutorialSeen => $composableBuilder(
+    column: $table.tutorialSeen,
+    builder: (column) => column,
+  );
 }
 
 class $$GameSettingsTableTableManager
@@ -3108,12 +3969,14 @@ class $$GameSettingsTableTableManager
                 Value<bool> music = const Value.absent(),
                 Value<bool> notifications = const Value.absent(),
                 Value<bool> haptics = const Value.absent(),
+                Value<bool> tutorialSeen = const Value.absent(),
               }) => GameSettingsCompanion(
                 id: id,
                 soundEffects: soundEffects,
                 music: music,
                 notifications: notifications,
                 haptics: haptics,
+                tutorialSeen: tutorialSeen,
               ),
           createCompanionCallback:
               ({
@@ -3122,12 +3985,14 @@ class $$GameSettingsTableTableManager
                 Value<bool> music = const Value.absent(),
                 Value<bool> notifications = const Value.absent(),
                 Value<bool> haptics = const Value.absent(),
+                Value<bool> tutorialSeen = const Value.absent(),
               }) => GameSettingsCompanion.insert(
                 id: id,
                 soundEffects: soundEffects,
                 music: music,
                 notifications: notifications,
                 haptics: haptics,
+                tutorialSeen: tutorialSeen,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -3154,6 +4019,347 @@ typedef $$GameSettingsTableProcessedTableManager =
       GameSettingsRow,
       PrefetchHooks Function()
     >;
+typedef $$CachedProfileTableCreateCompanionBuilder =
+    CachedProfileCompanion Function({
+      Value<int> id,
+      required String uid,
+      required String displayName,
+      required String avatarId,
+      required String locale,
+      required bool soundEnabled,
+      required bool musicEnabled,
+      required int highestLevel,
+      required int totalScore,
+      Value<int> coins,
+      required int createdAt,
+      required int updatedAt,
+    });
+typedef $$CachedProfileTableUpdateCompanionBuilder =
+    CachedProfileCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<String> displayName,
+      Value<String> avatarId,
+      Value<String> locale,
+      Value<bool> soundEnabled,
+      Value<bool> musicEnabled,
+      Value<int> highestLevel,
+      Value<int> totalScore,
+      Value<int> coins,
+      Value<int> createdAt,
+      Value<int> updatedAt,
+    });
+
+class $$CachedProfileTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedProfileTable> {
+  $$CachedProfileTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uid => $composableBuilder(
+    column: $table.uid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get avatarId => $composableBuilder(
+    column: $table.avatarId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get locale => $composableBuilder(
+    column: $table.locale,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get soundEnabled => $composableBuilder(
+    column: $table.soundEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get musicEnabled => $composableBuilder(
+    column: $table.musicEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get highestLevel => $composableBuilder(
+    column: $table.highestLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalScore => $composableBuilder(
+    column: $table.totalScore,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get coins => $composableBuilder(
+    column: $table.coins,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedProfileTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedProfileTable> {
+  $$CachedProfileTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get uid => $composableBuilder(
+    column: $table.uid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get avatarId => $composableBuilder(
+    column: $table.avatarId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get locale => $composableBuilder(
+    column: $table.locale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get soundEnabled => $composableBuilder(
+    column: $table.soundEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get musicEnabled => $composableBuilder(
+    column: $table.musicEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get highestLevel => $composableBuilder(
+    column: $table.highestLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalScore => $composableBuilder(
+    column: $table.totalScore,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get coins => $composableBuilder(
+    column: $table.coins,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedProfileTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedProfileTable> {
+  $$CachedProfileTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get avatarId =>
+      $composableBuilder(column: $table.avatarId, builder: (column) => column);
+
+  GeneratedColumn<String> get locale =>
+      $composableBuilder(column: $table.locale, builder: (column) => column);
+
+  GeneratedColumn<bool> get soundEnabled => $composableBuilder(
+    column: $table.soundEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get musicEnabled => $composableBuilder(
+    column: $table.musicEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get highestLevel => $composableBuilder(
+    column: $table.highestLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get totalScore => $composableBuilder(
+    column: $table.totalScore,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get coins =>
+      $composableBuilder(column: $table.coins, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CachedProfileTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CachedProfileTable,
+          CachedProfileRow,
+          $$CachedProfileTableFilterComposer,
+          $$CachedProfileTableOrderingComposer,
+          $$CachedProfileTableAnnotationComposer,
+          $$CachedProfileTableCreateCompanionBuilder,
+          $$CachedProfileTableUpdateCompanionBuilder,
+          (
+            CachedProfileRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CachedProfileTable,
+              CachedProfileRow
+            >,
+          ),
+          CachedProfileRow,
+          PrefetchHooks Function()
+        > {
+  $$CachedProfileTableTableManager(_$AppDatabase db, $CachedProfileTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedProfileTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedProfileTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedProfileTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String> avatarId = const Value.absent(),
+                Value<String> locale = const Value.absent(),
+                Value<bool> soundEnabled = const Value.absent(),
+                Value<bool> musicEnabled = const Value.absent(),
+                Value<int> highestLevel = const Value.absent(),
+                Value<int> totalScore = const Value.absent(),
+                Value<int> coins = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+              }) => CachedProfileCompanion(
+                id: id,
+                uid: uid,
+                displayName: displayName,
+                avatarId: avatarId,
+                locale: locale,
+                soundEnabled: soundEnabled,
+                musicEnabled: musicEnabled,
+                highestLevel: highestLevel,
+                totalScore: totalScore,
+                coins: coins,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required String displayName,
+                required String avatarId,
+                required String locale,
+                required bool soundEnabled,
+                required bool musicEnabled,
+                required int highestLevel,
+                required int totalScore,
+                Value<int> coins = const Value.absent(),
+                required int createdAt,
+                required int updatedAt,
+              }) => CachedProfileCompanion.insert(
+                id: id,
+                uid: uid,
+                displayName: displayName,
+                avatarId: avatarId,
+                locale: locale,
+                soundEnabled: soundEnabled,
+                musicEnabled: musicEnabled,
+                highestLevel: highestLevel,
+                totalScore: totalScore,
+                coins: coins,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedProfileTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CachedProfileTable,
+      CachedProfileRow,
+      $$CachedProfileTableFilterComposer,
+      $$CachedProfileTableOrderingComposer,
+      $$CachedProfileTableAnnotationComposer,
+      $$CachedProfileTableCreateCompanionBuilder,
+      $$CachedProfileTableUpdateCompanionBuilder,
+      (
+        CachedProfileRow,
+        BaseReferences<_$AppDatabase, $CachedProfileTable, CachedProfileRow>,
+      ),
+      CachedProfileRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3166,4 +4372,6 @@ class $AppDatabaseManager {
       $$CachedPuzzlesTableTableManager(_db, _db.cachedPuzzles);
   $$GameSettingsTableTableManager get gameSettings =>
       $$GameSettingsTableTableManager(_db, _db.gameSettings);
+  $$CachedProfileTableTableManager get cachedProfile =>
+      $$CachedProfileTableTableManager(_db, _db.cachedProfile);
 }
