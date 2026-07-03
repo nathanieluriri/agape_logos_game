@@ -18,6 +18,10 @@ abstract final class AppColors {
   /// behind a custom-decorated bottom sheet).
   static const Color transparent = Color(0x00000000);
 
+  /// Opaque alpha-mask carrier for `ShaderMask`/`BlendMode.dstIn` masks, where
+  /// only the alpha channel is sampled and the color channels are discarded.
+  static const Color maskSolid = Color(0xFFFFFFFF);
+
   // Pond background gradient stops (top glow -> deep water).
   static const pondTop = Color(0xFF1BAFA6);
   static const pond2 = Color(0xFF12988F);
