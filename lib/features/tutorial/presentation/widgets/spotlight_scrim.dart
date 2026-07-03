@@ -43,6 +43,12 @@ class SpotlightScrimPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Never darken the letter wheel. Until its cutout rect has been resolved
+    // (the game page's first layout, or a mid-tutorial FittedBox rescale), skip
+    // the scrim entirely rather than lay a hole-less black layer over the wheel.
+    // The dim reappears with its wheel cutout the moment the geometry is known.
+    if (cutouts.wheelRect == null) return;
+
     var scrim = Path()..addRect(Offset.zero & size);
 
     final wheelRect = cutouts.wheelRect;

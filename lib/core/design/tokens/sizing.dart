@@ -12,7 +12,10 @@ abstract final class AppSizing {
   static const double secondaryPad = 104;
   static const double settingsButton = 48;
   static const double lotusWidth = 168;
-  static const double coinPetal = 152;
+  // Render width of the vector currency petal in CoinPill. The petal fills its
+  // tight SVG viewBox (unlike the old padded 2 MB PNG), so this is the coin's
+  // actual on-screen size, not a padded canvas width.
+  static const double coinPetal = 64;
 
   static const double progressTrackWidth = 300;
   static const double progressTrackHeight = 22;

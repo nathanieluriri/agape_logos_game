@@ -58,14 +58,28 @@ class PuzzleRepositoryImpl
       // Offline or transient: leave the cache as-is and play what we have.
       logger.info('puzzle cache refill skipped: ${e.message}');
     }
-    // Fresh install with no connectivity yet (or a dead backend): fall back
-    // to the small bundled starter pack so the game page never sits on an
-    // empty-cache spinner before the first successful sync.
-    if (await db.cachedPuzzlesDao.unplayedCount() == 0) {
+    // Guarantee a *playable* first puzzle. The cache can hold only encrypted
+    // puzzles that cannot be decrypted yet (a fresh install before the answer
+    // key is fetched, or a dead backend). Those still count as "unplayed" but
+    // cannot be shown, so gating on the row count alone would strand a new
+    // player on an empty pond. Seed the bundled plaintext starter pack whenever
+    // nothing playable is available.
+    if (!await _hasPlayablePuzzle()) {
       // Bundled starter answers are plaintext (offline last resort).
       final starter = await _seed.load();
       if (starter.isNotEmpty) await _insert(starter, encrypted: false);
     }
+  }
+
+  /// Whether the cache holds a puzzle the player can actually start right now:
+  /// any plaintext puzzle, or (when the answer key is available) any encrypted
+  /// one. Encrypted puzzles with no key yet do not count: the read seam cannot
+  /// decrypt them, so they would show as an empty pond.
+  Future<bool> _hasPlayablePuzzle() async {
+    if (await db.cachedPuzzlesDao.unplayedPlaintextCount() > 0) return true;
+    if (await db.cachedPuzzlesDao.unplayedCount() == 0) return false;
+    // Only encrypted puzzles remain; playable only if the key is obtainable.
+    return await _answerKey() != null;
   }
 
   Future<void> _insert(List<Puzzle> puzzles, {required bool encrypted}) async {
@@ -87,9 +101,16 @@ class PuzzleRepositoryImpl
   Stream<Puzzle?> watchCurrentPuzzle() =>
       db.cachedPuzzlesDao.watchCurrentPuzzle().asyncMap((row) async {
         if (row == null) return null;
-        final puzzle = puzzleFromRow(row);
-        if (!row.encrypted) return puzzle;
-        return _decryptAnswers(puzzle);
+        if (!row.encrypted) return puzzleFromRow(row);
+        final decrypted = await _decryptAnswers(puzzleFromRow(row));
+        if (decrypted != null) return decrypted;
+        // The front puzzle is encrypted but not yet decryptable (the per-user
+        // answer key has not reached this device). Don't strand the player on
+        // an empty pond: serve the first playable plaintext puzzle (the bundled
+        // starter pack). Once the key arrives, the encrypted puzzles sort ahead
+        // again and play resumes automatically.
+        final fallback = await db.cachedPuzzlesDao.firstUnplayedPlaintext();
+        return fallback == null ? null : puzzleFromRow(fallback);
       });
 
   /// Decrypts an encrypted puzzle's answers in memory using the current user's

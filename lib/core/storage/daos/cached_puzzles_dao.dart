@@ -30,6 +30,18 @@ class CachedPuzzlesDao extends DatabaseAccessor<AppDatabase>
     return (await q.getSingle()).read(count) ?? 0;
   }
 
+  /// Unplayed puzzles that need no answer key (the bundled plaintext starter
+  /// pack). Lets the repository tell whether a keyless device still has
+  /// something playable when every backend puzzle is locked ciphertext.
+  Future<int> unplayedPlaintextCount() async {
+    final count = cachedPuzzles.puzzleId.count();
+    final q = selectOnly(cachedPuzzles)
+      ..addColumns([count])
+      ..where(cachedPuzzles.completed.equals(false) &
+          cachedPuzzles.encrypted.equals(false));
+    return (await q.getSingle()).read(count) ?? 0;
+  }
+
   Future<Map<String, int>> remainingByTier() async {
     final count = cachedPuzzles.puzzleId.count();
     final q = selectOnly(cachedPuzzles)
@@ -53,6 +65,18 @@ class CachedPuzzlesDao extends DatabaseAccessor<AppDatabase>
 
   Future<CachedPuzzleRow?> currentPuzzle() => (select(cachedPuzzles)
         ..where((t) => t.completed.equals(false))
+        ..orderBy([
+          (t) => OrderingTerm.asc(t.tierRank),
+          (t) => OrderingTerm.asc(t.orderIndex),
+        ])
+        ..limit(1))
+      .getSingleOrNull();
+
+  /// The front unplayed puzzle that needs no answer key, or null when every
+  /// unplayed puzzle is encrypted. The read seam falls back to this so a locked
+  /// (not-yet-decryptable) front puzzle never leaves the player with nothing.
+  Future<CachedPuzzleRow?> firstUnplayedPlaintext() => (select(cachedPuzzles)
+        ..where((t) => t.completed.equals(false) & t.encrypted.equals(false))
         ..orderBy([
           (t) => OrderingTerm.asc(t.tierRank),
           (t) => OrderingTerm.asc(t.orderIndex),

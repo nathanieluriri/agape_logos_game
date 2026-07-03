@@ -11,14 +11,17 @@ import '../../../core/design/tokens/gradients.dart';
 import '../../../core/design/tokens/spacing.dart';
 import '../../../core/design/tokens/typography.dart';
 import '../../../shared/widgets/brand_mark.dart';
+import 'icon_slices.dart';
 
-/// The cold-start splash: the five brand-mark blocks tumble in from off-screen
-/// and bounce into place on a cream field, a soft mint orb glow blooms behind
-/// them, and the wordmark settles. Calls [onComplete] once the sequence ends.
+/// The cold-start splash: the app icon is cut into five blocks (four quadrant
+/// tiles and the crimson bud keystone) that tumble in from off-screen and
+/// bounce into place, reassembling the exact artwork; a soft mint glow blooms
+/// behind and the wordmark settles. Calls [onComplete] once the sequence ends.
 ///
-/// Provider-free and self-contained (it paints its own cream background), so it
-/// is safe to host in a widget preview and to stack over the app in
-/// [SplashGate]. Honors the platform reduced-motion setting.
+/// The blocks are clipped straight from `assets/branding/app_icon.png`, so the
+/// splash uses the real icon. Until that PNG has been added the scene falls back
+/// to the vector [BrandMark], so it always renders. Provider-free and
+/// self-contained (it paints its own cream background); honors reduced motion.
 class SplashScene extends StatefulWidget {
   const SplashScene({super.key, required this.onComplete});
 
@@ -30,8 +33,10 @@ class SplashScene extends StatefulWidget {
 
 class _SplashSceneState extends State<SplashScene>
     with SingleTickerProviderStateMixin {
-  // Per-block choreography (piece index 0..3 tiles, 4 bud). Fractions are of
-  // the controller's run; the bud lands last as the keystone.
+  static const AssetImage _icon = AssetImage('assets/branding/app_icon.png');
+
+  // Per-block choreography (0..3 tiles, 4 bud). Fractions are of the
+  // controller's run; the bud lands last as the keystone.
   static const List<double> _start = <double>[0.0, 0.08, 0.16, 0.24, 0.36];
   static const List<double> _end = <double>[0.30, 0.38, 0.46, 0.54, 0.66];
   static const List<double> _spin = <double>[-0.5, 0.45, 0.5, -0.45, -0.7];
@@ -45,6 +50,8 @@ class _SplashSceneState extends State<SplashScene>
   late final Animation<Offset> _wordSlide;
   bool _started = false;
   bool _reduce = false;
+  bool _useVector = false;
+  bool _resolved = false;
 
   @override
   void initState() {
@@ -73,6 +80,22 @@ class _SplashSceneState extends State<SplashScene>
     _reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     _controller.duration =
         _reduce ? AppDurations.splashReduced : AppDurations.splashRun;
+    // Decode the icon before the blocks appear. If it is missing (not yet
+    // added), fall back to the vector mark. Either way, start once resolved so
+    // the first block never renders on an undecoded image.
+    precacheImage(
+      _icon,
+      context,
+      onError: (Object _, StackTrace? __) => _begin(useVector: true),
+    ).then((_) => _begin(useVector: false));
+  }
+
+  void _begin({required bool useVector}) {
+    if (!mounted || _resolved) return;
+    setState(() {
+      _resolved = true;
+      _useVector = useVector;
+    });
     _controller.forward();
   }
 
@@ -88,12 +111,16 @@ class _SplashSceneState extends State<SplashScene>
       curve.transform(((v - a) / (b - a)).clamp(0.0, 1.0));
 
   Alignment _pieceAlignment(int index) {
-    final Offset c = BrandMarkGeometry.pieceCenter(index);
-    return Alignment(c.dx / 50 - 1, c.dy / 50 - 1);
+    if (_useVector) {
+      final Offset c = BrandMarkGeometry.pieceCenter(index);
+      return Alignment(c.dx / 50 - 1, c.dy / 50 - 1);
+    }
+    return IconSlices.alignment(index);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_resolved) return const ColoredBox(color: AppColors.paper);
     final Size size = MediaQuery.of(context).size;
     final double markSize = (size.shortestSide * 0.46).clamp(140.0, 240.0);
     // Blocks start fully above the visible area, so they drop in rather than
@@ -130,7 +157,7 @@ class _SplashSceneState extends State<SplashScene>
     return Stack(
       alignment: Alignment.center,
       clipBehavior: Clip.none,
-      children: <Widget>[_glowBox(markSize), BrandMark(size: markSize)],
+      children: <Widget>[_glowBox(markSize), _fullMark(markSize)],
     );
   }
 
@@ -149,7 +176,8 @@ class _SplashSceneState extends State<SplashScene>
             alignment: Alignment.center,
             clipBehavior: Clip.none,
             children: <Widget>[
-              for (var i = 0; i < 5; i++) _block(i, _controller.value, markSize, fall),
+              for (var i = 0; i < IconSlices.pieceCount; i++)
+                _block(i, _controller.value, markSize, fall),
             ],
           ),
         ),
@@ -171,10 +199,35 @@ class _SplashSceneState extends State<SplashScene>
         transform: Matrix4.identity()
           ..rotateZ(angle)
           ..scaleByDouble(scale, scale, 1, 1),
-        child: RepaintBoundary(child: BrandMark(size: markSize, piece: i)),
+        child: RepaintBoundary(child: _pieceChild(i, markSize)),
       ),
     );
   }
+
+  /// One block: the icon clipped to piece [i]'s region, or the matching vector
+  /// piece when the PNG is absent.
+  Widget _pieceChild(int i, double markSize) {
+    if (_useVector) return BrandMark(size: markSize, piece: i);
+    return ClipPath(
+      clipper: IconSlices.clipper(i),
+      child: _iconImage(markSize),
+    );
+  }
+
+  /// The whole assembled icon (vector fallback or the real PNG).
+  Widget _fullMark(double markSize) =>
+      _useVector ? BrandMark(size: markSize) : _iconImage(markSize);
+
+  Widget _iconImage(double markSize) => SizedBox(
+        width: markSize,
+        height: markSize,
+        child: const Image(
+          image: _icon,
+          fit: BoxFit.fill,
+          gaplessPlayback: true,
+          filterQuality: FilterQuality.medium,
+        ),
+      );
 
   Widget _glowBox(double markSize) {
     final double side = markSize * 1.7;
@@ -194,7 +247,7 @@ class _SplashSceneState extends State<SplashScene>
   Widget _wordmarkText() {
     return Text(
       'Agape Logos',
-      style: AppTypography.wordmark.copyWith(color: AppColors.ink, fontSize: 30),
+      style: AppTypography.splashWordmark.copyWith(color: AppColors.ink),
     );
   }
 }

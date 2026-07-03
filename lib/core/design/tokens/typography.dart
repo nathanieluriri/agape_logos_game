@@ -18,6 +18,18 @@ abstract final class AppTypography {
     height: 1.1,
   );
 
+  /// Splash wordmark ("Agape Logos"). Serif, a touch smaller than the home
+  /// wordmark so it sits calmly under the assembling mark. Carries no color;
+  /// callers set one for the surface it sits on.
+  static const splashWordmark = TextStyle(
+    fontFamily: fontFamily,
+    fontFamilyFallback: ['serif'],
+    fontSize: 30,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 2,
+    height: 1.1,
+  );
+
   /// Progress fraction ("5/8"). Serif, bold.
   static const numeral = TextStyle(
     fontFamily: fontFamily,

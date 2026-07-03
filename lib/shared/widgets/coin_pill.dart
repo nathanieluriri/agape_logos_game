@@ -1,5 +1,6 @@
 // lib/shared/widgets/coin_pill.dart
 import 'package:flutter/widgets.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/durations.dart';
@@ -62,13 +63,14 @@ class CoinPill extends StatelessWidget {
           ),
         ),
         Positioned(
-          left: -62,
-          top: -34,
-          // The petal is the provided artwork, placed as-is.
-          child: Image.asset(
-            'assets/branding/coin_petal.png',
+          left: -22,
+          top: -20,
+          // The currency petal, drawn from the bundled vector instead of the old
+          // 2 MB PNG: a fraction of the bytes and crisp at any density. Sized and
+          // offset to sit over the pill's left edge, popping slightly above it.
+          child: SvgPicture.asset(
+            'assets/branding/coin_petal.svg',
             width: AppSizing.coinPetal,
-            filterQuality: FilterQuality.medium,
           ),
         ),
         Positioned(
