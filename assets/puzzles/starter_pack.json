@@ -1,0 +1,238 @@
+{
+  "version": 1,
+  "puzzles": [
+    {
+      "tier": "easy",
+      "rackSize": 4,
+      "letters": ["C", "A", "T", "S"],
+      "letterKey": "starter-easy-01",
+      "anchor": "T",
+      "answerCount": 3,
+      "answers": [
+        {"word": "CAT", "length": 3, "definition": "A small domesticated feline."},
+        {"word": "ACT", "length": 3, "definition": "To do something; a deed."},
+        {"word": "CATS", "length": 4, "definition": "More than one cat."}
+      ]
+    },
+    {
+      "tier": "easy",
+      "rackSize": 4,
+      "letters": ["R", "A", "T", "E"],
+      "letterKey": "starter-easy-02",
+      "anchor": "R",
+      "answerCount": 5,
+      "answers": [
+        {"word": "TAR", "length": 3, "definition": "A thick, dark, sticky substance."},
+        {"word": "ART", "length": 3, "definition": "Creative work like painting or music."},
+        {"word": "EAR", "length": 3, "definition": "The organ used for hearing."},
+        {"word": "RATE", "length": 4, "definition": "A measure of speed or price."},
+        {"word": "TEAR", "length": 4, "definition": "A drop of liquid from the eye."}
+      ]
+    },
+    {
+      "tier": "easy",
+      "rackSize": 4,
+      "letters": ["D", "O", "G", "S"],
+      "letterKey": "starter-easy-03",
+      "anchor": "D",
+      "answerCount": 4,
+      "answers": [
+        {"word": "DOG", "length": 3, "definition": "A loyal, domesticated animal."},
+        {"word": "SOD", "length": 3, "definition": "A layer of earth covered in grass."},
+        {"word": "DOGS", "length": 4, "definition": "More than one dog."},
+        {"word": "GODS", "length": 4, "definition": "Deities in mythology."}
+      ]
+    },
+    {
+      "tier": "easy",
+      "rackSize": 5,
+      "letters": ["P", "L", "A", "N", "S"],
+      "letterKey": "starter-easy-04",
+      "anchor": "L",
+      "answerCount": 5,
+      "answers": [
+        {"word": "PAL", "length": 3, "definition": "A close friend."},
+        {"word": "LAP", "length": 3, "definition": "The upper legs when seated."},
+        {"word": "SLAP", "length": 4, "definition": "To hit with an open hand."},
+        {"word": "PLAN", "length": 4, "definition": "A scheme worked out in advance."},
+        {"word": "PLANS", "length": 5, "definition": "More than one plan."}
+      ]
+    },
+    {
+      "tier": "easy",
+      "rackSize": 5,
+      "letters": ["S", "T", "O", "N", "E"],
+      "letterKey": "starter-easy-05",
+      "anchor": "N",
+      "answerCount": 5,
+      "answers": [
+        {"word": "NOTE", "length": 4, "definition": "A short written record."},
+        {"word": "TONE", "length": 4, "definition": "The quality of a sound."},
+        {"word": "NEST", "length": 4, "definition": "A bird's home built of twigs."},
+        {"word": "TENS", "length": 4, "definition": "The plural of the number ten."},
+        {"word": "STONE", "length": 5, "definition": "A small piece of rock."}
+      ]
+    },
+    {
+      "tier": "easy",
+      "rackSize": 5,
+      "letters": ["B", "R", "E", "A", "D"],
+      "letterKey": "starter-easy-06",
+      "anchor": "B",
+      "answerCount": 4,
+      "answers": [
+        {"word": "BEAR", "length": 4, "definition": "A large, furry forest mammal."},
+        {"word": "BARE", "length": 4, "definition": "Uncovered or plain."},
+        {"word": "BRED", "length": 4, "definition": "Raised or produced, as animals."},
+        {"word": "BREAD", "length": 5, "definition": "A baked food made from flour."}
+      ]
+    },
+    {
+      "tier": "medium",
+      "rackSize": 6,
+      "letters": ["G", "A", "R", "D", "E", "N"],
+      "letterKey": "starter-medium-01",
+      "anchor": "G",
+      "answerCount": 5,
+      "answers": [
+        {"word": "RAGE", "length": 4, "definition": "Intense, furious anger."},
+        {"word": "GRAND", "length": 5, "definition": "Impressive in size or style."},
+        {"word": "RANGE", "length": 5, "definition": "The extent between limits."},
+        {"word": "DANGER", "length": 6, "definition": "The possibility of harm."},
+        {"word": "GARDEN", "length": 6, "definition": "A plot of ground for growing plants."}
+      ]
+    },
+    {
+      "tier": "medium",
+      "rackSize": 6,
+      "letters": ["S", "I", "L", "E", "N", "T"],
+      "letterKey": "starter-medium-02",
+      "anchor": "L",
+      "answerCount": 6,
+      "answers": [
+        {"word": "LIST", "length": 4, "definition": "A series of names or items."},
+        {"word": "TILE", "length": 4, "definition": "A flat, hard piece used for flooring."},
+        {"word": "LINE", "length": 4, "definition": "A long, thin mark."},
+        {"word": "LISTEN", "length": 6, "definition": "To pay attention with your ears."},
+        {"word": "SILENT", "length": 6, "definition": "Making no sound."},
+        {"word": "TINSEL", "length": 6, "definition": "Shiny, thin strips used as decoration."}
+      ]
+    },
+    {
+      "tier": "medium",
+      "rackSize": 6,
+      "letters": ["M", "O", "T", "H", "E", "R"],
+      "letterKey": "starter-medium-03",
+      "anchor": "H",
+      "answerCount": 5,
+      "answers": [
+        {"word": "HOME", "length": 4, "definition": "The place where one lives."},
+        {"word": "HERO", "length": 4, "definition": "A person admired for courage."},
+        {"word": "THEM", "length": 4, "definition": "Those people or things."},
+        {"word": "OTHER", "length": 5, "definition": "Different or additional."},
+        {"word": "MOTHER", "length": 6, "definition": "A female parent."}
+      ]
+    },
+    {
+      "tier": "medium",
+      "rackSize": 6,
+      "letters": ["W", "I", "N", "T", "E", "R"],
+      "letterKey": "starter-medium-04",
+      "anchor": "W",
+      "answerCount": 4,
+      "answers": [
+        {"word": "WINE", "length": 4, "definition": "A drink made from fermented grapes."},
+        {"word": "TWIN", "length": 4, "definition": "One of two born at the same time."},
+        {"word": "WRITE", "length": 5, "definition": "To form letters or words on a surface."},
+        {"word": "WINTER", "length": 6, "definition": "The coldest season of the year."}
+      ]
+    },
+    {
+      "tier": "medium",
+      "rackSize": 6,
+      "letters": ["C", "A", "N", "D", "L", "E"],
+      "letterKey": "starter-medium-05",
+      "anchor": "C",
+      "answerCount": 4,
+      "answers": [
+        {"word": "LACE", "length": 4, "definition": "A delicate fabric with an open weave."},
+        {"word": "CLEAN", "length": 5, "definition": "Free from dirt."},
+        {"word": "DANCE", "length": 5, "definition": "To move rhythmically to music."},
+        {"word": "CANDLE", "length": 6, "definition": "A wax stick with a wick for light."}
+      ]
+    },
+    {
+      "tier": "medium",
+      "rackSize": 6,
+      "letters": ["F", "L", "O", "W", "E", "R"],
+      "letterKey": "starter-medium-06",
+      "anchor": "L",
+      "answerCount": 4,
+      "answers": [
+        {"word": "WOLF", "length": 4, "definition": "A wild relative of the dog."},
+        {"word": "FLOW", "length": 4, "definition": "To move steadily, like water."},
+        {"word": "LOWER", "length": 5, "definition": "To move something down."},
+        {"word": "FLOWER", "length": 6, "definition": "The colorful bloom of a plant."}
+      ]
+    },
+    {
+      "tier": "hard",
+      "rackSize": 7,
+      "letters": ["P", "A", "T", "I", "E", "N", "T"],
+      "letterKey": "starter-hard-01",
+      "anchor": "T",
+      "answerCount": 5,
+      "answers": [
+        {"word": "TAPE", "length": 4, "definition": "A strip of adhesive material."},
+        {"word": "NEAT", "length": 4, "definition": "Tidy and orderly."},
+        {"word": "PAINT", "length": 5, "definition": "Colored liquid used for decorating."},
+        {"word": "TAINT", "length": 5, "definition": "To spoil or contaminate slightly."},
+        {"word": "PATIENT", "length": 7, "definition": "Able to wait calmly; also a person under medical care."}
+      ]
+    },
+    {
+      "tier": "hard",
+      "rackSize": 7,
+      "letters": ["T", "E", "A", "C", "H", "E", "R"],
+      "letterKey": "starter-hard-02",
+      "anchor": "E",
+      "answerCount": 5,
+      "answers": [
+        {"word": "REACH", "length": 5, "definition": "To stretch out to touch something."},
+        {"word": "CHEAT", "length": 5, "definition": "To act dishonestly for advantage."},
+        {"word": "TEACH", "length": 5, "definition": "To help someone learn."},
+        {"word": "HEATER", "length": 6, "definition": "A device that warms a space."},
+        {"word": "TEACHER", "length": 7, "definition": "A person who helps others learn."}
+      ]
+    },
+    {
+      "tier": "hard",
+      "rackSize": 7,
+      "letters": ["G", "A", "R", "D", "E", "N", "S"],
+      "letterKey": "starter-hard-03",
+      "anchor": "D",
+      "answerCount": 4,
+      "answers": [
+        {"word": "SAND", "length": 4, "definition": "Fine grains of rock found on beaches."},
+        {"word": "GRAND", "length": 5, "definition": "Impressive in size or style."},
+        {"word": "DANGER", "length": 6, "definition": "The possibility of harm."},
+        {"word": "GARDENS", "length": 7, "definition": "More than one garden."}
+      ]
+    },
+    {
+      "tier": "hard",
+      "rackSize": 7,
+      "letters": ["P", "I", "C", "T", "U", "R", "E"],
+      "letterKey": "starter-hard-04",
+      "anchor": "C",
+      "answerCount": 5,
+      "answers": [
+        {"word": "CUP", "length": 3, "definition": "A small container for drinking."},
+        {"word": "CUT", "length": 3, "definition": "To divide with a sharp tool."},
+        {"word": "CURE", "length": 4, "definition": "To restore to health."},
+        {"word": "CURT", "length": 4, "definition": "Brief and rather rude."},
+        {"word": "PICTURE", "length": 7, "definition": "An image or photograph."}
+      ]
+    }
+  ]
+}

@@ -12,5 +12,12 @@ abstract class PuzzleRepository {
   Future<Map<String, int>> remainingByTier();
 
   /// Optimistic write: mark the puzzle completed locally and enqueue the result.
-  Future<void> recordPuzzleResult(String puzzleId, int score, int completedAt);
+  /// [level] is the progression level this result completed; when provided it is
+  /// sent to the backend so `highestLevel` advances.
+  Future<void> recordPuzzleResult(
+    String puzzleId,
+    int score,
+    int completedAt, {
+    int? level,
+  });
 }

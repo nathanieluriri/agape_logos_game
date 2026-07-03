@@ -3,10 +3,35 @@ import 'package:uuid/uuid.dart';
 import '../../../core/network/api_client.dart';
 import '../domain/puzzle.dart';
 
-/// Thin transport for the puzzle serving endpoints (B). Returns parsed Puzzles.
+/// Thin transport for the puzzle serving endpoints (B). Returns parsed Puzzles
+/// whose answers are still ENCRYPTED: each [PuzzleAnswer.word] holds the
+/// backend ciphertext token (definition null, length in the clear). The
+/// repository decrypts them at the read seam before the game sees them.
 abstract class PuzzleRemote {
   Future<List<Puzzle>> draw(Map<String, int> composition);
   Future<List<Puzzle>> assignedIncomplete();
+}
+
+/// Builds a [Puzzle] from a wire puzzle whose answers are `{length, enc}`. The
+/// ciphertext token is parked in [PuzzleAnswer.word] until it is decrypted.
+Puzzle wirePuzzleToEncrypted(Map<String, dynamic> m) {
+  final answers = (((m['answers'] as List?) ?? const [])).map((a) {
+    final am = (a as Map).cast<String, dynamic>();
+    return PuzzleAnswer(
+      word: am['enc'] as String,
+      length: (am['length'] as num).toInt(),
+      definition: null,
+    );
+  }).toList();
+  return Puzzle(
+    tier: m['tier'] as String,
+    rackSize: (m['rackSize'] as num).toInt(),
+    letters: (m['letters'] as List).cast<String>(),
+    letterKey: m['letterKey'] as String,
+    anchor: m['anchor'] as String,
+    answers: answers,
+    answerCount: (m['answerCount'] as num).toInt(),
+  );
 }
 
 class HttpPuzzleRemote implements PuzzleRemote {
@@ -28,7 +53,7 @@ class HttpPuzzleRemote implements PuzzleRemote {
     for (final entry in byTier.values) {
       final puzzles = ((entry as Map)['puzzles'] as List?) ?? const [];
       for (final p in puzzles) {
-        out.add(Puzzle.fromJson((p as Map).cast<String, dynamic>()));
+        out.add(wirePuzzleToEncrypted((p as Map).cast<String, dynamic>()));
       }
     }
     return out;
@@ -42,7 +67,7 @@ class HttpPuzzleRemote implements PuzzleRemote {
     );
     final puzzles = (res.data?['puzzles'] as List?) ?? const [];
     return puzzles
-        .map((p) => Puzzle.fromJson((p as Map).cast<String, dynamic>()))
+        .map((p) => wirePuzzleToEncrypted((p as Map).cast<String, dynamic>()))
         .toList();
   }
 }

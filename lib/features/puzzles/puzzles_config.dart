@@ -6,3 +6,7 @@ const Map<String, int> kDrawComposition = {'easy': 20, 'medium': 40, 'hard': 40}
 
 /// Mutation kind for puzzle-result writes; the reconciler keys off this.
 const String kPuzzleResultKind = 'puzzle_result';
+
+/// Puzzle-id prefix of the bundled offline starter pack. Results for these
+/// are recorded locally only (never enqueued for backend sync).
+const String kStarterPuzzlePrefix = 'starter-';

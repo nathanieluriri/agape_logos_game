@@ -37,7 +37,8 @@ void main() {
   });
 
   test('puzzleToCompanion then puzzleFromRow round-trips', () {
-    final companion = puzzleToCompanion(puzzle, orderIndex: 7, assignedAt: 42);
+    final companion =
+        puzzleToCompanion(puzzle, orderIndex: 7, assignedAt: 42, encrypted: false);
     expect(companion.tierRank, const Value(0));
     expect(companion.orderIndex, const Value(7));
     final row = CachedPuzzleRow(
@@ -52,6 +53,7 @@ void main() {
       orderIndex: companion.orderIndex.value,
       completed: false,
       assignedAt: companion.assignedAt.value,
+      encrypted: false,
     );
     final back = puzzleFromRow(row);
     expect(back, puzzle);
