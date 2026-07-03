@@ -31,16 +31,19 @@ class RippleComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     canvas.drawOval(
-      Rect.fromCenter(center: Offset.zero, width: rippleWidth, height: 7),
+      Rect.fromCenter(center: Offset.zero, width: rippleWidth, height: 4),
       _paint,
     );
   }
 
   static List<RippleComponent> field(Vector2 size, Random rng) {
-    return List.generate(3, (i) {
+    return List.generate(4, (i) {
       return RippleComponent(
-        position: Vector2(rng.nextDouble() * size.x, size.y * (0.4 + i * 0.18)),
-        rippleWidth: 80 + rng.nextDouble() * 70,
+        position: Vector2(
+          rng.nextDouble() * size.x,
+          size.y * (0.34 + i * 0.16),
+        ),
+        rippleWidth: 90 + rng.nextDouble() * 100,
         phase: rng.nextDouble() * pi * 2,
       );
     });

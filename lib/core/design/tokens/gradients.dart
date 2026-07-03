@@ -90,6 +90,11 @@ abstract final class AppGradients {
     stops: [0.0, 0.55, 1.0],
   );
 
+  /// Soft oval pool of shadowed water under the floating lotus mark.
+  static const lotusShadow = RadialGradient(
+    colors: [AppColors.lotusShadow, Color(0x00043338)],
+  );
+
   /// Round plus button.
   static const plusButton = RadialGradient(
     center: Alignment(-0.24, -0.36),
@@ -111,5 +116,12 @@ abstract final class AppGradients {
     end: Alignment.bottomCenter,
     colors: [AppColors.padRimGlow, Color(0x00FFFFFF)],
     stops: [0.0, 0.66],
+  );
+
+  /// Tutorial coach pill: a light paper wash, white easing into a cool grey.
+  static const tutorialPill = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [AppColors.tutorialPillTop, AppColors.tutorialPillBottom],
   );
 }

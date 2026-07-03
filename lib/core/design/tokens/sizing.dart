@@ -12,7 +12,7 @@ abstract final class AppSizing {
   static const double secondaryPad = 104;
   static const double settingsButton = 48;
   static const double lotusWidth = 168;
-  static const double coinPetal = 34;
+  static const double coinPetal = 56;
 
   static const double progressTrackWidth = 300;
   static const double progressTrackHeight = 22;
@@ -27,6 +27,11 @@ abstract final class AppSizing {
   static const double topBarButton = 44;
   static const double comboBannerHeight = 52;
   static const double pillHeight = 40;
+
+  // Tutorial spotlight overlay: pointing hand, cutout breathing room, pill.
+  static const double tutorialHand = 64;
+  static const double tutorialCutoutPad = 12;
+  static const double tutorialPillMaxWidth = 340;
 
   // Pond control primitives: switch, capsule button, loader, dialog.
   static const double switchTrackWidth = 58;

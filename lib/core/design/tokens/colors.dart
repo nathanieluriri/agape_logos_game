@@ -81,6 +81,9 @@ abstract final class AppColors {
   static const wordmark = Color(0xFFFDFBF3);
   static const playTriangle = Color(0xFFFBF4DC);
   static const playTriangleShadow = Color(0xFFE3D4AB);
+
+  /// Shadowed-water pool under the floating lotus mark (fades to clear).
+  static const lotusShadow = Color(0x4D043338);
   static const padLabel = Color(0xFFFFFFFF);
   static const padLabelSoft = Color(0xD9FFFFFF);
 
@@ -113,4 +116,10 @@ abstract final class AppColors {
   // Game: board slots, submerged hollows in the water.
   static const Color boardSlotFill = Color(0x4D053F44);
   static const Color boardSlotBorder = Color(0x2EBEEEE0);
+
+  // Tutorial spotlight overlay.
+  static const Color tutorialScrim = Color(0xE0021517);
+  static const Color tutorialTrace = Color(0xD9FDFAF0);
+  static const Color tutorialPillTop = Color(0xFFFFFFFF);
+  static const Color tutorialPillBottom = Color(0xFFE9F0F7);
 }
