@@ -14,6 +14,19 @@ void main() {
     expect(row.music, isTrue);
     expect(row.notifications, isTrue);
     expect(row.haptics, isTrue);
+    expect(row.tutorialSeen, isFalse); // the one opt-in flag: defaults off
+  });
+
+  test('setTutorialSeen persists and is emitted by watch', () async {
+    await db.gameSettingsDao.setTutorialSeen(true);
+
+    final row = await db.gameSettingsDao.watch().first;
+    expect(row.tutorialSeen, isTrue);
+    // The other switches keep their defaults.
+    expect(row.soundEffects, isTrue);
+    expect(row.music, isTrue);
+    expect(row.notifications, isTrue);
+    expect(row.haptics, isTrue);
   });
 
   test('each setter flips exactly its own field', () async {
@@ -25,6 +38,7 @@ void main() {
     expect(row.notifications, isFalse);
     expect(row.music, isTrue);
     expect(row.haptics, isTrue);
+    expect(row.tutorialSeen, isFalse);
   });
 
   test('clearLocalGameData wipes progress but keeps settings', () async {

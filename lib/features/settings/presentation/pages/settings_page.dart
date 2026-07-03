@@ -6,6 +6,10 @@ import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/coming_soon_sheet.dart';
 import '../../../../shared/widgets/pond_background.dart';
+import '../../../../shared/widgets/pond_dialog.dart';
+import '../../../../shared/widgets/pond_loader.dart';
+import '../../../../shared/widgets/pond_pill_button.dart';
+import '../../../../shared/widgets/pond_snack.dart';
 import '../../../../shared/widgets/pond_stage.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../../auth/domain/auth_failure.dart';
@@ -16,7 +20,7 @@ import '../widgets/settings_section.dart';
 import '../widgets/settings_switch_row.dart';
 
 /// App version shown in the About section. Keep in sync with pubspec `version`.
-const String kAppVersion = '0.1.0';
+const String kAppVersion = '0.2.0';
 
 /// The settings screen: a routed, pond-themed page (replaces the old modal).
 class SettingsPage extends ConsumerWidget {
@@ -35,12 +39,14 @@ class SettingsPage extends ConsumerWidget {
               const SettingsHeader(title: 'Settings'),
               const SizedBox(height: AppSpacing.lg),
               settings.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(AppSpacing.xl),
+                  child: Center(child: PondLoader(label: 'Loading settings')),
+                ),
                 error: (_, __) => const Padding(
                   padding: EdgeInsets.all(AppSpacing.md),
                   child: Text('Could not load settings.',
-                      style: TextStyle(color: AppColors.padLabel)),
+                      style: TextStyle(color: AppColors.padLabelSoft)),
                 ),
                 data: (s) => Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -99,7 +105,8 @@ class SettingsPage extends ConsumerWidget {
                               horizontal: AppSpacing.md,
                               vertical: AppSpacing.sm),
                           child: Text('Version $kAppVersion',
-                              style: TextStyle(color: AppColors.padLabel)),
+                              style: TextStyle(
+                                  color: AppColors.padLabelSoft, fontSize: 13)),
                         ),
                       ],
                     ),
@@ -119,25 +126,27 @@ class _AccountSection extends ConsumerWidget {
   const _AccountSection();
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+    // The pills are built with the page context, so popping must target the
+    // root navigator (where showPondDialog pushed the dialog route).
+    final confirmed = await showPondDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: const Text(
-          'This permanently deletes your account and local progress. '
+      title: 'Delete account?',
+      body: 'This permanently deletes your account and local progress. '
           'This cannot be undone.',
+      actions: [
+        PondPillButton(
+          label: 'Cancel',
+          variant: PondPillVariant.quiet,
+          onPressed: () =>
+              Navigator.of(context, rootNavigator: true).pop(false),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+        PondPillButton(
+          label: 'Delete',
+          variant: PondPillVariant.danger,
+          onPressed: () =>
+              Navigator.of(context, rootNavigator: true).pop(true),
+        ),
+      ],
     );
     if (confirmed != true) return;
 
@@ -148,16 +157,13 @@ class _AccountSection extends ConsumerWidget {
     if (state.hasError) {
       final error = state.error;
       if (error == AuthFailure.requiresRecentLogin) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content:
-              Text('Please sign in again, then retry deleting your account.'),
-        ));
+        showPondSnack(
+            context, 'Please sign in again, then retry deleting your account.');
         context.push('/sign-in');
       } else {
         final msg =
             error is AuthFailure ? error.message : 'Could not delete account.';
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(msg)));
+        showPondSnack(context, msg);
       }
       return;
     }
