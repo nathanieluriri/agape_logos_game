@@ -34,8 +34,22 @@ export const ProfileResponseSchema = z.object({
   musicEnabled: z.boolean(),
   highestLevel: z.number().int(),
   totalScore: z.number().int(),
+  coins: z.number().int(),
+  // Owned consumables (base store item id -> quantity). Empty for a new user.
+  inventory: z.record(z.number().int()),
   createdAt: z.number().int(),
   updatedAt: z.number().int(),
+});
+
+// Lightweight coin-only response for GET /me/coins, when the client just needs
+// the wallet balance without the full profile payload.
+export const CoinsResponseSchema = z.object({
+  coins: z.number().int(),
+});
+
+// Per-user answer-decryption key (base64), for GET /me/answer-key.
+export const AnswerKeyResponseSchema = z.object({
+  key: z.string(),
 });
 
 // Field defaults written on first auto-create (uid and timestamps added by
@@ -48,4 +62,6 @@ export const DEFAULT_PROFILE = {
   musicEnabled: true,
   highestLevel: 0,
   totalScore: 0,
+  coins: 0,
+  inventory: {} as Record<string, number>,
 } as const;

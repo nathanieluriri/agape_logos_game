@@ -38,12 +38,37 @@ describe("/me profile", () => {
       musicEnabled: true,
       highestLevel: 0,
       totalScore: 0,
+      coins: 0,
+      inventory: {},
     });
     expect(typeof first.body.createdAt).toBe("number");
     expect(first.body.createdAt).toBeGreaterThan(0);
 
     const second = await request(app).get("/me").set("Authorization", auth);
     expect(second.body.createdAt).toBe(first.body.createdAt);
+  });
+
+  test("GET /me/coins returns the balance and auto-provisions at 0", async () => {
+    const {idToken} = await mintUser();
+    const res = await request(app).get("/me/coins").set("Authorization", `Bearer ${idToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({coins: 0});
+  });
+
+  test("GET /me/coins 401 without auth", async () => {
+    expect((await request(app).get("/me/coins")).status).toBe(401);
+  });
+
+  test("GET /me/answer-key returns a 32-byte base64 key to the owner", async () => {
+    const {idToken} = await mintUser();
+    const res = await request(app).get("/me/answer-key").set("Authorization", `Bearer ${idToken}`);
+    expect(res.status).toBe(200);
+    expect(typeof res.body.key).toBe("string");
+    expect(Buffer.from(res.body.key, "base64").length).toBe(32);
+  });
+
+  test("GET /me/answer-key 401 without auth", async () => {
+    expect((await request(app).get("/me/answer-key")).status).toBe(401);
   });
 
   test("PUT /me updates editable fields and bumps updatedAt", async () => {

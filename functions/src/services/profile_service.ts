@@ -11,6 +11,8 @@ export interface ProfileResponse {
   musicEnabled: boolean;
   highestLevel: number;
   totalScore: number;
+  coins: number;
+  inventory: Record<string, number>;
   createdAt: number;
   updatedAt: number;
 }
@@ -29,6 +31,8 @@ function serialize(uid: string, data: Record<string, unknown>): ProfileResponse 
     musicEnabled: (data.musicEnabled as boolean) ?? DEFAULT_PROFILE.musicEnabled,
     highestLevel: (data.highestLevel as number) ?? DEFAULT_PROFILE.highestLevel,
     totalScore: (data.totalScore as number) ?? DEFAULT_PROFILE.totalScore,
+    coins: (data.coins as number) ?? DEFAULT_PROFILE.coins,
+    inventory: (data.inventory as Record<string, number>) ?? {},
     createdAt: toMillis(data.createdAt),
     updatedAt: toMillis(data.updatedAt),
   };
@@ -51,6 +55,14 @@ export async function getOrCreateProfile(uid: string): Promise<ProfileResponse> 
   });
   const snap = await ref.get();
   return serialize(uid, (snap.data() ?? {}) as Record<string, unknown>);
+}
+
+// Returns just the caller's coin balance, provisioning the profile on first
+// read (same guarantee as getOrCreateProfile) so a brand-new user gets 0 coins
+// rather than a 404.
+export async function getCoins(uid: string): Promise<{coins: number}> {
+  const profile = await getOrCreateProfile(uid);
+  return {coins: profile.coins};
 }
 
 // Ensures the profile exists, merges the validated patch, and bumps updatedAt.

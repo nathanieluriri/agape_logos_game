@@ -1,5 +1,5 @@
 import {describe, test, expect} from "@jest/globals";
-import {getOrCreateProfile, updateProfile} from "../src/services/profile_service";
+import {getCoins, getOrCreateProfile, updateProfile} from "../src/services/profile_service";
 
 describe("profile_service", () => {
   test("getOrCreateProfile creates defaults then is idempotent", async () => {
@@ -10,6 +10,8 @@ describe("profile_service", () => {
     expect(first.avatarId).toBe("avatar_01");
     expect(first.highestLevel).toBe(0);
     expect(first.totalScore).toBe(0);
+    expect(first.coins).toBe(0);
+    expect(first.inventory).toEqual({});
     expect(first.createdAt).toBeGreaterThan(0);
 
     const second = await getOrCreateProfile(uid);
@@ -23,5 +25,10 @@ describe("profile_service", () => {
     expect(after.displayName).toBe("Trinity");
     expect(after.soundEnabled).toBe(false);
     expect(after.updatedAt).toBeGreaterThanOrEqual(before.updatedAt);
+  });
+
+  test("getCoins provisions the profile and returns the balance", async () => {
+    const {coins} = await getCoins("svc-user-coins");
+    expect(coins).toBe(0);
   });
 });
