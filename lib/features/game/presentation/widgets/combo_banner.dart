@@ -8,6 +8,7 @@ import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/shadows.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../core/design/tokens/typography.dart';
 
 /// The "Praise! Combo Streak xN" banner; renders nothing below combo 2.
 /// A lime-gold capsule tossed onto the water with a tiny playful tilt.
@@ -15,12 +16,18 @@ import '../../../../core/design/tokens/spacing.dart';
 /// Each time the combo climbs, the capsule pops in with a springy overshoot so
 /// a growing streak reads as an escalating reward (paired with the streak
 /// haptic). Reserving the slot height while empty keeps the wheel from jumping
-/// as the banner comes and goes.
-class ComboBanner extends StatelessWidget {
+/// as the banner comes and goes. Tap or swipe it to dismiss; the next streak
+/// beat brings it back.
+class ComboBanner extends StatefulWidget {
   const ComboBanner({super.key, required this.praise, required this.combo});
   final String? praise;
   final int combo;
 
+  @override
+  State<ComboBanner> createState() => _ComboBannerState();
+}
+
+class _ComboBannerState extends State<ComboBanner> {
   /// Slight counterclockwise lean, in radians.
   static const double _tiltRadians = -0.02;
 
@@ -33,10 +40,19 @@ class ComboBanner extends StatelessWidget {
     boxShadow: AppShadows.pill,
   );
 
+  /// The combo value the player dismissed. The banner stays hidden until a new
+  /// streak beat (a different combo) supersedes it.
+  int? _dismissedCombo;
+
+  void _dismiss() {
+    setState(() => _dismissedCombo = widget.combo);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final label = praise;
-    if (label == null) {
+    final label = widget.praise;
+    final dismissed = _dismissedCombo == widget.combo;
+    if (label == null || dismissed) {
       return const SizedBox(height: AppSizing.comboBannerHeight);
     }
     final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
@@ -51,35 +67,31 @@ class ComboBanner extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text(label, style: AppTypography.banner.copyWith(color: AppColors.ink)),
             Text(
-              label,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: AppColors.ink,
-              ),
-            ),
-            Text(
-              'Combo Streak x$combo',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.ink,
-              ),
+              'Combo Streak x${widget.combo}',
+              style: AppTypography.bannerSub.copyWith(color: AppColors.ink),
             ),
           ],
         ),
       ),
     );
-    if (reduceMotion) return capsule;
+    // Tap or swipe (a drag in any direction) dismisses the banner.
+    final interactive = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _dismiss,
+      onPanEnd: (_) => _dismiss(),
+      child: Semantics(button: true, label: 'Dismiss combo', child: capsule),
+    );
+    if (reduceMotion) return interactive;
     // Keying by combo restarts the tween on every increment, so each new word
     // in the streak re-pops the capsule. No controller to manage.
     return TweenAnimationBuilder<double>(
-      key: ValueKey<int>(combo),
+      key: ValueKey<int>(widget.combo),
       tween: Tween<double>(begin: _popFrom, end: 1),
       duration: AppDurations.fast,
       curve: AppCurves.pop,
-      child: capsule,
+      child: interactive,
       builder: (context, scale, child) =>
           Transform.scale(scale: scale, child: child),
     );

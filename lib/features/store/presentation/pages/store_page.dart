@@ -92,7 +92,12 @@ class _StoreBody extends ConsumerWidget {
         catalog.when(
           loading: () => const Padding(
             padding: EdgeInsets.all(AppSpacing.xxl),
-            child: Center(child: PondLoader(label: 'Loading the store')),
+            child: Center(
+              child: PondLoader(
+                theme: PondLoaderTheme.store,
+                label: 'Loading the store',
+              ),
+            ),
           ),
           error: (_, __) => _StoreError(
             onRetry: () => ref.invalidate(storeCatalogProvider),

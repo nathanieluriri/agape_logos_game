@@ -10,6 +10,11 @@ abstract final class AppDurations {
   static const Duration normal = Duration(milliseconds: 280);
   static const Duration slow = Duration(milliseconds: 450);
 
+  /// Estimated fill window for the determinate loading bar. The fill
+  /// decelerates toward (but never claims) full while a load is in flight, so
+  /// the bar keeps visibly climbing instead of sitting blank.
+  static const Duration loaderRamp = Duration(milliseconds: 5200);
+
   /// How long a letter glides to its new slot when the wheel is shuffled.
   static const Duration shuffle = Duration(milliseconds: 340);
 

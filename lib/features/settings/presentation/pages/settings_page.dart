@@ -41,7 +41,12 @@ class SettingsPage extends ConsumerWidget {
               settings.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.all(AppSpacing.xl),
-                  child: Center(child: PondLoader(label: 'Loading settings')),
+                  child: Center(
+                    child: PondLoader(
+                      theme: PondLoaderTheme.settings,
+                      label: 'Loading settings',
+                    ),
+                  ),
                 ),
                 error: (_, __) => const Padding(
                   padding: EdgeInsets.all(AppSpacing.md),

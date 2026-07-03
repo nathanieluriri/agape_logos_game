@@ -38,3 +38,21 @@ export function attachDefinitions(
     })),
   };
 }
+
+/**
+ * Enforces the rule that every surfaced word carries a definition. Drops answers
+ * whose definition is missing or blank and recomputes answerCount. Returns null
+ * when fewer than `minAnswers` defined answers remain, signalling the caller to
+ * drop the whole puzzle rather than ship a threadbare board.
+ */
+export function withDefinedAnswersOnly(
+  puzzle: Puzzle,
+  minAnswers: number,
+): Puzzle | null {
+  const answers = puzzle.answers.filter(
+    (a) => a.definition != null && a.definition.trim().length > 0,
+  );
+  if (answers.length < minAnswers) return null;
+  if (answers.length === puzzle.answers.length) return puzzle;
+  return {...puzzle, answers, answerCount: answers.length};
+}

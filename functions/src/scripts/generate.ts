@@ -1,5 +1,6 @@
 import {
   Tier,
+  TIERS,
   COMMON_FREQUENCY_CUTOFF,
   DEFINITION_CONCURRENCY,
   DEFINITION_MAX_RETRIES,
@@ -11,7 +12,7 @@ import {
 import {WordData, loadWordDataFromFiles} from "../generation/word_data";
 import {AnagramIndex, buildAnagramIndex} from "../generation/anagram_index";
 import {generateTierBatch, RawPuzzle} from "../generation/generator";
-import {attachDefinitions} from "../generation/puzzle";
+import {attachDefinitions, withDefinedAnswersOnly, Puzzle} from "../generation/puzzle";
 import {
   FetchFn,
   DefinitionCache,
@@ -80,9 +81,28 @@ export async function runGeneration(
   const defs = await resolveDefinitions(words, deps.cache, deps.fetchFn, deps.concurrency);
   saveDefinitionCache(deps.cachePath, deps.cache);
 
-  const puzzles = raw.map((p) => attachDefinitions(p, defs, deps.genVersion));
+  const puzzles: Puzzle[] = [];
+  for (const p of raw) {
+    // Every surfaced word must carry a definition: drop undefined answers and
+    // skip any puzzle left below its tier's answer gate.
+    const clean = withDefinedAnswersOnly(
+      attachDefinitions(p, defs, deps.genVersion),
+      TIERS[p.tier].minAnswers,
+    );
+    if (clean) puzzles.push(clean);
+  }
   await writePuzzles(puzzles);
   await updateLibraryMeta(await getStats());
+
+  // Report what actually landed in the pool (after the definition filter), so a
+  // tier whose words lacked definitions shows the resulting shortfall.
+  for (const plan of plans) {
+    const written = puzzles.filter((p) => p.tier === plan.tier).length;
+    perTier[plan.tier] = {
+      written,
+      shortfall: Math.max(0, plan.count - written),
+    };
+  }
 
   return {written: puzzles.length, perTier};
 }

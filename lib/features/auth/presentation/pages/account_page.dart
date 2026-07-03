@@ -32,7 +32,10 @@ class AccountPage extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 child: auth.when(
                   loading: () => const Center(
-                    child: PondLoader(label: 'Loading account'),
+                    child: PondLoader(
+                      theme: PondLoaderTheme.auth,
+                      label: 'Loading account',
+                    ),
                   ),
                   error: (_, __) => const Text(
                     'Could not load account.',

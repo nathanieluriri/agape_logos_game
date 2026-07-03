@@ -4,11 +4,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/design/motion/curves.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/durations.dart';
-import '../../../../core/design/tokens/gradients.dart';
-import '../../../../core/design/tokens/shadows.dart';
-import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../core/design/tokens/typography.dart';
+import '../../../../shared/widgets/pond_progress_track.dart';
 
 /// "Level N Completed!" label, an animated lime-gold track fill, and the serif
 /// fraction. Used only on the level-complete page.
@@ -40,33 +38,11 @@ class LevelProgressBar extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        Container(
-          width: AppSizing.progressTrackWidth,
-          height: AppSizing.progressTrackHeight,
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            color: AppColors.progressTrack,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.progressTrackBorder, width: 2),
-            boxShadow: AppShadows.track,
-          ),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: TweenAnimationBuilder<double>(
-              duration: AppDurations.slow,
-              curve: AppCurves.emphasized,
-              tween: Tween(begin: 0, end: fraction.clamp(0.0, 1.0)),
-              builder: (context, value, _) => FractionallySizedBox(
-                widthFactor: value == 0 ? 0.0001 : value,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: AppGradients.progressFill,
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                ),
-              ),
-            ),
-          ),
+        TweenAnimationBuilder<double>(
+          duration: AppDurations.slow,
+          curve: AppCurves.emphasized,
+          tween: Tween(begin: 0, end: fraction.clamp(0.0, 1.0)),
+          builder: (context, value, _) => PondProgressTrack(fraction: value),
         ),
         const SizedBox(height: AppSpacing.md),
         Text(

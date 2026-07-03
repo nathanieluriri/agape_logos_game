@@ -43,4 +43,10 @@ abstract final class AppSizing {
   static const double pillButtonHeight = 44;
   static const double loader = 48;
   static const double dialogMaxWidth = 360;
+
+  // Determinate loader: themed emblem footprint + progress track width. The
+  // track is narrower than the level-complete bar so it sits inside padded
+  // page bodies without overflowing on small phones.
+  static const double loaderEmblem = 72;
+  static const double loaderTrackWidth = 220;
 }

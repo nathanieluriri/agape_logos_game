@@ -6,6 +6,7 @@ import '../../../../core/design/tokens/gradients.dart';
 import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/shadows.dart';
 import '../../../../core/design/tokens/sizing.dart';
+import '../../../../core/design/tokens/typography.dart';
 import '../../../puzzles/domain/puzzle.dart';
 
 /// The target-word board: one row per answer, cells fill in as words are found
@@ -16,28 +17,49 @@ class WordBoard extends StatelessWidget {
     required this.targets,
     required this.found,
     required this.revealed,
+    this.center = false,
   });
 
   final List<PuzzleAnswer> targets;
   final Set<String> found;
   final Map<String, int> revealed;
 
+  /// When true the rows sit vertically centered in the available height (and
+  /// still scroll if they overflow it). The in-game board sets this so short
+  /// puzzles don't strand a big empty gap below the words; left false elsewhere.
+  final bool center;
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final answer in targets)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSizing.boardTileGap / 2),
-              child: _WordRow(
-                word: answer.word.toUpperCase(),
-                found: found.contains(answer.word.toUpperCase()),
-                revealed: revealed[answer.word.toUpperCase()] ?? 0,
-              ),
+    final column = Column(
+      mainAxisAlignment:
+          center ? MainAxisAlignment.center : MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final answer in targets)
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(vertical: AppSizing.boardTileGap / 2),
+            child: _WordRow(
+              word: answer.word.toUpperCase(),
+              found: found.contains(answer.word.toUpperCase()),
+              revealed: revealed[answer.word.toUpperCase()] ?? 0,
             ),
-        ],
+          ),
+      ],
+    );
+    if (!center) return SingleChildScrollView(child: column);
+    // Center within the region, but keep a scroll fallback for tall puzzles by
+    // floor-ing the content to the viewport height.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight:
+                constraints.maxHeight.isFinite ? constraints.maxHeight : 0,
+          ),
+          child: column,
+        ),
       ),
     );
   }
@@ -109,11 +131,7 @@ class _Tile extends StatelessWidget {
       child: filled
           ? Text(
               letter,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppColors.padLabel,
-              ),
+              style: AppTypography.tileLetter.copyWith(color: AppColors.padLabel),
             )
           : const SizedBox.shrink(),
     );

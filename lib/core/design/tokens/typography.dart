@@ -50,6 +50,19 @@ abstract final class AppTypography {
     height: 1.1,
   );
 
+  // Game surfaces. Deliberately family-agnostic (they inherit the ambient
+  // sans family, not the serif wordmark face) and carry no color; callers add
+  // one. Centralizing the sizes keeps the board, wheel, and banner in step.
+
+  /// A letter on a board or wheel tile.
+  static const tileLetter = TextStyle(fontSize: 22, fontWeight: FontWeight.w800);
+
+  /// The combo banner's praise line ("Great!").
+  static const banner = TextStyle(fontSize: 20, fontWeight: FontWeight.w800);
+
+  /// The combo banner's streak subtitle ("Combo Streak x3").
+  static const bannerSub = TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
+
   static final TextTheme _light = _build(Brightness.light);
   static final TextTheme _dark = _build(Brightness.dark);
 

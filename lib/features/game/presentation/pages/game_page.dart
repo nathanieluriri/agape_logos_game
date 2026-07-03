@@ -97,7 +97,12 @@ class _GamePageState extends ConsumerState<GamePage> {
                       onRetry: () =>
                           ref.read(puzzleControllerProvider).refresh(),
                     )
-                  : const Center(child: PondLoader(label: 'Loading puzzle')))
+                  : const Center(
+                      child: PondLoader(
+                        theme: PondLoaderTheme.puzzle,
+                        label: 'Loading puzzle',
+                      ),
+                    ))
               : Stack(
                   children: [
                     Column(
@@ -119,6 +124,7 @@ class _GamePageState extends ConsumerState<GamePage> {
                             targets: session.targets,
                             found: session.found,
                             revealed: session.revealed,
+                            center: true,
                           ),
                         ),
                         // Confetti bursts from behind the capsule on each new
