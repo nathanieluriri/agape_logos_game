@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/design/theme/app_theme.dart';
+import '../shared/widgets/tap_ripple_overlay.dart';
 import 'router/app_router.dart';
 
 class AgapeApp extends ConsumerWidget {
@@ -15,6 +16,10 @@ class AgapeApp extends ConsumerWidget {
       darkTheme: AppTheme.dark,
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
+      // App-wide water-tap ripple over every screen (and dialogs), without
+      // absorbing any gestures.
+      builder: (context, child) =>
+          TapRippleOverlay(child: child ?? const SizedBox.shrink()),
     );
   }
 }

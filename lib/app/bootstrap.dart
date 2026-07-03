@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/audio/audio_providers.dart';
 import '../core/audio/audio_service.dart';
+import '../core/haptics/haptic_providers.dart';
+import '../core/haptics/haptic_service.dart';
+import '../core/haptics/haptics.dart';
 import '../core/logging/app_logger.dart';
 import '../core/network/network_providers.dart';
 import '../core/offline/http_mutation_sender.dart';
@@ -16,6 +19,8 @@ import '../core/offline/sync_scheduler_factory.dart';
 import '../core/storage/app_database.dart';
 import '../core/storage/storage_providers.dart';
 import '../features/auth/application/auth_providers.dart';
+import '../features/auth/domain/auth_user.dart';
+import '../features/profile/application/profile_providers.dart';
 import '../firebase_options.dart';
 import 'app.dart';
 import 'background_entrypoint.dart';
@@ -47,12 +52,20 @@ Future<void> bootstrap() async {
   // from the first frame. Best-effort: a read failure (e.g. web before the
   // Drift WASM runtime is added) leaves audio unmuted rather than crashing.
   final FlameAudioService audio = FlameAudioService();
+  final FlutterHapticService haptics = FlutterHapticService();
   try {
     final settings = await db.gameSettingsDao.watch().first;
     audio.setMuted(!settings.soundEffects);
+    haptics.setMuted(!settings.haptics);
   } catch (e, s) {
     logger.warning('Could not restore sound setting', e, s);
   }
+  // Share the (mute-restored) instance with the ambient holder the provider-free
+  // pond buttons call, then probe haptic capabilities up front so the first
+  // button tap does not pay for the platform-channel round trip. Best-effort:
+  // never blocks bootstrap.
+  Haptics.instance = haptics;
+  unawaited(haptics.init());
 
   runZonedGuarded(
     () {
@@ -61,6 +74,7 @@ Future<void> bootstrap() async {
           overrides: [
             appDatabaseProvider.overrideWithValue(db),
             audioServiceProvider.overrideWithValue(audio),
+            hapticServiceProvider.overrideWithValue(haptics),
             // Attach the current user's ID token to outgoing sync requests
             // without core/network importing the auth feature.
             authTokenProvider.overrideWith(
@@ -117,5 +131,27 @@ class _BootstrapGateState extends ConsumerState<_BootstrapGate> {
   }
 
   @override
-  Widget build(BuildContext context) => const AgapeApp();
+  Widget build(BuildContext context) {
+    // Provision and cache the server profile whenever the signed-in account
+    // changes. Fires for every sign-in method (Google, email, guest) and on a
+    // restored session; the first GET /me creates the server document. On
+    // sign-out (uid -> null) the cached profile is dropped.
+    ref.listen<AsyncValue<AuthUser?>>(authStateProvider, (prev, next) {
+      final String? uid = next.asData?.value?.uid;
+      final String? prevUid = prev?.asData?.value?.uid;
+      if (uid == null) {
+        if (prevUid != null) {
+          unawaited(ref.read(profileControllerProvider.notifier).clear());
+        }
+      } else if (uid != prevUid) {
+        unawaited(
+          ref.read(profileControllerProvider.notifier).load(
+                uid,
+                firebaseDisplayName: next.asData?.value?.displayName,
+              ),
+        );
+      }
+    });
+    return const AgapeApp();
+  }
 }

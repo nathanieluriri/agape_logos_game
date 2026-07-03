@@ -1,9 +1,30 @@
-<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 100 112" xmlns="http://www.w3.org/2000/svg">
+  <!-- Currency petal, traced from the reference art: a leaf-shaped petal with
+       its tip up and belly sweeping down-right to a curled point, outlined in
+       deep crimson with a bright rim highlight along the left edge and a soft
+       shading wave near the bottom. A slim back petal echoes the curve from
+       behind on the left. Placed as-is by CoinPill (no rotation). -->
   <defs>
     <linearGradient id="petalG" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#F8678D"/>
-      <stop offset="1" stop-color="#D81E5B"/>
+      <stop offset="0" stop-color="#F9718D"/>
+      <stop offset="0.5" stop-color="#F04066"/>
+      <stop offset="1" stop-color="#E52A55"/>
+    </linearGradient>
+    <linearGradient id="petalBackG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E22558"/>
+      <stop offset="1" stop-color="#A81243"/>
     </linearGradient>
   </defs>
-  <path d="M 50,92 C 16,86 4,44 24,14 C 46,4 84,38 50,92 Z" fill="url(#petalG)"/>
+
+  <path d="M8,18 C1,42 3,72 18,94 C22,99 27,101 32,100 C22,88 12,58 10,36 C9,28 8,22 8,18 Z"
+        fill="url(#petalBackG)" stroke="#7C0F33" stroke-width="1.4"/>
+  <path d="M8,18 C3,40 5,66 15,86 C11,68 8,44 9,28 Z"
+        fill="#FBAABE" fill-opacity="0.45"/>
+
+  <path d="M22,6 C52,12 88,42 95,78 C97,92 94,104 87,107 C72,112 52,104 43,90 C34,74 27,42 22,6 Z"
+        fill="url(#petalG)" stroke="#7C0F33" stroke-width="1.6"/>
+  <path d="M22,6 C18,34 28,70 43,90 C46,94 50,96 53,97 C44,82 34,54 30,34 C27,20 24,11 22,6 Z"
+        fill="#FFD3DE" fill-opacity="0.85"/>
+  <path d="M60,86 C72,84 82,74 88,64 C86,80 78,94 68,99 C64,94 61,90 60,86 Z"
+        fill="#D82750" fill-opacity="0.55"/>
 </svg>
