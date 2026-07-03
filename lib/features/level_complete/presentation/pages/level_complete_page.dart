@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../app/play_flow.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../features/player/application/player_controller.dart';
 import '../../../../features/profile/application/profile_providers.dart';
@@ -50,7 +49,9 @@ class LevelCompletePage extends ConsumerWidget {
               const Spacer(),
               PlayPadCluster(
                 nextLabel: nextLabel,
-                onPlay: () => startPlayFlow(context, ref),
+                // Replace (not push) so Android back from the next level goes
+                // straight Home, and the finished level cannot be replayed.
+                onPlay: () => context.pushReplacement('/game'),
                 secondaryIcon: const FilmPlayIcon(size: 30),
                 secondaryLabel: 'Bonus Gift',
                 onSecondary: () => showComingSoon(context, 'Bonus Gift'),

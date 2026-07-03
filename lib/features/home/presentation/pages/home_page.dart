@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,6 +10,8 @@ import '../../../../features/profile/application/profile_providers.dart';
 import '../../../../shared/widgets/coming_soon_sheet.dart';
 import '../../../../shared/widgets/play_pad_cluster.dart';
 import '../../../../shared/widgets/pond_background.dart';
+import '../../../../shared/widgets/pond_dialog.dart';
+import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_stage.dart';
 import '../../../../shared/widgets/pond_top_bar.dart';
 import '../../../../shared/widgets/wordmark_logo.dart';
@@ -23,7 +26,16 @@ class HomePage extends ConsumerWidget {
     final coins = ref.watch(coinsProvider);
     final nextLabel = 'Lv.${ref.watch(nextLevelProvider)}';
 
-    return Scaffold(
+    return PopScope(
+      // Home is the root: intercept the Android back gesture and confirm before
+      // letting it close the app, rather than dropping the player out silently.
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldLeave = await _confirmLeave(context);
+        if (shouldLeave) await SystemNavigator.pop();
+      },
+      child: Scaffold(
       body: PondBackground(
         child: PondStage(
           child: Column(
@@ -52,6 +64,31 @@ class HomePage extends ConsumerWidget {
           ),
         ),
       ),
+      ),
     );
+  }
+
+  /// Pond-styled confirm before leaving the app from Home. Returns true when
+  /// the player taps Leave.
+  Future<bool> _confirmLeave(BuildContext context) async {
+    final result = await showPondDialog<bool>(
+      context: context,
+      title: 'Leave the game?',
+      body: 'Are you sure you want to leave?',
+      actions: [
+        PondPillButton(
+          label: 'Stay',
+          variant: PondPillVariant.quiet,
+          onPressed: () =>
+              Navigator.of(context, rootNavigator: true).pop(false),
+        ),
+        PondPillButton(
+          label: 'Leave',
+          onPressed: () =>
+              Navigator.of(context, rootNavigator: true).pop(true),
+        ),
+      ],
+    );
+    return result ?? false;
   }
 }

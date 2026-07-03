@@ -55,10 +55,11 @@ class _GamePageState extends ConsumerState<GamePage> {
     _navigating = true;
     await ref.read(gameSessionProvider.notifier).commitWin();
     if (!mounted) return;
-    await context.push('/level-complete');
-    if (!mounted) return;
-    _navigating = false;
-    _loadFromCurrent();
+    // Replace this route rather than stacking level-complete on top of it, so
+    // the gameplay stack never grows past a single screen above Home. A fresh
+    // GamePage (opened from level-complete's Play) loads the next puzzle in its
+    // own initState, so there is nothing to reload here.
+    context.pushReplacement('/level-complete');
   }
 
   @override

@@ -12,7 +12,7 @@ abstract final class AppSizing {
   static const double secondaryPad = 104;
   static const double settingsButton = 48;
   static const double lotusWidth = 168;
-  static const double coinPetal = 56;
+  static const double coinPetal = 152;
 
   static const double progressTrackWidth = 300;
   static const double progressTrackHeight = 22;

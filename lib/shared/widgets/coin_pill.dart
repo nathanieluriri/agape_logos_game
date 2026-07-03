@@ -36,7 +36,7 @@ class CoinPill extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xl + AppSpacing.sm,
+            AppSpacing.xxl + AppSpacing.md,
             AppSpacing.sm,
             AppSpacing.xl + AppSpacing.md,
             AppSpacing.sm,
@@ -62,8 +62,8 @@ class CoinPill extends StatelessWidget {
           ),
         ),
         Positioned(
-          left: -18,
-          top: -16,
+          left: -62,
+          top: -34,
           // The petal is the provided artwork, placed as-is.
           child: Image.asset(
             'assets/branding/coin_petal.png',
