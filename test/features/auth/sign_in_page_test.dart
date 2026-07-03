@@ -2,6 +2,8 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/auth/presentation/pages/sign_in_page.dart';
+import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
+import 'package:agape_logos_game/shared/widgets/pond_pill_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,12 +37,13 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
+          ambientEnabledProvider.overrideWithValue(false),
         ],
         child: const MaterialApp(home: SignInPage()),
       ),
     );
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    await tester.tap(find.widgetWithText(PondPillButton, 'Sign in'));
     await tester.pump();
 
     expect(find.text('Enter your email'), findsOneWidget);

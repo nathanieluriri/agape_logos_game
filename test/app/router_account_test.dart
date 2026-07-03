@@ -2,6 +2,7 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/auth/presentation/pages/account_page.dart';
+import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,6 +45,9 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
+          // Keep the Flame ambient loop out of the test so pumpAndSettle
+          // terminates.
+          ambientEnabledProvider.overrideWithValue(false),
         ],
         child: MaterialApp.router(routerConfig: router),
       ),
