@@ -135,7 +135,8 @@ minimize duplicates.
   (seam: `PuzzleSeedSource`). Starter results (`kStarterPuzzlePrefix` ids) complete
   locally and **skip the sync queue**. If truly nothing is playable, the game page shows
   `EmptyPondNotice` (retry), never an endless spinner.
-- **Still stubbed:** Dictionary, Store, Withdraw, Bonus Gift (coming-soon sheets).
+- **Still stubbed:** Store, Withdraw, Bonus Gift (coming-soon sheets). Dictionary now
+  opens the session dictionary sheet (found words show definitions, unfound stay masked).
   `level_results` remains the original optimistic-path sample.
 - **Auth caveat:** guest sign-in needs network the first time, so a never-online fresh
   install cannot reach gameplay yet (product decision pending).
