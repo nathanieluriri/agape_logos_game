@@ -3,6 +3,8 @@ import express from "express";
 import {levelResultsRouter} from "./routes/level_results";
 import {puzzlesRouter} from "./routes/puzzles";
 import {profileRouter} from "./routes/profile";
+import {storeRouter} from "./routes/store";
+import {rewardsRouter} from "./routes/rewards";
 import {errorHandler, notFound} from "./middleware/error";
 import {buildOpenApiDocument} from "./openapi/document";
 import {docsHtml} from "./openapi/docs_page";
@@ -16,6 +18,8 @@ export function createApp(): express.Express {
   app.use(profileRouter);
   app.use(levelResultsRouter);
   app.use(puzzlesRouter);
+  app.use(storeRouter);
+  app.use(rewardsRouter);
   app.get("/openapi.json", (_req, res) => {
     res.json(buildOpenApiDocument());
   });
