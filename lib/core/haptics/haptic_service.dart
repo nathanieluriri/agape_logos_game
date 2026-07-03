@@ -31,6 +31,15 @@ abstract interface class HapticService {
   /// shuffle, hint). Deliberately punchier than [heavyImpact].
   Future<void> gameImpact();
 
+  /// Celebratory rising double-pulse for a combo streak (combo >= 2). Feels
+  /// clearly different from a single scoring word so the player registers the
+  /// streak building.
+  Future<void> streakImpact();
+
+  /// Distinct error buzz for a broken streak / invalid word: two short sharp
+  /// pulses so a mistake never feels like success.
+  Future<void> mistakeImpact();
+
   /// Selection tick (e.g. dragging across letters on the wheel).
   Future<void> selectionClick();
 
@@ -82,21 +91,67 @@ class FlutterHapticService implements HapticService {
     }
   }
 
+  /// Multi-pulse driver for expressive feedback (streak, mistake). [pattern] is
+  /// the plugin's `[wait, buzz, wait, buzz, ...]` millisecond list; [amplitudes]
+  /// aligns with it (0 for the waits) and is used only where the hardware
+  /// supports amplitude control. Devices without a vibrator replay [fallback]
+  /// once per buzz so the feedback still reads as multiple beats.
+  Future<void> _playPattern(
+    List<int> pattern,
+    List<int> amplitudes,
+    Future<void> Function() fallback,
+    int fallbackBeats,
+  ) async {
+    if (_muted) return;
+    await _ensureProbed();
+    if (_hasVibrator) {
+      await Vibration.vibrate(
+        pattern: pattern,
+        intensities: _hasAmplitude ? amplitudes : const <int>[],
+      );
+    } else {
+      for (var i = 0; i < fallbackBeats; i++) {
+        await fallback();
+        await Future<void>.delayed(const Duration(milliseconds: 70));
+      }
+    }
+  }
+
+  // Amplitudes/durations are tuned punchier than a stock impact: on cheap
+  // phones the buzz has to be long and strong enough to actually be felt.
   @override
   Future<void> selectionClick() =>
-      _play(10, 45, HapticFeedback.selectionClick);
+      _play(18, 90, HapticFeedback.selectionClick);
 
   @override
-  Future<void> lightImpact() => _play(15, 70, HapticFeedback.lightImpact);
+  Future<void> lightImpact() => _play(25, 120, HapticFeedback.lightImpact);
 
   @override
-  Future<void> mediumImpact() => _play(28, 140, HapticFeedback.mediumImpact);
+  Future<void> mediumImpact() => _play(40, 180, HapticFeedback.mediumImpact);
 
   @override
-  Future<void> heavyImpact() => _play(45, 210, HapticFeedback.heavyImpact);
+  Future<void> heavyImpact() => _play(70, 235, HapticFeedback.heavyImpact);
 
   @override
-  Future<void> gameImpact() => _play(60, 255, HapticFeedback.heavyImpact);
+  Future<void> gameImpact() => _play(95, 255, HapticFeedback.heavyImpact);
+
+  @override
+  Future<void> streakImpact() => _playPattern(
+        // Rising: short beat, gap, longer stronger beat.
+        const [0, 35, 60, 90],
+        const [0, 170, 0, 255],
+        HapticFeedback.heavyImpact,
+        2,
+      );
+
+  @override
+  Future<void> mistakeImpact() => _playPattern(
+        // Two equal sharp buzzes: unmistakably "wrong".
+        const [0, 45, 70, 45],
+        const [0, 230, 0, 230],
+        HapticFeedback.heavyImpact,
+        2,
+      );
 
   @override
   void setMuted(bool muted) => _muted = muted;

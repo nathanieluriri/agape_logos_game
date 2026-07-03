@@ -135,7 +135,18 @@ minimize duplicates.
   (seam: `PuzzleSeedSource`). Starter results (`kStarterPuzzlePrefix` ids) complete
   locally and **skip the sync queue**. If truly nothing is playable, the game page shows
   `EmptyPondNotice` (retry), never an endless spinner.
-- **Still stubbed:** Store, Withdraw, Bonus Gift (coming-soon sheets). Dictionary now
+- **Store + daily rewards are live:** the wallet "+" opens `/store` (feature at
+  `features/store/`), which reads the backend catalog (`GET /store`) and inventory
+  (`GET /me/inventory`) and spends coins via `POST /store/purchase`. Because the wallet
+  is server-owned, a purchase is an online, server-authoritative write (carrying an
+  idempotency-key header), not an optimistic-queue write; the returned balance is written
+  through to the cached profile so the coin pill updates at once. The Home screen shows a
+  `RewardTimerPad` (`features/rewards/`) reading `GET /rewards`: a live 72h countdown that
+  becomes a Claim button (`POST /rewards/claim-coins`, 400 coins), plus the weekly powerup
+  claim when ready. Rewards unlock at level 5 (server `REWARD_MIN_LEVEL`). Both features
+  use plain models (no Drift tables, no generated code), so build_runner is not required
+  for them.
+- **Still stubbed:** Withdraw, Bonus Gift (coming-soon sheets). Dictionary now
   opens the session dictionary sheet (found words show definitions, unfound stay masked).
   `level_results` remains the original optimistic-path sample.
 - **Auth caveat:** guest sign-in needs network the first time, so a never-online fresh

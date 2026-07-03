@@ -18,21 +18,80 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="A calm lotus-pond word game.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="agape_logos_game">
+  <meta name="apple-mobile-web-app-title" content="Agape Logos">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>agape_logos_game</title>
+  <title>Agape Logos</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Cream loading splash, shown until Flutter paints its first frame so the
+       page never flashes white. It mirrors the in-app splash backdrop. */
+    html, body { margin: 0; padding: 0; background-color: #F7F4EC; }
+    #boot-splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #F7F4EC;
+      transition: opacity 320ms ease;
+      z-index: 2;
+    }
+    #boot-splash.hidden { opacity: 0; pointer-events: none; }
+    .mark {
+      display: grid;
+      grid-template-columns: repeat(2, 30px);
+      grid-template-rows: repeat(2, 30px);
+      gap: 5px;
+      position: relative;
+      animation: mark-pulse 1600ms ease-in-out infinite;
+    }
+    .mark span {
+      background: radial-gradient(circle at 34% 30%, #F9B4CC, #E87BA6);
+      border: 3px solid #FCF6EA;
+      border-radius: 9px;
+    }
+    .mark .bud {
+      position: absolute;
+      top: -8px;
+      left: -8px;
+      width: 22px;
+      height: 22px;
+      background: radial-gradient(circle at 34% 30%, #EE6E97, #C01F5F);
+      border: 3px solid #FCF6EA;
+      border-radius: 7px;
+    }
+    @keyframes mark-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+  </style>
 </head>
 <body>
+  <div id="boot-splash" aria-hidden="true">
+    <div class="mark">
+      <span></span><span></span><span></span><span></span>
+      <div class="bud"></div>
+    </div>
+  </div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var splash = document.getElementById('boot-splash');
+      if (splash) {
+        splash.classList.add('hidden');
+        setTimeout(function () { splash.remove(); }, 360);
+      }
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

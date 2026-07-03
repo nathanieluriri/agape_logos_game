@@ -122,4 +122,19 @@ abstract final class AppColors {
   static const Color tutorialTrace = Color(0xD9FDFAF0);
   static const Color tutorialPillTop = Color(0xFFFFFFFF);
   static const Color tutorialPillBottom = Color(0xFFE9F0F7);
+
+  // Brand mark (app icon + animated splash). A 2x2 grid of ivory-framed pink
+  // lotus tiles with a crimson lotus-bud keystone in the top-left, and the
+  // soft mint orb glow that blooms behind the assembled mark on the cream
+  // splash. Sampled from the reference icon art.
+  static const Color markCream = Color(0xFFFCF6EA);
+  static const Color markPinkLight = Color(0xFFF9B4CC);
+  static const Color markPinkMid = Color(0xFFF191B4);
+  static const Color markPinkDeep = Color(0xFFE87BA6);
+  static const Color markPinkEdge = Color(0xFFDD6E9C);
+  static const Color markPetal = Color(0xFFFBD0E0);
+  static const Color markCrimson = Color(0xFFC01F5F);
+  static const Color markCrimsonDeep = Color(0xFFA5194F);
+  static const Color markCrimsonPetal = Color(0xFFEE6E97);
+  static const Color markGlow = Color(0x66AFE6DC);
 }

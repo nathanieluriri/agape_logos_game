@@ -50,13 +50,21 @@ class GameController extends Notifier<GameSession?> {
         score: s.score + word.length * combo,
         selection: const [],
       );
-      // Strongest in-game feedback: a correct, scoring word.
-      ref.read(hapticServiceProvider).heavyImpact();
+      // A building streak (combo >= 2) earns the celebratory rising pulse; a
+      // first correct word gets the solid single "landed" thump.
+      final haptics = ref.read(hapticServiceProvider);
+      if (combo >= 2) {
+        haptics.streakImpact();
+      } else {
+        haptics.heavyImpact();
+      }
     } else if (isAnswer) {
-      state = s.copyWith(selection: const []); // duplicate
+      state = s.copyWith(selection: const []); // duplicate: streak untouched
     } else {
-      state = s.copyWith(selection: const [], combo: 0); // invalid
-      ref.read(hapticServiceProvider).lightImpact(); // soft "not a word"
+      // Invalid word: the streak is broken. Reset the combo and fire the
+      // distinct error buzz so the lost streak is felt, not silent.
+      state = s.copyWith(selection: const [], combo: 0);
+      ref.read(hapticServiceProvider).mistakeImpact();
     }
   }
 

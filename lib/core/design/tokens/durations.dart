@@ -10,6 +10,12 @@ abstract final class AppDurations {
   static const Duration normal = Duration(milliseconds: 280);
   static const Duration slow = Duration(milliseconds: 450);
 
+  /// How long a letter glides to its new slot when the wheel is shuffled.
+  static const Duration shuffle = Duration(milliseconds: 340);
+
+  /// Lifetime of a single streak confetti burst (launch + fall + fade).
+  static const Duration confetti = Duration(milliseconds: 900);
+
   /// Lifetime of a single water-tap ripple (expand + fade).
   static const Duration ripple = Duration(milliseconds: 720);
 
@@ -18,4 +24,14 @@ abstract final class AppDurations {
 
   /// How long the tutorial's celebration pill lingers before dismissing.
   static const Duration tutorialCelebrate = Duration(milliseconds: 1600);
+
+  /// Cold-start splash: the five blocks tumble in and bounce into place, the
+  /// mark glows, and the wordmark settles before the pond is revealed.
+  static const Duration splashRun = Duration(milliseconds: 1900);
+
+  /// Reduced-motion splash: hold the finished mark briefly, then reveal.
+  static const Duration splashReduced = Duration(milliseconds: 650);
+
+  /// How long the splash overlay takes to fade away, revealing the app.
+  static const Duration splashFade = Duration(milliseconds: 380);
 }

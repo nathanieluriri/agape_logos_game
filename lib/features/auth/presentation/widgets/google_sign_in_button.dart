@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../shared/widgets/pond_pill_button.dart';
 
@@ -15,7 +16,10 @@ class GoogleSignInButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return PondPillButton(
       label: 'Continue with Google',
-      icon: Icons.login,
+      leading: SvgPicture.asset(
+        'assets/branding/google_g.svg',
+        semanticsLabel: 'Google',
+      ),
       variant: PondPillVariant.quiet,
       enabled: onPressed != null,
       onPressed: onPressed ?? _noop,

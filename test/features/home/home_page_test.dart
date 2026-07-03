@@ -3,6 +3,8 @@ import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/home/presentation/pages/home_page.dart';
 import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
+import 'package:agape_logos_game/features/rewards/application/rewards_providers.dart';
+import 'package:agape_logos_game/features/rewards/domain/reward_status.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,6 +37,13 @@ class _FakeAuthRepository implements AuthRepository {
   Future<String?> idToken() async => null;
 }
 
+/// Keeps the home reward pad from reaching the network in these tests: the pad
+/// reads `GET /rewards`, so we stub the controller to a null (hidden) status.
+class _StubRewards extends RewardStatusController {
+  @override
+  Future<RewardStatus?> build() async => null;
+}
+
 GoRouter _buildRouter() => GoRouter(
       routes: [
         GoRoute(path: '/', builder: (_, __) => const HomePage()),
@@ -53,6 +62,7 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
           ambientEnabledProvider.overrideWithValue(false),
+          rewardStatusControllerProvider.overrideWith(_StubRewards.new),
           currentUserProvider.overrideWithValue(user),
           // Backend-derived values stubbed so the widget test stays DB-free.
           coinsProvider.overrideWithValue(0),
@@ -76,6 +86,7 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
           ambientEnabledProvider.overrideWithValue(false),
+          rewardStatusControllerProvider.overrideWith(_StubRewards.new),
           currentUserProvider.overrideWithValue(user),
           // Backend-derived values stubbed so the widget test stays DB-free.
           coinsProvider.overrideWithValue(0),
@@ -100,6 +111,7 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(null)),
           ambientEnabledProvider.overrideWithValue(false),
+          rewardStatusControllerProvider.overrideWith(_StubRewards.new),
           coinsProvider.overrideWithValue(0),
           nextLevelProvider.overrideWithValue(26),
         ],
@@ -122,6 +134,7 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
           ambientEnabledProvider.overrideWithValue(false),
+          rewardStatusControllerProvider.overrideWith(_StubRewards.new),
           currentUserProvider.overrideWithValue(user),
           // Backend-derived values stubbed so the widget test stays DB-free.
           coinsProvider.overrideWithValue(0),

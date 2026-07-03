@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/design/motion/curves.dart';
 import '../../../../core/design/tokens/colors.dart';
+import '../../../../core/design/tokens/durations.dart';
 import '../../../../core/design/tokens/gradients.dart';
 import '../../../../core/design/tokens/shadows.dart';
 import '../../../../core/design/tokens/sizing.dart';
@@ -18,12 +20,20 @@ class LetterWheel extends StatefulWidget {
     required this.selected,
     required this.onTouch,
     required this.onEnd,
+    this.ids,
   });
 
   final List<String> letters;
   final List<int> selected;
   final void Function(int slot) onTouch;
   final VoidCallback onEnd;
+
+  /// Stable identity per slot (the session's rackOrder). Two builds that share
+  /// an id for the same underlying letter let each letter animate from its old
+  /// slot to its new one on a shuffle, instead of snapping. Defaults to slot
+  /// index (identity permutation), so callers that don't shuffle get the old
+  /// static layout.
+  final List<int>? ids;
 
   /// Node centers for a wheel rendered at [size], first letter at 12 o'clock.
   ///
@@ -86,6 +96,19 @@ class _LetterWheelState extends State<LetterWheel> {
     // Hoisted once per build: the getter allocates a fresh list, and the node
     // loop below reads it repeatedly (jank rule: no per-frame allocations).
     final centers = _centers;
+    final count = widget.letters.length;
+    // slotOfId[id] = the slot this identity currently occupies. Iterating by
+    // id (stable order + stable key) means only the target position changes on
+    // a shuffle, which is exactly what drives the AnimatedPositioned glide.
+    final ids = widget.ids;
+    final slotOfId = List<int>.generate(count, (i) => i);
+    if (ids != null && ids.length == count) {
+      for (var slot = 0; slot < count; slot++) {
+        slotOfId[ids[slot]] = slot;
+      }
+    }
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final moveDuration = reduceMotion ? Duration.zero : AppDurations.shuffle;
     return SizedBox(
       width: AppSizing.wheelDiameter,
       height: AppSizing.wheelDiameter,
@@ -118,15 +141,18 @@ class _LetterWheelState extends State<LetterWheel> {
                   ),
                 ),
               ),
-              for (var i = 0; i < widget.letters.length; i++)
-                Positioned(
-                  left: centers[i].dx - _node / 2,
-                  top: centers[i].dy - _node / 2,
+              for (var id = 0; id < count; id++)
+                AnimatedPositioned(
+                  key: ValueKey<int>(id),
+                  duration: moveDuration,
+                  curve: AppCurves.emphasized,
+                  left: centers[slotOfId[id]].dx - _node / 2,
+                  top: centers[slotOfId[id]].dy - _node / 2,
                   width: _node,
                   height: _node,
                   child: _Node(
-                    letter: widget.letters[i],
-                    selected: widget.selected.contains(i),
+                    letter: widget.letters[slotOfId[id]],
+                    selected: widget.selected.contains(slotOfId[id]),
                   ),
                 ),
             ],

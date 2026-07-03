@@ -124,4 +124,35 @@ abstract final class AppGradients {
     end: Alignment.bottomCenter,
     colors: [AppColors.tutorialPillTop, AppColors.tutorialPillBottom],
   );
+
+  /// Pink lotus-tile sheen for the brand mark (top-left light source, the same
+  /// language as the lily pads).
+  static const markPane = RadialGradient(
+    center: Alignment(-0.24, -0.36),
+    radius: 0.98,
+    colors: [
+      AppColors.markPinkLight,
+      AppColors.markPinkMid,
+      AppColors.markPinkDeep,
+    ],
+    stops: [0.0, 0.55, 1.0],
+  );
+
+  /// Crimson lotus-bud keystone sheen.
+  static const markBud = RadialGradient(
+    center: Alignment(-0.2, -0.3),
+    radius: 0.95,
+    colors: [
+      AppColors.markCrimsonPetal,
+      AppColors.markCrimson,
+      AppColors.markCrimsonDeep,
+    ],
+    stops: [0.0, 0.5, 1.0],
+  );
+
+  /// Soft mint halo that blooms behind the assembled mark on the cream splash.
+  /// Fades from a translucent mint core to fully clear.
+  static const splashGlow = RadialGradient(
+    colors: [AppColors.markGlow, Color(0x00AFE6DC)],
+  );
 }

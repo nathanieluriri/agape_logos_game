@@ -31,6 +31,10 @@ class _NoopHaptics implements HapticService {
   @override
   Future<void> gameImpact() async {}
   @override
+  Future<void> streakImpact() async {}
+  @override
+  Future<void> mistakeImpact() async {}
+  @override
   Future<void> selectionClick() async {}
   @override
   void setMuted(bool muted) {}

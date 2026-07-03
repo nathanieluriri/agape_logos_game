@@ -33,6 +33,7 @@ class PondPillButton extends StatefulWidget {
     required this.onPressed,
     this.variant = PondPillVariant.primary,
     this.icon,
+    this.leading,
     this.semanticLabel,
     this.enabled = true,
   });
@@ -46,8 +47,13 @@ class PondPillButton extends StatefulWidget {
   /// Visual weight; defaults to [PondPillVariant.primary].
   final PondPillVariant variant;
 
-  /// Optional leading glyph.
+  /// Optional leading glyph, tinted with the variant foreground color.
   final IconData? icon;
+
+  /// Optional leading widget shown before the label, sized to the icon slot.
+  /// Takes precedence over [icon] and is rendered as-is (no tinting), so it
+  /// suits multicolor brand marks like the Google logo.
+  final Widget? leading;
 
   /// Accessibility label; falls back to [label].
   final String? semanticLabel;
@@ -113,7 +119,14 @@ class _PondPillButtonState extends State<PondPillButton> {
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (widget.icon != null) ...[
+                  if (widget.leading != null) ...[
+                    SizedBox(
+                      width: _iconSize,
+                      height: _iconSize,
+                      child: widget.leading,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                  ] else if (widget.icon != null) ...[
                     Icon(
                       widget.icon,
                       color: style.foreground,

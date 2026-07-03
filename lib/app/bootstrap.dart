@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/audio/audio_providers.dart';
 import '../core/audio/audio_service.dart';
@@ -41,6 +42,12 @@ const bool kBackgroundFlushEnabled = true;
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   configureLogging();
+
+  // Navigation is imperative (context.push / pushReplacement everywhere). By
+  // default go_router does NOT update the browser address bar for imperative
+  // calls, so on web the URL stayed on "/" no matter which screen was open.
+  // Opting in makes the address bar (and back/forward history) track the route.
+  GoRouter.optionURLReflectsImperativeAPIs = true;
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,

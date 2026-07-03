@@ -16,6 +16,7 @@ import '../widgets/empty_pond_notice.dart';
 import '../widgets/formed_word_pill.dart';
 import '../widgets/game_top_bar.dart';
 import '../widgets/letter_wheel.dart';
+import '../widgets/streak_confetti.dart';
 import '../widgets/wheel_action_button.dart';
 import '../widgets/word_board.dart';
 
@@ -120,8 +121,19 @@ class _GamePageState extends ConsumerState<GamePage> {
                             revealed: session.revealed,
                           ),
                         ),
-                        ComboBanner(
-                            praise: session.praise, combo: session.combo),
+                        // Confetti bursts from behind the capsule on each new
+                        // streak; the Stack does not clip, so bits fly free.
+                        Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            Positioned.fill(
+                              child: StreakConfetti(combo: session.combo),
+                            ),
+                            ComboBanner(
+                                praise: session.praise, combo: session.combo),
+                          ],
+                        ),
                         FormedWordPill(word: session.formedWord),
                         const SizedBox(height: AppSpacing.md),
                         Padding(
@@ -148,6 +160,7 @@ class _GamePageState extends ConsumerState<GamePage> {
                                   key: _wheelKey,
                                   letters: session.wheelLetters,
                                   selected: session.selection,
+                                  ids: session.rackOrder,
                                   onTouch: controller.touchLetter,
                                   onEnd: controller.endSelection,
                                 ),

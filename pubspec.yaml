@@ -40,6 +40,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.1
   build_runner: ^2.15.0
   drift_dev: ^2.34.0
   freezed: ^3.2.6-dev.1
@@ -58,3 +59,26 @@ flutter:
     - family: ZenSerif
       fonts:
         - asset: assets/fonts/ZenSerif-Regular.ttf
+
+# App launcher icon generation.
+#
+# Save the icon art (the glass-orb lotus mark) to assets/branding/app_icon.png
+# as a square PNG (1024x1024 recommended), then run:
+#
+#   dart run flutter_launcher_icons
+#
+# This writes every Android mipmap density, the adaptive icon, and the web
+# icons/favicon. The adaptive background is the app's cream so, if you later
+# supply a padded transparent foreground (assets/branding/app_icon_foreground.png),
+# the masked edges match the splash. See assets/branding/README.md.
+flutter_launcher_icons:
+  image_path: "assets/branding/app_icon.png"
+  android: "ic_launcher"
+  min_sdk_android: 21
+  adaptive_icon_background: "#F7F4EC"
+  adaptive_icon_foreground: "assets/branding/app_icon.png"
+  web:
+    generate: true
+    image_path: "assets/branding/app_icon.png"
+    background_color: "#F7F4EC"
+    theme_color: "#F7F4EC"
