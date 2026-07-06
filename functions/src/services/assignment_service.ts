@@ -143,13 +143,18 @@ export async function draw(
 
 export async function getAssigned(
   uid: string,
-  status: "incomplete" | "all",
+  status: "incomplete" | "completed" | "all",
 ): Promise<{puzzles: (WirePuzzle & {completed: boolean})[]}> {
   const key = deriveAnswerKey(uid);
   const col = db.collection("users").doc(uid).collection("assignments");
-  const snap = status === "incomplete"
-    ? await col.where("completed", "==", false).get()
-    : await col.get();
+  let snap;
+  if (status === "incomplete") {
+    snap = await col.where("completed", "==", false).get();
+  } else if (status === "completed") {
+    snap = await col.where("completed", "==", true).get();
+  } else {
+    snap = await col.get();
+  }
   const completedById = new Map(
     snap.docs.map((d) => [d.id, (d.data().completed as boolean) ?? false]),
   );

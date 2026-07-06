@@ -27,7 +27,7 @@ export const DrawHeadersSchema = z.object({
 });
 
 export const AssignedQuerySchema = z.object({
-  status: z.enum(["incomplete", "all"]).default("incomplete"),
+  status: z.enum(["incomplete", "completed", "all"]).default("incomplete"),
 });
 
 export const PuzzleResultParamsSchema = z.object({

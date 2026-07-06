@@ -229,7 +229,7 @@ registry.registerPath({
   path: "/puzzles/assigned",
   summary: "Recover the caller's assigned puzzles by reference",
   security: bearer,
-  request: {query: z.object({status: z.enum(["incomplete", "all"]).optional()})},
+  request: {query: z.object({status: z.enum(["incomplete", "completed", "all"]).optional()})},
   responses: {
     200: {description: "Assigned puzzles"},
     400: {description: "Validation failed"},

@@ -103,4 +103,23 @@ describe("POST /puzzles/draw", () => {
     const assigned = await admin.firestore().collection("users").doc(uid).collection("assignments").get();
     expect(assigned.size).toBe(2);
   });
+
+  test("GET /puzzles/assigned?status=completed returns only completed puzzles", async () => {
+    const {idToken} = await mintUser();
+    // Draw two, complete one.
+    const draw = await request(app).post("/puzzles/draw")
+      .set("Authorization", `Bearer ${idToken}`).set("idempotency-key", "cd1").send({easy: 2});
+    const ids = draw.body.byTier.easy.puzzles.map((p: {letterKey: string}) => p.letterKey);
+    await request(app).post(`/puzzles/${ids[0]}/result`)
+      .set("Authorization", `Bearer ${idToken}`).set("idempotency-key", "cr1")
+      .send({score: 5, completedAt: 1});
+
+    const done = await request(app).get("/puzzles/assigned?status=completed")
+      .set("Authorization", `Bearer ${idToken}`);
+    expect(done.status).toBe(200);
+    const doneIds = done.body.puzzles.map((p: {letterKey: string}) => p.letterKey);
+    expect(doneIds).toContain(ids[0]);
+    expect(doneIds).not.toContain(ids[1]);
+    expect(done.body.puzzles.every((p: {completed: boolean}) => p.completed)).toBe(true);
+  });
 });

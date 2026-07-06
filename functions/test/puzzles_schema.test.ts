@@ -33,6 +33,7 @@ describe("AssignedQuerySchema", () => {
     expect(AssignedQuerySchema.parse({}).status).toBe("incomplete");
     expect(AssignedQuerySchema.parse({status: "all"}).status).toBe("all");
     expect(AssignedQuerySchema.safeParse({status: "weird"}).success).toBe(false);
+    expect(AssignedQuerySchema.parse({status: "completed"}).status).toBe("completed");
   });
 });
 
