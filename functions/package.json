@@ -14,6 +14,7 @@
     "extend": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/extend.js\"",
     "clean:defs": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/clean_definitions.js\"",
     "purge:pool": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/purge_pool.js\"",
+    "purge:userstate": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/purge_user_puzzle_state.js\"",
     "stats": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/stats.js\"",
     "export:starter": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/export_starter_pack.js\""
   },
