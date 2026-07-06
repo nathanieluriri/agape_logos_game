@@ -1,6 +1,5 @@
 import {
   Tier,
-  TIERS,
   MAX_FREQUENCY_CUTOFF,
   BLOCKLIST_FILE,
   DEFINITION_CONCURRENCY,
@@ -14,7 +13,7 @@ import {WordData, loadWordDataFromFiles} from "../generation/word_data";
 import {loadBlocklist} from "../generation/profanity";
 import {AnagramIndex, buildAnagramIndex} from "../generation/anagram_index";
 import {generateTierBatch, RawPuzzle} from "../generation/generator";
-import {attachDefinitions, withDefinedAnswersOnly, Puzzle} from "../generation/puzzle";
+import {attachDefinitions, requireAllDefined, Puzzle} from "../generation/puzzle";
 import {
   FetchFn,
   DefinitionCache,
@@ -85,12 +84,9 @@ export async function runGeneration(
 
   const puzzles: Puzzle[] = [];
   for (const p of raw) {
-    // Every surfaced word must carry a definition: drop undefined answers and
-    // skip any puzzle left below its tier's answer gate.
-    const clean = withDefinedAnswersOnly(
-      attachDefinitions(p, defs, deps.genVersion),
-      TIERS[p.tier].minAnswers,
-    );
+    // Every answer must carry a definition; drop the whole puzzle otherwise so
+    // no common word is left spellable-but-unlisted.
+    const clean = requireAllDefined(attachDefinitions(p, defs, deps.genVersion));
     if (clean) puzzles.push(clean);
   }
   await writePuzzles(puzzles);

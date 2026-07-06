@@ -1,65 +1,37 @@
 import {describe, test, expect} from "@jest/globals";
-import {Puzzle, withDefinedAnswersOnly} from "../src/generation/puzzle";
+import {Puzzle, requireAllDefined} from "../src/generation/puzzle";
 
-const base: Puzzle = {
-  tier: "easy",
-  rackSize: 3,
-  letters: ["W", "N", "O"],
-  letterKey: "NOW",
-  anchor: "NOW",
-  answerCount: 4,
-  genVersion: 1,
-  answers: [
-    {word: "NO", length: 2, definition: "not any"},
-    {word: "ON", length: 2, definition: "in contact with"},
-    {word: "WON", length: 3, definition: null},
-    {word: "NOW", length: 3, definition: "at the present time"},
-  ],
-};
+function puzzle(answers: {word: string; definition: string | null}[]): Puzzle {
+  return {
+    tier: "easy", rackSize: 3, letters: ["C", "A", "T"], letterKey: "ACT",
+    anchor: "CAT", genVersion: 3, answerCount: answers.length,
+    answers: answers.map((a) => ({word: a.word, length: a.word.length, definition: a.definition})),
+  };
+}
 
-describe("withDefinedAnswersOnly", () => {
-  test("drops undefined answers and recomputes answerCount", () => {
-    const cleaned = withDefinedAnswersOnly(base, 3);
-    expect(cleaned).not.toBeNull();
-    expect(cleaned?.answers.map((a) => a.word)).toEqual(["NO", "ON", "NOW"]);
-    expect(cleaned?.answerCount).toBe(3);
-  });
-
-  test("treats blank definitions as missing", () => {
-    const p: Puzzle = {
-      ...base,
-      answers: [
-        {word: "NO", length: 2, definition: "not any"},
-        {word: "ON", length: 2, definition: "in contact with"},
-        {word: "WON", length: 3, definition: "   "},
-        {word: "NOW", length: 3, definition: "at the present time"},
-      ],
-    };
-    expect(withDefinedAnswersOnly(p, 3)?.answers.map((a) => a.word)).toEqual([
-      "NO",
-      "ON",
-      "NOW",
+describe("requireAllDefined", () => {
+  test("returns the puzzle unchanged when every answer is defined", () => {
+    const p = puzzle([
+      {word: "CAT", definition: "a feline"},
+      {word: "ACT", definition: "a deed"},
+      {word: "AT", definition: "toward"},
     ]);
+    expect(requireAllDefined(p)).toBe(p);
   });
 
-  test("returns the same puzzle when every answer is defined", () => {
-    const p: Puzzle = {
-      ...base,
-      answers: base.answers.map((a) => ({...a, definition: a.definition ?? "x"})),
-    };
-    expect(withDefinedAnswersOnly(p, 3)).toBe(p);
+  test("returns null when any answer has no definition", () => {
+    const p = puzzle([
+      {word: "CAT", definition: "a feline"},
+      {word: "ACT", definition: null},
+    ]);
+    expect(requireAllDefined(p)).toBeNull();
   });
 
-  test("returns null when too few defined answers remain", () => {
-    const p: Puzzle = {
-      ...base,
-      answers: [
-        {word: "NO", length: 2, definition: "not any"},
-        {word: "ON", length: 2, definition: null},
-        {word: "WON", length: 3, definition: null},
-        {word: "NOW", length: 3, definition: null},
-      ],
-    };
-    expect(withDefinedAnswersOnly(p, 3)).toBeNull();
+  test("returns null when any definition is blank", () => {
+    const p = puzzle([
+      {word: "CAT", definition: "a feline"},
+      {word: "ACT", definition: "   "},
+    ]);
+    expect(requireAllDefined(p)).toBeNull();
   });
 });

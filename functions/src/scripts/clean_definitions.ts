@@ -1,8 +1,8 @@
-// Enforces the rule that every surfaced word carries a definition across the
-// puzzles ALREADY in Firestore. For each puzzle it drops answers whose stored
-// definition is missing or blank and recomputes answerCount; a puzzle left below
-// its tier's answer gate is deleted outright. Uses only the definitions already
-// stored on each puzzle doc, so it needs no dictionary API access.
+// Enforces the rule that every answer carries a definition across the puzzles
+// ALREADY in Firestore. Any puzzle with even one missing or blank definition is
+// deleted outright (reject the whole rack); puzzles where every answer is
+// defined are left unchanged. Uses only the definitions already stored on each
+// puzzle doc, so it needs no dictionary API access.
 //
 // Local emulator:  npm run clean:defs
 // Production (real project, not the emulator):
@@ -11,8 +11,7 @@
 //     GCLOUD_PROJECT=agape-logos node lib/scripts/clean_definitions.js
 
 import {db} from "../firebase";
-import {TIERS} from "../generation/config";
-import {Puzzle, withDefinedAnswersOnly} from "../generation/puzzle";
+import {Puzzle, requireAllDefined} from "../generation/puzzle";
 import {getStats, updateLibraryMeta} from "../pool/puzzle_pool";
 
 const COLLECTION = "puzzles";
@@ -22,7 +21,6 @@ async function main(): Promise<void> {
   const report = {
     scanned: snap.size,
     unchanged: 0,
-    trimmed: 0,
     deleted: 0,
     wordsRemoved: 0,
   };
@@ -34,21 +32,12 @@ async function main(): Promise<void> {
 
   for (const doc of snap.docs) {
     const puzzle = doc.data() as Puzzle;
-    const before = puzzle.answers.length;
-    const clean = withDefinedAnswersOnly(puzzle, TIERS[puzzle.tier].minAnswers);
+    const clean = requireAllDefined(puzzle);
 
     if (clean === null) {
       batch.delete(doc.ref);
       report.deleted++;
-      report.wordsRemoved += before;
-      ops++;
-    } else if (clean.answers.length !== before) {
-      batch.update(doc.ref, {
-        answers: clean.answers,
-        answerCount: clean.answerCount,
-      });
-      report.trimmed++;
-      report.wordsRemoved += before - clean.answers.length;
+      report.wordsRemoved += puzzle.answers.length;
       ops++;
     } else {
       report.unchanged++;

@@ -40,19 +40,14 @@ export function attachDefinitions(
 }
 
 /**
- * Enforces the rule that every surfaced word carries a definition. Drops answers
- * whose definition is missing or blank and recomputes answerCount. Returns null
- * when fewer than `minAnswers` defined answers remain, signalling the caller to
- * drop the whole puzzle rather than ship a threadbare board.
+ * Enforces the rule that EVERY answer carries a definition. Returns the puzzle
+ * unchanged when all answers have a non-empty definition; returns null when any
+ * answer is missing or blank, signalling the caller to drop the whole puzzle
+ * (never ship a rack that hides a common word the player could spell).
  */
-export function withDefinedAnswersOnly(
-  puzzle: Puzzle,
-  minAnswers: number,
-): Puzzle | null {
-  const answers = puzzle.answers.filter(
+export function requireAllDefined(puzzle: Puzzle): Puzzle | null {
+  const allDefined = puzzle.answers.every(
     (a) => a.definition != null && a.definition.trim().length > 0,
   );
-  if (answers.length < minAnswers) return null;
-  if (answers.length === puzzle.answers.length) return puzzle;
-  return {...puzzle, answers, answerCount: answers.length};
+  return allDefined ? puzzle : null;
 }
