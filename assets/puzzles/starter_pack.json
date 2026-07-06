@@ -1,237 +1,694 @@
 {
-  "version": 1,
+  "version": 2,
   "puzzles": [
     {
       "tier": "easy",
-      "rackSize": 4,
-      "letters": ["C", "A", "T", "S"],
+      "rackSize": 3,
+      "letters": [
+        "C",
+        "A",
+        "B"
+      ],
       "letterKey": "starter-easy-01",
-      "anchor": "T",
+      "anchor": "CAB",
       "answerCount": 3,
       "answers": [
-        {"word": "CAT", "length": 3, "definition": "A small domesticated feline."},
-        {"word": "ACT", "length": 3, "definition": "To do something; a deed."},
-        {"word": "CATS", "length": 4, "definition": "More than one cat."}
+        {
+          "word": "AB",
+          "length": 2,
+          "definition": "the blood group whose red cells carry both the A and B antigens"
+        },
+        {
+          "word": "BA",
+          "length": 2,
+          "definition": "a bachelor's degree in arts and sciences"
+        },
+        {
+          "word": "CAB",
+          "length": 3,
+          "definition": "a car driven by a person whose job is to take passengers where they want to go in exchange for money"
+        }
       ]
     },
     {
       "tier": "easy",
-      "rackSize": 4,
-      "letters": ["R", "A", "T", "E"],
+      "rackSize": 3,
+      "letters": [
+        "B",
+        "A",
+        "D"
+      ],
       "letterKey": "starter-easy-02",
-      "anchor": "R",
-      "answerCount": 5,
+      "anchor": "BAD",
+      "answerCount": 4,
       "answers": [
-        {"word": "TAR", "length": 3, "definition": "A thick, dark, sticky substance."},
-        {"word": "ART", "length": 3, "definition": "Creative work like painting or music."},
-        {"word": "EAR", "length": 3, "definition": "The organ used for hearing."},
-        {"word": "RATE", "length": 4, "definition": "A measure of speed or price."},
-        {"word": "TEAR", "length": 4, "definition": "A drop of liquid from the eye."}
+        {
+          "word": "AB",
+          "length": 2,
+          "definition": "the blood group whose red cells carry both the A and B antigens"
+        },
+        {
+          "word": "AD",
+          "length": 2,
+          "definition": "a public promotion of some product or service"
+        },
+        {
+          "word": "BA",
+          "length": 2,
+          "definition": "a bachelor's degree in arts and sciences"
+        },
+        {
+          "word": "BAD",
+          "length": 3,
+          "definition": "that which is below standard or expectations as of ethics or decency"
+        }
       ]
     },
     {
       "tier": "easy",
-      "rackSize": 4,
-      "letters": ["D", "O", "G", "S"],
+      "rackSize": 3,
+      "letters": [
+        "B",
+        "A",
+        "G"
+      ],
       "letterKey": "starter-easy-03",
-      "anchor": "D",
+      "anchor": "BAG",
       "answerCount": 4,
       "answers": [
-        {"word": "DOG", "length": 3, "definition": "A loyal, domesticated animal."},
-        {"word": "SOD", "length": 3, "definition": "A layer of earth covered in grass."},
-        {"word": "DOGS", "length": 4, "definition": "More than one dog."},
-        {"word": "GODS", "length": 4, "definition": "Deities in mythology."}
+        {
+          "word": "AB",
+          "length": 2,
+          "definition": "the blood group whose red cells carry both the A and B antigens"
+        },
+        {
+          "word": "AG",
+          "length": 2,
+          "definition": "a soft white precious univalent metallic element having the highest electrical and thermal conductivity of any metal; occurs in argentite and in free form; used in coins and jewelry and tableware and photography"
+        },
+        {
+          "word": "BA",
+          "length": 2,
+          "definition": "a bachelor's degree in arts and sciences"
+        },
+        {
+          "word": "BAG",
+          "length": 3,
+          "definition": "an activity that you like or at which you are superior"
+        }
       ]
     },
     {
       "tier": "easy",
-      "rackSize": 5,
-      "letters": ["P", "L", "A", "N", "S"],
+      "rackSize": 3,
+      "letters": [
+        "L",
+        "A",
+        "B"
+      ],
       "letterKey": "starter-easy-04",
-      "anchor": "L",
+      "anchor": "LAB",
       "answerCount": 5,
       "answers": [
-        {"word": "PAL", "length": 3, "definition": "A close friend."},
-        {"word": "LAP", "length": 3, "definition": "The upper legs when seated."},
-        {"word": "SLAP", "length": 4, "definition": "To hit with an open hand."},
-        {"word": "PLAN", "length": 4, "definition": "A scheme worked out in advance."},
-        {"word": "PLANS", "length": 5, "definition": "More than one plan."}
+        {
+          "word": "AB",
+          "length": 2,
+          "definition": "the blood group whose red cells carry both the A and B antigens"
+        },
+        {
+          "word": "AL",
+          "length": 2,
+          "definition": "a state in the southeastern United States on the Gulf of Mexico; one of the Confederate states during the American Civil War"
+        },
+        {
+          "word": "BA",
+          "length": 2,
+          "definition": "a bachelor's degree in arts and sciences"
+        },
+        {
+          "word": "LA",
+          "length": 2,
+          "definition": "the syllable naming the sixth (submediant) note of a major or minor scale in solmization"
+        },
+        {
+          "word": "LAB",
+          "length": 3,
+          "definition": "a workplace for the conduct of scientific research"
+        }
       ]
     },
     {
       "tier": "easy",
-      "rackSize": 5,
-      "letters": ["S", "T", "O", "N", "E"],
+      "rackSize": 3,
+      "letters": [
+        "B",
+        "A",
+        "N"
+      ],
       "letterKey": "starter-easy-05",
-      "anchor": "N",
+      "anchor": "BAN",
       "answerCount": 5,
       "answers": [
-        {"word": "NOTE", "length": 4, "definition": "A short written record."},
-        {"word": "TONE", "length": 4, "definition": "The quality of a sound."},
-        {"word": "NEST", "length": 4, "definition": "A bird's home built of twigs."},
-        {"word": "TENS", "length": 4, "definition": "The plural of the number ten."},
-        {"word": "STONE", "length": 5, "definition": "A small piece of rock."}
+        {
+          "word": "AB",
+          "length": 2,
+          "definition": "the blood group whose red cells carry both the A and B antigens"
+        },
+        {
+          "word": "AN",
+          "length": 2,
+          "definition": "the form of 'a' used before a vowel sound"
+        },
+        {
+          "word": "BA",
+          "length": 2,
+          "definition": "a bachelor's degree in arts and sciences"
+        },
+        {
+          "word": "NA",
+          "length": 2,
+          "definition": "a silvery soft waxy metallic element of the alkali metal group; occurs abundantly in natural compounds (especially in salt water); burns with a yellow flame and reacts violently in water; occurs in sea water and in the mineral halite (rock salt)"
+        },
+        {
+          "word": "BAN",
+          "length": 3,
+          "definition": "a decree that prohibits something"
+        }
       ]
     },
     {
       "tier": "easy",
-      "rackSize": 5,
-      "letters": ["B", "R", "E", "A", "D"],
+      "rackSize": 3,
+      "letters": [
+        "B",
+        "R",
+        "A"
+      ],
       "letterKey": "starter-easy-06",
-      "anchor": "B",
+      "anchor": "BRA",
+      "answerCount": 5,
+      "answers": [
+        {
+          "word": "AB",
+          "length": 2,
+          "definition": "the blood group whose red cells carry both the A and B antigens"
+        },
+        {
+          "word": "AR",
+          "length": 2,
+          "definition": "a state in south central United States; one of the Confederate states during the American Civil War"
+        },
+        {
+          "word": "BA",
+          "length": 2,
+          "definition": "a bachelor's degree in arts and sciences"
+        },
+        {
+          "word": "BAR",
+          "length": 3,
+          "definition": "the act of preventing"
+        },
+        {
+          "word": "BRA",
+          "length": 3,
+          "definition": "an undergarment worn by women to support their breasts"
+        }
+      ]
+    },
+    {
+      "tier": "medium",
+      "rackSize": 4,
+      "letters": [
+        "B",
+        "A",
+        "C",
+        "K"
+      ],
+      "letterKey": "starter-medium-01",
+      "anchor": "BACK",
+      "answerCount": 5,
+      "answers": [
+        {
+          "word": "AB",
+          "length": 2,
+          "definition": "the blood group whose red cells carry both the A and B antigens"
+        },
+        {
+          "word": "BA",
+          "length": 2,
+          "definition": "a bachelor's degree in arts and sciences"
+        },
+        {
+          "word": "KA",
+          "length": 2,
+          "definition": "unknown god; an epithet of Prajapati and Brahma"
+        },
+        {
+          "word": "CAB",
+          "length": 3,
+          "definition": "a car driven by a person whose job is to take passengers where they want to go in exchange for money"
+        },
+        {
+          "word": "BACK",
+          "length": 4,
+          "definition": "(American football) the position of a player on a football team who is stationed behind the line of scrimmage"
+        }
+      ]
+    },
+    {
+      "tier": "medium",
+      "rackSize": 4,
+      "letters": [
+        "B",
+        "A",
+        "K",
+        "E"
+      ],
+      "letterKey": "starter-medium-02",
+      "anchor": "BAKE",
+      "answerCount": 5,
+      "answers": [
+        {
+          "word": "AB",
+          "length": 2,
+          "definition": "the blood group whose red cells carry both the A and B antigens"
+        },
+        {
+          "word": "BA",
+          "length": 2,
+          "definition": "a bachelor's degree in arts and sciences"
+        },
+        {
+          "word": "BE",
+          "length": 2,
+          "definition": "to exist or to have a specified quality"
+        },
+        {
+          "word": "KA",
+          "length": 2,
+          "definition": "unknown god; an epithet of Prajapati and Brahma"
+        },
+        {
+          "word": "BAKE",
+          "length": 4,
+          "definition": "cook and make edible by putting in a hot oven"
+        }
+      ]
+    },
+    {
+      "tier": "medium",
+      "rackSize": 4,
+      "letters": [
+        "B",
+        "E",
+        "A",
+        "U"
+      ],
+      "letterKey": "starter-medium-03",
+      "anchor": "BEAU",
       "answerCount": 4,
       "answers": [
-        {"word": "BEAR", "length": 4, "definition": "A large, furry forest mammal."},
-        {"word": "BARE", "length": 4, "definition": "Uncovered or plain."},
-        {"word": "BRED", "length": 4, "definition": "Raised or produced, as animals."},
-        {"word": "BREAD", "length": 5, "definition": "A baked food made from flour."}
+        {
+          "word": "AB",
+          "length": 2,
+          "definition": "the blood group whose red cells carry both the A and B antigens"
+        },
+        {
+          "word": "BA",
+          "length": 2,
+          "definition": "a bachelor's degree in arts and sciences"
+        },
+        {
+          "word": "BE",
+          "length": 2,
+          "definition": "to exist or to have a specified quality"
+        },
+        {
+          "word": "BEAU",
+          "length": 4,
+          "definition": "a man who is the lover of a man or woman"
+        }
       ]
     },
     {
       "tier": "medium",
-      "rackSize": 6,
-      "letters": ["G", "A", "R", "D", "E", "N"],
-      "letterKey": "starter-medium-01",
-      "anchor": "G",
+      "rackSize": 4,
+      "letters": [
+        "C",
+        "A",
+        "F",
+        "E"
+      ],
+      "letterKey": "starter-medium-04",
+      "anchor": "CAFE",
+      "answerCount": 4,
+      "answers": [
+        {
+          "word": "FA",
+          "length": 2,
+          "definition": "the syllable naming the fourth (subdominant) note of the diatonic scale in solmization"
+        },
+        {
+          "word": "ACE",
+          "length": 3,
+          "definition": "a serve that the receiver is unable to reach"
+        },
+        {
+          "word": "CAFE",
+          "length": 4,
+          "definition": "a small restaurant where drinks and snacks are sold"
+        },
+        {
+          "word": "FACE",
+          "length": 4,
+          "definition": "a vertical surface of a building or cliff"
+        }
+      ]
+    },
+    {
+      "tier": "medium",
+      "rackSize": 4,
+      "letters": [
+        "C",
+        "A",
+        "G",
+        "E"
+      ],
+      "letterKey": "starter-medium-05",
+      "anchor": "CAGE",
+      "answerCount": 4,
+      "answers": [
+        {
+          "word": "AG",
+          "length": 2,
+          "definition": "a soft white precious univalent metallic element having the highest electrical and thermal conductivity of any metal; occurs in argentite and in free form; used in coins and jewelry and tableware and photography"
+        },
+        {
+          "word": "ACE",
+          "length": 3,
+          "definition": "a serve that the receiver is unable to reach"
+        },
+        {
+          "word": "AGE",
+          "length": 3,
+          "definition": "how long something has existed"
+        },
+        {
+          "word": "CAGE",
+          "length": 4,
+          "definition": "a movable screen placed behind home base to catch balls during batting practice"
+        }
+      ]
+    },
+    {
+      "tier": "medium",
+      "rackSize": 4,
+      "letters": [
+        "C",
+        "A",
+        "K",
+        "E"
+      ],
+      "letterKey": "starter-medium-06",
+      "anchor": "CAKE",
+      "answerCount": 3,
+      "answers": [
+        {
+          "word": "KA",
+          "length": 2,
+          "definition": "unknown god; an epithet of Prajapati and Brahma"
+        },
+        {
+          "word": "ACE",
+          "length": 3,
+          "definition": "a serve that the receiver is unable to reach"
+        },
+        {
+          "word": "CAKE",
+          "length": 4,
+          "definition": "a block of solid substance (such as soap or wax)"
+        }
+      ]
+    },
+    {
+      "tier": "hard",
+      "rackSize": 5,
+      "letters": [
+        "A",
+        "B",
+        "O",
+        "V",
+        "E"
+      ],
+      "letterKey": "starter-hard-01",
+      "anchor": "ABOVE",
       "answerCount": 5,
       "answers": [
-        {"word": "RAGE", "length": 4, "definition": "Intense, furious anger."},
-        {"word": "GRAND", "length": 5, "definition": "Impressive in size or style."},
-        {"word": "RANGE", "length": 5, "definition": "The extent between limits."},
-        {"word": "DANGER", "length": 6, "definition": "The possibility of harm."},
-        {"word": "GARDEN", "length": 6, "definition": "A plot of ground for growing plants."}
+        {
+          "word": "AB",
+          "length": 2,
+          "definition": "the blood group whose red cells carry both the A and B antigens"
+        },
+        {
+          "word": "BA",
+          "length": 2,
+          "definition": "a bachelor's degree in arts and sciences"
+        },
+        {
+          "word": "BE",
+          "length": 2,
+          "definition": "to exist or to have a specified quality"
+        },
+        {
+          "word": "BOA",
+          "length": 3,
+          "definition": "any of several chiefly tropical constrictors with vestigial hind limbs"
+        },
+        {
+          "word": "ABOVE",
+          "length": 5,
+          "definition": "an earlier section of a written text"
+        }
       ]
     },
     {
-      "tier": "medium",
-      "rackSize": 6,
-      "letters": ["S", "I", "L", "E", "N", "T"],
-      "letterKey": "starter-medium-02",
-      "anchor": "L",
+      "tier": "hard",
+      "rackSize": 5,
+      "letters": [
+        "W",
+        "H",
+        "A",
+        "C",
+        "K"
+      ],
+      "letterKey": "starter-hard-02",
+      "anchor": "WHACK",
       "answerCount": 6,
       "answers": [
-        {"word": "LIST", "length": 4, "definition": "A series of names or items."},
-        {"word": "TILE", "length": 4, "definition": "A flat, hard piece used for flooring."},
-        {"word": "LINE", "length": 4, "definition": "A long, thin mark."},
-        {"word": "LISTEN", "length": 6, "definition": "To pay attention with your ears."},
-        {"word": "SILENT", "length": 6, "definition": "Making no sound."},
-        {"word": "TINSEL", "length": 6, "definition": "Shiny, thin strips used as decoration."}
-      ]
-    },
-    {
-      "tier": "medium",
-      "rackSize": 6,
-      "letters": ["M", "O", "T", "H", "E", "R"],
-      "letterKey": "starter-medium-03",
-      "anchor": "H",
-      "answerCount": 5,
-      "answers": [
-        {"word": "HOME", "length": 4, "definition": "The place where one lives."},
-        {"word": "HERO", "length": 4, "definition": "A person admired for courage."},
-        {"word": "THEM", "length": 4, "definition": "Those people or things."},
-        {"word": "OTHER", "length": 5, "definition": "Different or additional."},
-        {"word": "MOTHER", "length": 6, "definition": "A female parent."}
-      ]
-    },
-    {
-      "tier": "medium",
-      "rackSize": 6,
-      "letters": ["W", "I", "N", "T", "E", "R"],
-      "letterKey": "starter-medium-04",
-      "anchor": "W",
-      "answerCount": 4,
-      "answers": [
-        {"word": "WINE", "length": 4, "definition": "A drink made from fermented grapes."},
-        {"word": "TWIN", "length": 4, "definition": "One of two born at the same time."},
-        {"word": "WRITE", "length": 5, "definition": "To form letters or words on a surface."},
-        {"word": "WINTER", "length": 6, "definition": "The coldest season of the year."}
-      ]
-    },
-    {
-      "tier": "medium",
-      "rackSize": 6,
-      "letters": ["C", "A", "N", "D", "L", "E"],
-      "letterKey": "starter-medium-05",
-      "anchor": "C",
-      "answerCount": 4,
-      "answers": [
-        {"word": "LACE", "length": 4, "definition": "A delicate fabric with an open weave."},
-        {"word": "CLEAN", "length": 5, "definition": "Free from dirt."},
-        {"word": "DANCE", "length": 5, "definition": "To move rhythmically to music."},
-        {"word": "CANDLE", "length": 6, "definition": "A wax stick with a wick for light."}
-      ]
-    },
-    {
-      "tier": "medium",
-      "rackSize": 6,
-      "letters": ["F", "L", "O", "W", "E", "R"],
-      "letterKey": "starter-medium-06",
-      "anchor": "L",
-      "answerCount": 4,
-      "answers": [
-        {"word": "WOLF", "length": 4, "definition": "A wild relative of the dog."},
-        {"word": "FLOW", "length": 4, "definition": "To move steadily, like water."},
-        {"word": "LOWER", "length": 5, "definition": "To move something down."},
-        {"word": "FLOWER", "length": 6, "definition": "The colorful bloom of a plant."}
+        {
+          "word": "AH",
+          "length": 2,
+          "definition": "expressing realization or pleasure"
+        },
+        {
+          "word": "HA",
+          "length": 2,
+          "definition": "(astronomy) the angular distance of a celestial point measured westward along the celestial equator from the zenith crossing; the right ascension for an observer at a particular location and time of day"
+        },
+        {
+          "word": "KA",
+          "length": 2,
+          "definition": "unknown god; an epithet of Prajapati and Brahma"
+        },
+        {
+          "word": "HACK",
+          "length": 4,
+          "definition": "a saddle horse used for transportation rather than sport etc."
+        },
+        {
+          "word": "HAWK",
+          "length": 4,
+          "definition": "diurnal bird of prey typically having short rounded wings and a long tail"
+        },
+        {
+          "word": "WHACK",
+          "length": 5,
+          "definition": "the act of hitting vigorously"
+        }
       ]
     },
     {
       "tier": "hard",
-      "rackSize": 7,
-      "letters": ["P", "A", "T", "I", "E", "N", "T"],
-      "letterKey": "starter-hard-01",
-      "anchor": "T",
-      "answerCount": 5,
-      "answers": [
-        {"word": "TAPE", "length": 4, "definition": "A strip of adhesive material."},
-        {"word": "NEAT", "length": 4, "definition": "Tidy and orderly."},
-        {"word": "PAINT", "length": 5, "definition": "Colored liquid used for decorating."},
-        {"word": "TAINT", "length": 5, "definition": "To spoil or contaminate slightly."},
-        {"word": "PATIENT", "length": 7, "definition": "Able to wait calmly; also a person under medical care."}
-      ]
-    },
-    {
-      "tier": "hard",
-      "rackSize": 7,
-      "letters": ["T", "E", "A", "C", "H", "E", "R"],
-      "letterKey": "starter-hard-02",
-      "anchor": "E",
-      "answerCount": 5,
-      "answers": [
-        {"word": "REACH", "length": 5, "definition": "To stretch out to touch something."},
-        {"word": "CHEAT", "length": 5, "definition": "To act dishonestly for advantage."},
-        {"word": "TEACH", "length": 5, "definition": "To help someone learn."},
-        {"word": "HEATER", "length": 6, "definition": "A device that warms a space."},
-        {"word": "TEACHER", "length": 7, "definition": "A person who helps others learn."}
-      ]
-    },
-    {
-      "tier": "hard",
-      "rackSize": 7,
-      "letters": ["G", "A", "R", "D", "E", "N", "S"],
+      "rackSize": 5,
+      "letters": [
+        "H",
+        "A",
+        "V",
+        "O",
+        "C"
+      ],
       "letterKey": "starter-hard-03",
-      "anchor": "D",
-      "answerCount": 4,
+      "anchor": "HAVOC",
+      "answerCount": 6,
       "answers": [
-        {"word": "SAND", "length": 4, "definition": "Fine grains of rock found on beaches."},
-        {"word": "GRAND", "length": 5, "definition": "Impressive in size or style."},
-        {"word": "DANGER", "length": 6, "definition": "The possibility of harm."},
-        {"word": "GARDENS", "length": 7, "definition": "More than one garden."}
+        {
+          "word": "AH",
+          "length": 2,
+          "definition": "expressing realization or pleasure"
+        },
+        {
+          "word": "HA",
+          "length": 2,
+          "definition": "(astronomy) the angular distance of a celestial point measured westward along the celestial equator from the zenith crossing; the right ascension for an observer at a particular location and time of day"
+        },
+        {
+          "word": "HO",
+          "length": 2,
+          "definition": "a trivalent metallic element of the rare earth group; occurs together with yttrium; forms highly magnetic compounds"
+        },
+        {
+          "word": "OH",
+          "length": 2,
+          "definition": "expressing surprise or realization"
+        },
+        {
+          "word": "VAC",
+          "length": 3,
+          "definition": "informal term for vacation"
+        },
+        {
+          "word": "HAVOC",
+          "length": 5,
+          "definition": "violent and needless disturbance"
+        }
       ]
     },
     {
       "tier": "hard",
-      "rackSize": 7,
-      "letters": ["P", "I", "C", "T", "U", "R", "E"],
+      "rackSize": 5,
+      "letters": [
+        "J",
+        "A",
+        "C",
+        "K",
+        "S"
+      ],
       "letterKey": "starter-hard-04",
-      "anchor": "C",
-      "answerCount": 5,
+      "anchor": "JACKS",
+      "answerCount": 7,
       "answers": [
-        {"word": "CUP", "length": 3, "definition": "A small container for drinking."},
-        {"word": "CUT", "length": 3, "definition": "To divide with a sharp tool."},
-        {"word": "CURE", "length": 4, "definition": "To restore to health."},
-        {"word": "CURT", "length": 4, "definition": "Brief and rather rude."},
-        {"word": "PICTURE", "length": 7, "definition": "An image or photograph."}
+        {
+          "word": "AS",
+          "length": 2,
+          "definition": "to the same degree; in the role of"
+        },
+        {
+          "word": "KA",
+          "length": 2,
+          "definition": "unknown god; an epithet of Prajapati and Brahma"
+        },
+        {
+          "word": "ASK",
+          "length": 3,
+          "definition": "make a request or demand for something to somebody"
+        },
+        {
+          "word": "SAC",
+          "length": 3,
+          "definition": "a structure resembling a bag in an animal"
+        },
+        {
+          "word": "JACK",
+          "length": 4,
+          "definition": "male donkey"
+        },
+        {
+          "word": "SACK",
+          "length": 4,
+          "definition": "the termination of someone's employment (leaving them free to depart)"
+        },
+        {
+          "word": "JACKS",
+          "length": 5,
+          "definition": "a game in which jackstones are thrown and picked up in various groups between bounces of a small rubber ball"
+        }
+      ]
+    },
+    {
+      "tier": "hard",
+      "rackSize": 5,
+      "letters": [
+        "W",
+        "A",
+        "C",
+        "K",
+        "Y"
+      ],
+      "letterKey": "starter-hard-05",
+      "anchor": "WACKY",
+      "answerCount": 3,
+      "answers": [
+        {
+          "word": "KA",
+          "length": 2,
+          "definition": "unknown god; an epithet of Prajapati and Brahma"
+        },
+        {
+          "word": "WAY",
+          "length": 3,
+          "definition": "thing or person that acts to produce a particular effect or achieve an end"
+        },
+        {
+          "word": "WACKY",
+          "length": 5,
+          "definition": "informal or slang terms for mentally irregular"
+        }
+      ]
+    },
+    {
+      "tier": "hard",
+      "rackSize": 5,
+      "letters": [
+        "C",
+        "R",
+        "A",
+        "Z",
+        "Y"
+      ],
+      "letterKey": "starter-hard-06",
+      "anchor": "CRAZY",
+      "answerCount": 6,
+      "answers": [
+        {
+          "word": "AR",
+          "length": 2,
+          "definition": "a state in south central United States; one of the Confederate states during the American Civil War"
+        },
+        {
+          "word": "ARC",
+          "length": 3,
+          "definition": "electrical conduction through a gas in an applied electric field"
+        },
+        {
+          "word": "CAR",
+          "length": 3,
+          "definition": "a conveyance for passengers or freight on a cable railway"
+        },
+        {
+          "word": "CRY",
+          "length": 3,
+          "definition": "a fit of weeping"
+        },
+        {
+          "word": "RAY",
+          "length": 3,
+          "definition": "cartilaginous fishes having horizontally flattened bodies and enlarged winglike pectoral fins with gills on the underside; most swim by moving the pectoral fins"
+        },
+        {
+          "word": "CRAZY",
+          "length": 5,
+          "definition": "someone deranged and possibly dangerous"
+        }
       ]
     }
   ]
