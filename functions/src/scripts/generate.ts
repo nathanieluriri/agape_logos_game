@@ -3,11 +3,12 @@ import {
   MAX_FREQUENCY_CUTOFF,
   BLOCKLIST_FILE,
   DEFINITION_CONCURRENCY,
-  DEFINITION_MAX_RETRIES,
   GEN_VERSION,
   VALIDITY_FILE,
   FREQUENCY_FILE,
   DEFINITIONS_CACHE_FILE,
+  WORDNET_DEFS_FILE,
+  DICT_SUPPLEMENT_FILE,
 } from "../generation/config";
 import {WordData, loadWordDataFromFiles} from "../generation/word_data";
 import {loadBlocklist} from "../generation/profanity";
@@ -20,9 +21,7 @@ import {
   loadDefinitionCache,
   saveDefinitionCache,
   resolveDefinitions,
-  dictionaryApiFetch,
-  wordnetFetch,
-  compositeFetch,
+  loadLocalDictionary,
 } from "../generation/definitions";
 import {Rng, mulberry32} from "../generation/random";
 import {
@@ -108,20 +107,23 @@ export async function runGeneration(
 }
 
 export function defaultDeps(): GenerateDeps {
+  // One bundled local dictionary, used both to gate the common-word vocabulary
+  // (only defined words count) and to define the answers. Fully offline.
+  const dict = loadLocalDictionary(WORDNET_DEFS_FILE, DICT_SUPPLEMENT_FILE);
   const wordData = loadWordDataFromFiles(
     VALIDITY_FILE,
     FREQUENCY_FILE,
     MAX_FREQUENCY_CUTOFF,
     loadBlocklist(BLOCKLIST_FILE),
+    (w) => dict.define(w) !== null,
   );
   // Seed the rng from the wall clock so successive runs explore new anchors.
   const seed = Date.now() & 0xffffffff;
   return {
     wordData,
     index: buildAnagramIndex(wordData.commonWords),
-    // WordNet first (offline, wide coverage of common words), dictionary API as
-    // fallback for what WordNet lacks.
-    fetchFn: compositeFetch(wordnetFetch(), dictionaryApiFetch(DEFINITION_MAX_RETRIES)),
+    // Definitions come from the same in-memory dictionary. No network.
+    fetchFn: async (word: string): Promise<string | null> => dict.define(word),
     cache: loadDefinitionCache(DEFINITIONS_CACHE_FILE),
     cachePath: DEFINITIONS_CACHE_FILE,
     concurrency: DEFINITION_CONCURRENCY,

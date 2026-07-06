@@ -53,3 +53,8 @@ export const DEFINITIONS_CACHE_FILE = path.join(DATA_DIR, "definitions_cache.jso
 // Newline-delimited list of words to exclude everywhere (anchors and answers).
 // Missing file is treated as empty, so the filter is opt-in.
 export const BLOCKLIST_FILE = path.join(DATA_DIR, "blocklist.txt");
+// Bundled offline dictionary: word -> definition (WordNet glosses, built by
+// scripts/build_dictionary.ts) plus a small hand-authored supplement for common
+// function/irregular words WordNet omits. Generation reads these; no network.
+export const WORDNET_DEFS_FILE = path.join(DATA_DIR, "wordnet_defs.json");
+export const DICT_SUPPLEMENT_FILE = path.join(DATA_DIR, "dict_supplement.json");

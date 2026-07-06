@@ -20,12 +20,17 @@ export interface WordData {
  * @param frequencyRanked words ordered most-frequent first.
  * @param cutoff          how many top-ranked frequency entries count as common.
  * @param blocklist       words to exclude entirely (anchors and answers).
+ * @param isDefined       optional gate: when given, a word only counts as common
+ *                        if it has a definition. This keeps the game's vocabulary
+ *                        to words that can be defined, so every answer is defined
+ *                        by construction and obscure undefined words never appear.
  */
 export function makeWordData(
   validWords: string[],
   frequencyRanked: string[],
   cutoff: number,
   blocklist?: ReadonlySet<string>,
+  isDefined?: (word: string) => boolean,
 ): WordData {
   const blocked = blocklist ?? new Set<string>();
   const valid = new Set<string>();
@@ -39,7 +44,7 @@ export function makeWordData(
   const limit = Math.min(cutoff, frequencyRanked.length);
   for (let i = 0; i < limit; i++) {
     const w = normalizeWord(frequencyRanked[i]);
-    if (w && valid.has(w) && !common.has(w)) {
+    if (w && valid.has(w) && !common.has(w) && (!isDefined || isDefined(w))) {
       common.add(w);
       rankOf.set(w, i);
     }
@@ -69,6 +74,7 @@ export function loadWordDataFromFiles(
   frequencyPath: string,
   cutoff: number,
   blocklist?: ReadonlySet<string>,
+  isDefined?: (word: string) => boolean,
 ): WordData {
   const validWords = fs.readFileSync(validityPath, "utf8").split(/\r?\n/);
   // Frequency file lines are "word<TAB>count"; take the first token.
@@ -76,5 +82,5 @@ export function loadWordDataFromFiles(
     .readFileSync(frequencyPath, "utf8")
     .split(/\r?\n/)
     .map((line) => line.split(/\s+/)[0] ?? "");
-  return makeWordData(validWords, frequencyRanked, cutoff, blocklist);
+  return makeWordData(validWords, frequencyRanked, cutoff, blocklist, isDefined);
 }
