@@ -42,8 +42,11 @@ export interface GenerateResult {
  */
 export function generateTierBatch(opts: GenerateOptions): GenerateResult {
   const cfg = TIERS[opts.tier];
+  // Only anchors within this tier's frequency horizon (the difficulty knob).
   const candidates = shuffle(
-    commonWordsOfLength(opts.wordData.commonWords, cfg.rackSize),
+    commonWordsOfLength(opts.wordData.commonWords, cfg.rackSize).filter(
+      (w) => opts.wordData.rank(w) < cfg.frequencyCutoff,
+    ),
     opts.rng,
   );
 
@@ -54,7 +57,11 @@ export function generateTierBatch(opts: GenerateOptions): GenerateResult {
     const key = letterKey(letters);
     if (opts.existingKeys.has(key)) continue;
 
-    const answers = findAnswers(letters, opts.index);
+    // Hold answers to the same horizon so an easy rack never hides a rare word
+    // the player could not be expected to know.
+    const answers = findAnswers(letters, opts.index).filter(
+      (w) => opts.wordData.rank(w) < cfg.frequencyCutoff,
+    );
     if (!meetsAnswerGate(answers.length, cfg)) continue;
 
     opts.existingKeys.add(key);

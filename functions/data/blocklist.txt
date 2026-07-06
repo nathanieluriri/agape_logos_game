@@ -1,0 +1,60 @@
+# Words excluded from puzzle generation (anchors and answers).
+# One word per line. Blank lines and lines starting with "#" are ignored;
+# entries are matched case-insensitively.
+#
+# This is a starter list of common profanity and vulgar terms. Extend it for
+# your audience: add slurs, ethnic/religious/sexual epithets, and any region-
+# specific offensive terms you want kept out of the game. Many rare offensive
+# words are already excluded by the frequency cutoff, but do not rely on that.
+
+anus
+arse
+arsehole
+ass
+asshole
+bastard
+bitch
+bollocks
+boner
+bugger
+bullshit
+cock
+crap
+cum
+damn
+dick
+dildo
+douche
+dyke
+fag
+faggot
+fart
+fuck
+fucker
+goddamn
+hell
+homo
+horny
+jerk
+jizz
+knob
+nigger
+nigga
+piss
+prick
+pussy
+queer
+retard
+screw
+scrotum
+semen
+shit
+slut
+spunk
+tit
+tits
+turd
+twat
+wank
+wanker
+whore

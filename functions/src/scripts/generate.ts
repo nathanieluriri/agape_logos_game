@@ -1,7 +1,8 @@
 import {
   Tier,
   TIERS,
-  COMMON_FREQUENCY_CUTOFF,
+  MAX_FREQUENCY_CUTOFF,
+  BLOCKLIST_FILE,
   DEFINITION_CONCURRENCY,
   DEFINITION_MAX_RETRIES,
   GEN_VERSION,
@@ -10,6 +11,7 @@ import {
   DEFINITIONS_CACHE_FILE,
 } from "../generation/config";
 import {WordData, loadWordDataFromFiles} from "../generation/word_data";
+import {loadBlocklist} from "../generation/profanity";
 import {AnagramIndex, buildAnagramIndex} from "../generation/anagram_index";
 import {generateTierBatch, RawPuzzle} from "../generation/generator";
 import {attachDefinitions, withDefinedAnswersOnly, Puzzle} from "../generation/puzzle";
@@ -111,7 +113,8 @@ export function defaultDeps(): GenerateDeps {
   const wordData = loadWordDataFromFiles(
     VALIDITY_FILE,
     FREQUENCY_FILE,
-    COMMON_FREQUENCY_CUTOFF,
+    MAX_FREQUENCY_CUTOFF,
+    loadBlocklist(BLOCKLIST_FILE),
   );
   // Seed the rng from the wall clock so successive runs explore new anchors.
   const seed = Date.now() & 0xffffffff;

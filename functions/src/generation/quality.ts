@@ -1,5 +1,7 @@
 import {TierConfig} from "./config";
 
 export function meetsAnswerGate(answerCount: number, tier: TierConfig): boolean {
-  return answerCount >= tier.minAnswers;
+  if (answerCount < tier.minAnswers) return false;
+  if (tier.maxAnswers != null && answerCount > tier.maxAnswers) return false;
+  return true;
 }
