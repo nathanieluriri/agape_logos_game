@@ -122,4 +122,23 @@ describe("POST /puzzles/draw", () => {
     expect(doneIds).not.toContain(ids[1]);
     expect(done.body.puzzles.every((p: {completed: boolean}) => p.completed)).toBe(true);
   });
+
+  test("a guest (anonymous) user can draw, get an answer key, and post a result", async () => {
+    const {idToken} = await mintUser(); // tokenless sign-up == anonymous guest
+    const draw = await request(app).post("/puzzles/draw")
+      .set("Authorization", `Bearer ${idToken}`).set("idempotency-key", "g1").send({easy: 1});
+    expect(draw.status).toBe(200);
+    expect(draw.body.byTier.easy.puzzles).toHaveLength(1);
+    const id = draw.body.byTier.easy.puzzles[0].letterKey;
+
+    const key = await request(app).get("/me/answer-key")
+      .set("Authorization", `Bearer ${idToken}`);
+    expect(key.status).toBe(200);
+    expect(typeof key.body.key).toBe("string");
+
+    const result = await request(app).post(`/puzzles/${id}/result`)
+      .set("Authorization", `Bearer ${idToken}`).set("idempotency-key", "gr1")
+      .send({score: 3, completedAt: 1});
+    expect(result.status).toBe(200);
+  });
 });
