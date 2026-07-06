@@ -33,7 +33,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -56,6 +56,11 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 7) {
             await m.addColumn(gameSettings, gameSettings.tutorialSeen);
+          }
+          if (from < 8) {
+            // New puzzle generation (v3): drop puzzles cached by the old
+            // algorithm so the device redraws from the regenerated pool.
+            await delete(cachedPuzzles).go();
           }
         },
       );
