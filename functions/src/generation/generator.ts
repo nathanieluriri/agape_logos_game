@@ -5,6 +5,11 @@ import {findAnswers, letterKey} from "./rack";
 import {meetsAnswerGate} from "./quality";
 import {Rng, shuffle} from "./random";
 
+/** True when every letter in the word is unique (no doubles, no triples). */
+export function hasDistinctLetters(word: string): boolean {
+  return new Set(word.split("")).size === word.length;
+}
+
 export interface RawPuzzle {
   tier: Tier;
   rackSize: number;
@@ -45,7 +50,7 @@ export function generateTierBatch(opts: GenerateOptions): GenerateResult {
   // Only anchors within this tier's frequency horizon (the difficulty knob).
   const candidates = shuffle(
     commonWordsOfLength(opts.wordData.commonWords, cfg.rackSize).filter(
-      (w) => opts.wordData.rank(w) < cfg.frequencyCutoff,
+      (w) => opts.wordData.rank(w) < cfg.frequencyCutoff && hasDistinctLetters(w),
     ),
     opts.rng,
   );

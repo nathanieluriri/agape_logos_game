@@ -2,7 +2,7 @@ import {describe, test, expect} from "@jest/globals";
 import {makeWordData} from "../src/generation/word_data";
 import {buildAnagramIndex} from "../src/generation/anagram_index";
 import {mulberry32} from "../src/generation/random";
-import {commonWordsOfLength, generateTierBatch} from "../src/generation/generator";
+import {commonWordsOfLength, generateTierBatch, hasDistinctLetters} from "../src/generation/generator";
 
 // Common 3-letter anchors and their sub-words.
 const common = ["NOW", "ON", "NO", "WON", "ARE", "EAR", "ERA", "ARC", "CAR", "RAT", "ART", "TAR"];
@@ -61,5 +61,33 @@ describe("generateTierBatch", () => {
     });
     expect(res.shortfall).toBe(999 - res.puzzles.length);
     expect(res.shortfall).toBeGreaterThan(0);
+  });
+});
+
+describe("hasDistinctLetters", () => {
+  test("true when all letters are unique", () => {
+    expect(hasDistinctLetters("CAT")).toBe(true);
+    expect(hasDistinctLetters("RATE")).toBe(true);
+  });
+  test("false for any repeated letter", () => {
+    expect(hasDistinctLetters("BAA")).toBe(false);
+    expect(hasDistinctLetters("LEVEL")).toBe(false);
+    expect(hasDistinctLetters("EEE")).toBe(false);
+  });
+});
+
+describe("generateTierBatch distinct-letter anchors", () => {
+  test("every anchor and rack has unique letters", () => {
+    const words = ["NOW", "WON", "ARE", "EAR", "ERA", "ARC", "CAR", "RAT", "ART", "TAR"];
+    const wd = makeWordData(words, words, 50000);
+    const idx = buildAnagramIndex(wd.commonWords);
+    const res = generateTierBatch({
+      tier: "easy", count: 5, wordData: wd, index: idx,
+      existingKeys: new Set<string>(), rng: mulberry32(7),
+    });
+    for (const p of res.puzzles) {
+      expect(hasDistinctLetters(p.anchor)).toBe(true);
+      expect(new Set(p.letters).size).toBe(p.letters.length);
+    }
   });
 });
