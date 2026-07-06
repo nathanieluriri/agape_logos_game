@@ -78,7 +78,7 @@ describe("hasDistinctLetters", () => {
 
 describe("generateTierBatch distinct-letter anchors", () => {
   test("every anchor and rack has unique letters", () => {
-    const words = ["NOW", "WON", "ARE", "EAR", "ERA", "ARC", "CAR", "RAT", "ART", "TAR"];
+    const words = ["NOW", "WON", "ARE", "EAR", "ERA", "ARC", "CAR", "RAT", "ART", "TAR", "ODD"];
     const wd = makeWordData(words, words, 50000);
     const idx = buildAnagramIndex(wd.commonWords);
     const res = generateTierBatch({
@@ -89,5 +89,6 @@ describe("generateTierBatch distinct-letter anchors", () => {
       expect(hasDistinctLetters(p.anchor)).toBe(true);
       expect(new Set(p.letters).size).toBe(p.letters.length);
     }
+    expect(res.puzzles.map((p) => p.anchor)).not.toContain("ODD");
   });
 });
