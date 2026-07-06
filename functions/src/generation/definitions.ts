@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import WordPOS from "wordpos";
 
 export type FetchFn = (word: string) => Promise<string | null>;
 
@@ -54,6 +55,37 @@ export async function resolveDefinitions(
   );
   await Promise.all(workers);
   return result;
+}
+
+// WordNet-backed definition source (offline, via the bundled WordNet DB). Covers
+// most common content words and handles morphology (plurals/inflections); misses
+// obscure/function words, which fall through to the dictionary API. One shared
+// WordPOS instance is reused across lookups.
+let wordposInstance: WordPOS | null = null;
+export function wordnetFetch(): FetchFn {
+  if (wordposInstance === null) wordposInstance = new WordPOS();
+  const wp = wordposInstance;
+  return async (word: string): Promise<string | null> => {
+    try {
+      const synsets = await wp.lookup(word.toLowerCase());
+      const def = synsets.find((s) => s && s.def)?.def?.trim();
+      return def && def.length > 0 ? def : null;
+    } catch {
+      return null;
+    }
+  };
+}
+
+// Tries each source in order, returning the first non-empty definition. Lets the
+// generator prefer the offline WordNet source and fall back to the network API.
+export function compositeFetch(...fns: FetchFn[]): FetchFn {
+  return async (word: string): Promise<string | null> => {
+    for (const fn of fns) {
+      const def = await fn(word);
+      if (def && def.trim().length > 0) return def;
+    }
+    return null;
+  };
 }
 
 interface DictionaryApiEntry {

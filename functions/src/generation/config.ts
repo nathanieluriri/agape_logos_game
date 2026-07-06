@@ -23,8 +23,11 @@ export interface TierConfig {
 export const TIERS: Record<Tier, TierConfig> = {
   easy: {tier: "easy", rackSize: 3, minAnswers: 3, maxAnswers: 5, anchorCutoff: 15000, answerCutoff: 15000, poolTarget: 200},
   medium: {tier: "medium", rackSize: 4, minAnswers: 3, maxAnswers: 5, anchorCutoff: 30000, answerCutoff: 18000, poolTarget: 350},
-  hard: {tier: "hard", rackSize: 5, minAnswers: 3, maxAnswers: 5, anchorCutoff: 50000, answerCutoff: 20000, poolTarget: 350},
-  expert: {tier: "expert", rackSize: 6, minAnswers: 3, maxAnswers: 5, anchorCutoff: 90000, answerCutoff: 22000, poolTarget: 100},
+  // Rack 5-6 racks almost always spell more than 5 common words, so a strict
+  // max of 5 leaves these tiers nearly unfillable. Easy/medium keep the calm
+  // 5-answer cap; hard/expert relax it so the pool can fill.
+  hard: {tier: "hard", rackSize: 5, minAnswers: 3, maxAnswers: 7, anchorCutoff: 50000, answerCutoff: 20000, poolTarget: 350},
+  expert: {tier: "expert", rackSize: 6, minAnswers: 3, maxAnswers: 8, anchorCutoff: 90000, answerCutoff: 22000, poolTarget: 100},
 };
 
 export const TIER_ORDER: Tier[] = ["easy", "medium", "hard", "expert"];

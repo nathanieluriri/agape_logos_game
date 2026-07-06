@@ -21,6 +21,8 @@ import {
   saveDefinitionCache,
   resolveDefinitions,
   dictionaryApiFetch,
+  wordnetFetch,
+  compositeFetch,
 } from "../generation/definitions";
 import {Rng, mulberry32} from "../generation/random";
 import {
@@ -117,7 +119,9 @@ export function defaultDeps(): GenerateDeps {
   return {
     wordData,
     index: buildAnagramIndex(wordData.commonWords),
-    fetchFn: dictionaryApiFetch(DEFINITION_MAX_RETRIES),
+    // WordNet first (offline, wide coverage of common words), dictionary API as
+    // fallback for what WordNet lacks.
+    fetchFn: compositeFetch(wordnetFetch(), dictionaryApiFetch(DEFINITION_MAX_RETRIES)),
     cache: loadDefinitionCache(DEFINITIONS_CACHE_FILE),
     cachePath: DEFINITIONS_CACHE_FILE,
     concurrency: DEFINITION_CONCURRENCY,

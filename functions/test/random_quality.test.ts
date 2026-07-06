@@ -21,7 +21,7 @@ describe("meetsAnswerGate", () => {
   test("passes at or above the tier minimum", () => {
     expect(meetsAnswerGate(3, TIERS.easy)).toBe(true);
     expect(meetsAnswerGate(2, TIERS.easy)).toBe(false);
-    expect(meetsAnswerGate(5, TIERS.expert)).toBe(true);
-    expect(meetsAnswerGate(6, TIERS.expert)).toBe(false);
+    expect(meetsAnswerGate(8, TIERS.expert)).toBe(true);
+    expect(meetsAnswerGate(9, TIERS.expert)).toBe(false);
   });
 });

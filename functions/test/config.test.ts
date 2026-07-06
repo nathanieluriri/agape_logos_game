@@ -10,8 +10,8 @@ describe("tier config", () => {
     expect(TIER_ORDER.map((t) => TIERS[t].minAnswers)).toEqual([3, 3, 3, 3]);
   });
 
-  test("every tier caps answers at 5", () => {
-    expect(TIER_ORDER.map((t) => TIERS[t].maxAnswers)).toEqual([5, 5, 5, 5]);
+  test("easy/medium cap at 5; hard/expert relax so the pool can fill", () => {
+    expect(TIER_ORDER.map((t) => TIERS[t].maxAnswers)).toEqual([5, 5, 7, 8]);
   });
 
   test("answerCutoff never exceeds anchorCutoff", () => {
