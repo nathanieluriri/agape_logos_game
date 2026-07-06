@@ -7,7 +7,8 @@ const tier: TierConfig = {
   rackSize: 3,
   minAnswers: 3,
   maxAnswers: 6,
-  frequencyCutoff: 15000,
+  anchorCutoff: 15000,
+  answerCutoff: 15000,
   poolTarget: 10,
 };
 
@@ -20,10 +21,5 @@ describe("meetsAnswerGate with maxAnswers", () => {
   test("rejects below min and above max", () => {
     expect(meetsAnswerGate(2, tier)).toBe(false);
     expect(meetsAnswerGate(7, tier)).toBe(false);
-  });
-
-  test("no upper bound when maxAnswers is unset", () => {
-    const noMax: TierConfig = {...tier, maxAnswers: undefined};
-    expect(meetsAnswerGate(999, noMax)).toBe(true);
   });
 });

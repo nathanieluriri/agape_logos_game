@@ -31,7 +31,8 @@ describe("generateTierBatch", () => {
       expect(p.tier).toBe("easy");
       expect(p.rackSize).toBe(3);
       expect(p.answerCount).toBeGreaterThanOrEqual(3); // easy gate
-      expect(p.answers).toContain(p.anchor); // pangram present
+      expect(p.answerCount).toBeLessThanOrEqual(5); // max cap
+      expect(p.answers).toContain(p.anchor); // headline word always present
     }
     // Deduped by letterKey.
     const keys = res.puzzles.map((p) => p.letterKey);

@@ -50,7 +50,7 @@ export function generateTierBatch(opts: GenerateOptions): GenerateResult {
   // Only anchors within this tier's frequency horizon (the difficulty knob).
   const candidates = shuffle(
     commonWordsOfLength(opts.wordData.commonWords, cfg.rackSize).filter(
-      (w) => opts.wordData.rank(w) < cfg.frequencyCutoff && hasDistinctLetters(w),
+      (w) => opts.wordData.rank(w) < cfg.anchorCutoff && hasDistinctLetters(w),
     ),
     opts.rng,
   );
@@ -62,11 +62,13 @@ export function generateTierBatch(opts: GenerateOptions): GenerateResult {
     const key = letterKey(letters);
     if (opts.existingKeys.has(key)) continue;
 
-    // Hold answers to the same horizon so an easy rack never hides a rare word
-    // the player could not be expected to know.
-    const answers = findAnswers(letters, opts.index).filter(
-      (w) => opts.wordData.rank(w) < cfg.frequencyCutoff,
-    );
+    // Two horizons: full-length words (the headline words, incl. the anchor)
+    // count down to anchorCutoff; shorter sub-words only if common enough
+    // (answerCutoff). Keeps the anchor always present while capping clutter.
+    const answers = findAnswers(letters, opts.index).filter((w) => {
+      const cutoff = w.length === cfg.rackSize ? cfg.anchorCutoff : cfg.answerCutoff;
+      return opts.wordData.rank(w) < cutoff;
+    });
     if (!meetsAnswerGate(answers.length, cfg)) continue;
 
     opts.existingKeys.add(key);

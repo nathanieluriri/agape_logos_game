@@ -6,41 +6,42 @@ export interface TierConfig {
   tier: Tier;
   rackSize: number;
   minAnswers: number;
-  // Optional upper bound on answers; a rack yielding more than this is rejected
-  // as too crowded. Unset by default (no cap). Set per tier to taste.
-  maxAnswers?: number;
-  // How deep into the frequency-ranked list this tier may draw from. Smaller =
-  // only very common words (easier); larger = rarer words allowed (harder).
-  // Both anchors and answers are filtered by it. The per-tier difficulty knob.
-  frequencyCutoff: number;
+  // Hard cap on answers per puzzle. A rack yielding more is rejected.
+  maxAnswers: number;
+  // How rare the anchor (and any full-rack anagram) may be. The difficulty knob:
+  // wider = rarer base words allowed.
+  anchorCutoff: number;
+  // How common a shorter sub-word must be to count as an answer. Kept modest so
+  // boards stay small (<= maxAnswers) and findable.
+  answerCutoff: number;
   poolTarget: number;
 }
 
-// Per-tier difficulty is tuned here: rack size, the answer-count gate
-// (minAnswers / optional maxAnswers), and how rare a word each tier may use
-// (frequencyCutoff). Starting points; adjust freely and regenerate.
+// Difficulty comes from rack size + anchor rarity (anchorCutoff); answerCutoff
+// keeps the board small and findable. Starting points; tune via the shortfall
+// report and regenerate.
 export const TIERS: Record<Tier, TierConfig> = {
-  easy: {tier: "easy", rackSize: 3, minAnswers: 3, frequencyCutoff: 15000, poolTarget: 200},
-  medium: {tier: "medium", rackSize: 4, minAnswers: 5, frequencyCutoff: 30000, poolTarget: 350},
-  hard: {tier: "hard", rackSize: 5, minAnswers: 7, frequencyCutoff: 50000, poolTarget: 350},
-  expert: {tier: "expert", rackSize: 6, minAnswers: 9, frequencyCutoff: 90000, poolTarget: 100},
+  easy: {tier: "easy", rackSize: 3, minAnswers: 3, maxAnswers: 5, anchorCutoff: 15000, answerCutoff: 15000, poolTarget: 200},
+  medium: {tier: "medium", rackSize: 4, minAnswers: 3, maxAnswers: 5, anchorCutoff: 30000, answerCutoff: 18000, poolTarget: 350},
+  hard: {tier: "hard", rackSize: 5, minAnswers: 3, maxAnswers: 5, anchorCutoff: 50000, answerCutoff: 20000, poolTarget: 350},
+  expert: {tier: "expert", rackSize: 6, minAnswers: 3, maxAnswers: 5, anchorCutoff: 90000, answerCutoff: 22000, poolTarget: 100},
 };
 
 export const TIER_ORDER: Tier[] = ["easy", "medium", "hard", "expert"];
 
-// The widest tier horizon. The shared common-word set is loaded this deep so
-// every tier can filter down from one index (see WordData.rank).
+// The widest horizon any tier draws from, so the shared word set / anagram index
+// loads deep enough for both anchors and answers.
 export const MAX_FREQUENCY_CUTOFF = Math.max(
-  ...TIER_ORDER.map((t) => TIERS[t].frequencyCutoff),
+  ...TIER_ORDER.flatMap((t) => [TIERS[t].anchorCutoff, TIERS[t].answerCutoff]),
 );
 
 export const DEFINITION_CONCURRENCY = 5;
 export const DEFINITION_MAX_RETRIES = 3;
 
 // Bump when the algorithm changes so regenerated puzzles are distinguishable.
-// v2: every answer must have a definition, per-tier frequency cutoffs, and the
-// profanity blocklist.
-export const GEN_VERSION = 2;
+// v3: split anchor/answer cutoffs, max 5 answers, distinct-letter racks, and
+// reject any rack with an undefined answer.
+export const GEN_VERSION = 3;
 
 const DATA_DIR = path.resolve(__dirname, "../../data");
 export const VALIDITY_FILE = path.join(DATA_DIR, "enable.txt");
