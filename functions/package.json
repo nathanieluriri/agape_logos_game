@@ -13,6 +13,7 @@
     "seed": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/seed.js\"",
     "extend": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/extend.js\"",
     "clean:defs": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/clean_definitions.js\"",
+    "purge:pool": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/purge_pool.js\"",
     "stats": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/stats.js\"",
     "export:starter": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/export_starter_pack.js\""
   },
