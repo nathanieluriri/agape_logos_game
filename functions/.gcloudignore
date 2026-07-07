@@ -1,0 +1,13 @@
+# Keep the deployed Cloud Function lean. The runtime uses the compiled lib/ and
+# never reads these; they exist only for local puzzle generation and dev.
+node_modules/
+.git/
+.gitignore
+# Generation inputs (~13 MB): read only by the local seed/generation scripts,
+# never by the deployed API.
+data/
+# Tests and dev config are not needed at runtime.
+test/
+jest.config.js
+firestore-debug.log
+*.log
