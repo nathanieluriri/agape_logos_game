@@ -67,16 +67,23 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
 
-    final token = await _token(key, {'w': 'POND', 'd': null});
-    // Cache an encrypted puzzle whose answer word holds the ciphertext token.
+    // Ciphertext carries the definition too, so the read-seam guard keeps the
+    // decrypted words (it drops any left undefined). Two answers clears the
+    // >= kMinPlayableAnswers floor.
+    final pondToken = await _token(key, {'w': 'POND', 'd': 'a small lake'});
+    final donToken = await _token(key, {'w': 'DON', 'd': 'a Spanish title'});
+    // Cache an encrypted puzzle whose answer words hold the ciphertext tokens.
     final encryptedPuzzle = Puzzle(
       tier: 'easy',
       rackSize: 4,
       letters: const ['P', 'O', 'N', 'D'],
       letterKey: 'DNOP',
       anchor: 'POND',
-      answers: [PuzzleAnswer(word: token, length: 4, definition: null)],
-      answerCount: 1,
+      answers: [
+        PuzzleAnswer(word: pondToken, length: 4, definition: null),
+        PuzzleAnswer(word: donToken, length: 3, definition: null),
+      ],
+      answerCount: 2,
     );
     await db.cachedPuzzlesDao.insertAll([
       puzzleToCompanion(encryptedPuzzle,
@@ -91,8 +98,10 @@ void main() {
 
     final decrypted = await repo.watchCurrentPuzzle().first;
     expect(decrypted, isNotNull);
-    expect(decrypted!.answers.single.word, 'POND'); // plaintext in memory only
-    expect(decrypted.answers.single.length, 4);
+    expect(decrypted!.answers.length, 2);
+    expect(decrypted.answers.first.word, 'POND'); // plaintext in memory only
+    expect(decrypted.answers.first.definition, 'a small lake');
+    expect(decrypted.answers.first.length, 4);
   });
 
   test('an encrypted puzzle is withheld when no key is available', () async {

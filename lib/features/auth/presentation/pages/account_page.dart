@@ -33,7 +33,6 @@ class AccountPage extends ConsumerWidget {
                 child: auth.when(
                   loading: () => const Center(
                     child: PondLoader(
-                      theme: PondLoaderTheme.auth,
                       label: 'Loading account',
                     ),
                   ),

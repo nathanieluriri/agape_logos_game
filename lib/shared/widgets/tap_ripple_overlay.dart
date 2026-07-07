@@ -1,12 +1,15 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/durations.dart';
 
-/// App-wide water-tap effect: every pointer-down spawns a soft expanding ring
-/// (a "drop on the pond") at the touch point. Purely decorative and never
-/// absorbs the gesture, so buttons, drags, and scrolls keep working. Honors
-/// reduced-motion (no ripple when animations are disabled).
+/// App-wide water-tap effect: a tap spawns a soft expanding ring (a "drop on
+/// the pond") at the touch point. Purely decorative and never absorbs the
+/// gesture, so buttons keep working. A ring is spawned only when a pointer
+/// lifts without ever crossing the touch slop, so scrolling and dragging stay
+/// dry (they never ripple). Honors reduced-motion (no ripple when animations
+/// are disabled).
 ///
 /// Provider-free by design; wrap the app's navigator with it via the
 /// `MaterialApp.router` builder.
@@ -25,6 +28,34 @@ class _TapRippleOverlayState extends State<TapRippleOverlay>
   static const int _maxConcurrent = 12;
 
   final List<_Ripple> _ripples = <_Ripple>[];
+
+  /// Pointers currently down, tracked so a tap can be told from a scroll/drag:
+  /// a ripple spawns only when a pointer lifts without crossing the slop.
+  final Map<int, _PendingTouch> _pending = <int, _PendingTouch>{};
+
+  void _onPointerDown(PointerDownEvent event) {
+    _pending[event.pointer] = _PendingTouch(origin: event.localPosition);
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    final pending = _pending[event.pointer];
+    if (pending == null || pending.moved) return;
+    // Once the finger travels past the touch slop it is a scroll or drag, not a
+    // tap, so this pointer is disqualified from ever spawning a ripple.
+    if ((event.localPosition - pending.origin).distance > kTouchSlop) {
+      pending.moved = true;
+    }
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    final pending = _pending.remove(event.pointer);
+    if (pending == null || pending.moved) return;
+    _spawn(pending.origin);
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    _pending.remove(event.pointer);
+  }
 
   void _spawn(Offset position) {
     final bool reduceMotion =
@@ -63,7 +94,10 @@ class _TapRippleOverlayState extends State<TapRippleOverlay>
   Widget build(BuildContext context) {
     return Listener(
       behavior: HitTestBehavior.translucent,
-      onPointerDown: (event) => _spawn(event.localPosition),
+      onPointerDown: _onPointerDown,
+      onPointerMove: _onPointerMove,
+      onPointerUp: _onPointerUp,
+      onPointerCancel: _onPointerCancel,
       child: Stack(
         children: [
           widget.child,
@@ -93,6 +127,17 @@ class _Ripple {
 
   final Offset center;
   final AnimationController controller;
+}
+
+/// A pointer that is down but not yet resolved into a tap or a scroll/drag.
+class _PendingTouch {
+  _PendingTouch({required this.origin});
+
+  /// Where the pointer first touched down (the ripple's origin if it taps).
+  final Offset origin;
+
+  /// Set once the pointer crosses the slop; such a pointer never ripples.
+  bool moved = false;
 }
 
 class _RipplePainter extends CustomPainter {

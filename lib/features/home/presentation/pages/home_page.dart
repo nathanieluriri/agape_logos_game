@@ -7,7 +7,7 @@ import '../../../../app/play_flow.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../features/profile/application/profile_providers.dart';
-import '../../../../features/rewards/presentation/widgets/reward_timer_pad.dart';
+import '../../../../features/rewards/presentation/widgets/reward_gift_button.dart';
 import '../../../../shared/widgets/coming_soon_sheet.dart';
 import '../../../../shared/widgets/play_pad_cluster.dart';
 import '../../../../shared/widgets/pond_background.dart';
@@ -45,8 +45,8 @@ class HomePage extends ConsumerWidget {
                 coins: coins,
                 onSettings: () => context.push('/settings'),
                 onAddCoins: () => context.push('/store'),
+                action: const RewardGiftButton(),
               ),
-              const RewardTimerPad(),
               const Spacer(),
               const WordmarkLogo(),
               const Spacer(),

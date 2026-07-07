@@ -68,3 +68,6 @@ functions/data/definitions_cache.json
 .claire/
 .playwright-mcp/
 .claude/worktrees/
+
+# Golden-test failure artifacts (actual/expected/diff images)
+test/goldens/failures/

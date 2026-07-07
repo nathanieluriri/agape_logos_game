@@ -43,7 +43,6 @@ class SettingsPage extends ConsumerWidget {
                   padding: EdgeInsets.all(AppSpacing.xl),
                   child: Center(
                     child: PondLoader(
-                      theme: PondLoaderTheme.settings,
                       label: 'Loading settings',
                     ),
                   ),

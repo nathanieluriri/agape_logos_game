@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/durations.dart';
 import '../../../../core/design/tokens/gradients.dart';
 import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/spacing.dart';
-import '../../../../shared/widgets/lily_pad.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_text_link.dart';
 import '../../application/auth_providers.dart';
@@ -43,8 +43,8 @@ class _AuthSheetContentState extends ConsumerState<AuthSheetContent> {
   static const double _dragBarWidth = 40;
   static const double _dragBarHeight = 4;
 
-  /// Diameter of the decorative pad above the title.
-  static const double _padSize = 44;
+  /// Height of the lotus auth mark above the title.
+  static const double _authIconSize = 60;
 
   static const _sheetDecoration = BoxDecoration(
     gradient: AppGradients.pondCard,
@@ -121,11 +121,11 @@ class _AuthSheetContentState extends ConsumerState<AuthSheetContent> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              const Center(
-                child: LilyPad(
-                  size: _padSize,
-                  palette: LilyPadPalette.teal,
-                  shape: PadShape.smooth,
+              Center(
+                child: SvgPicture.asset(
+                  'assets/branding/auth_icon.svg',
+                  height: _authIconSize,
+                  semanticsLabel: 'Agape Logos',
                 ),
               ),
               const SizedBox(height: AppSpacing.md),

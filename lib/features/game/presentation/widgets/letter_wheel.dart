@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/design/brand_mark_geometry.dart';
 import '../../../../core/design/motion/curves.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/durations.dart';
@@ -197,8 +198,9 @@ class _Node extends StatelessWidget {
 }
 
 /// The cream paper pad under the letters: the lily-pad layer recipe (soft
-/// cast shadow, hard underside, sheen fill, rim glow) on a plain circle, so
-/// the wheel stays a perfect circle for the drag hit-testing.
+/// cast shadow, hard underside, sheen fill, rim glow) on a plain circle, with a
+/// faint gold lotus watermark bloomed in the middle so the pad reads as crafted
+/// rather than blank. Stays a perfect circle for the drag hit-testing.
 class _WheelBasePainter extends CustomPainter {
   const _WheelBasePainter();
 
@@ -207,6 +209,19 @@ class _WheelBasePainter extends CustomPainter {
 
   /// Rim glow stroke width.
   static const double _rimStroke = 2;
+
+  /// Gold lotus watermark: how far the rosette bloom reaches (fraction of the
+  /// pad radius), how visible it is, and the thin gold ring that encircles it.
+  static const double _rosetteRadius = 0.62;
+  static const double _watermarkAlpha = 0.15;
+  static const double _goldRingRadius = 0.66;
+  static const double _goldRingAlpha = 0.5;
+  static const double _goldRingStroke = 1.6;
+
+  /// Faint green lily-pad edge, drawn just inside the disc outline.
+  static const double _greenRimInset = 1.5;
+  static const double _greenRimAlpha = 0.35;
+  static const double _greenRimStroke = 2;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -241,7 +256,25 @@ class _WheelBasePainter extends CustomPainter {
       Paint()..shader = AppGradients.wheelPad.createShader(rect),
     );
 
-    // 4. Light rim glow, brightest along the top edge.
+    // 4. Gold lotus watermark: a faint rosette bloom in the middle, reusing the
+    // brand mark's lotus geometry so the wheel carries the logo's flower motif,
+    // ringed by a thin gold line. Both sit inside the letter nodes.
+    final rosette =
+        Rect.fromCircle(center: center, radius: radius * _rosetteRadius);
+    canvas.drawPath(
+      BrandMarkGeometry.petalRosette(rosette),
+      Paint()..color = AppColors.accent.withValues(alpha: _watermarkAlpha),
+    );
+    canvas.drawCircle(
+      center,
+      radius * _goldRingRadius,
+      Paint()
+        ..color = AppColors.accent.withValues(alpha: _goldRingAlpha)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _goldRingStroke,
+    );
+
+    // 5. Light rim glow, brightest along the top edge.
     canvas.drawCircle(
       center,
       radius,
@@ -249,6 +282,16 @@ class _WheelBasePainter extends CustomPainter {
         ..shader = AppGradients.padRimGlow.createShader(rect)
         ..style = PaintingStyle.stroke
         ..strokeWidth = _rimStroke,
+    );
+
+    // 6. Faint green lily-pad rim around the whole edge, under the top glow.
+    canvas.drawCircle(
+      center,
+      radius - _greenRimInset,
+      Paint()
+        ..color = AppColors.lilyGreenLight.withValues(alpha: _greenRimAlpha)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _greenRimStroke,
     );
   }
 

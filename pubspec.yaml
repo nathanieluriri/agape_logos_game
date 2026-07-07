@@ -1,7 +1,7 @@
 name: agape_logos_game
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.2.4+6
+version: 0.2.5+7
 
 environment:
   sdk: ^3.12.0
@@ -68,14 +68,16 @@ flutter:
 #   dart run flutter_launcher_icons
 #
 # This writes every Android mipmap density, the adaptive icon, and the web
-# icons/favicon. The adaptive background is the app's cream so, if you later
-# supply a padded transparent foreground (assets/branding/app_icon_foreground.png),
-# the masked edges match the splash. See assets/branding/README.md.
+# icons/favicon. The adaptive background is crimson (#C01F5F, the lotus-bud
+# pink) so the ivory-framed pink tiles sit on a pink field rather than white.
+# If you later supply a padded transparent foreground
+# (assets/branding/app_icon_foreground.png), the masked edges match. See
+# assets/branding/README.md.
 flutter_launcher_icons:
   image_path: "assets/branding/app_icon.png"
   android: "ic_launcher"
   min_sdk_android: 21
-  adaptive_icon_background: "#F7F4EC"
+  adaptive_icon_background: "#C01F5F"
   adaptive_icon_foreground: "assets/branding/app_icon.png"
   web:
     generate: true

@@ -94,7 +94,6 @@ class _StoreBody extends ConsumerWidget {
             padding: EdgeInsets.all(AppSpacing.xxl),
             child: Center(
               child: PondLoader(
-                theme: PondLoaderTheme.store,
                 label: 'Loading the store',
               ),
             ),

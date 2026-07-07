@@ -8,10 +8,23 @@ import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// A signed-in user's answer key. Drawn/recovered puzzles cache as encrypted;
+/// with a key on hand they count as playable, so the starter-pack fallback (a
+/// stopgap for the no-key / offline case) stays out of these draw/refill tests.
+final _key = List<int>.generate(32, (i) => i + 1);
+
+/// Two defined answers so plaintext seed puzzles clear the read-seam guard
+/// (`guardDefinedAnswers` drops undefined words and skips a puzzle left with
+/// fewer than `kMinPlayableAnswers`). Ignored for encrypted inserts, which are
+/// vetted only after decryption.
 Puzzle _p(String key, String tier) => Puzzle(
       tier: tier, rackSize: key.length, letters: key.split(''),
       letterKey: key, anchor: key,
-      answers: const [], answerCount: 0,
+      answers: const [
+        PuzzleAnswer(word: 'ONE', length: 3, definition: 'the first number'),
+        PuzzleAnswer(word: 'TWO', length: 3, definition: 'the second number'),
+      ],
+      answerCount: 2,
     );
 
 /// Test double so seed-fallback tests never touch rootBundle.
@@ -61,7 +74,7 @@ void main() {
 
   test('cold start recovers first, then draws when recovery is empty', () async {
     final remote = _FakeRemote(assignedResult: [], drawResult: [_p('NOW', 'easy'), _p('CAT', 'easy')]);
-    final repo = PuzzleRepositoryImpl(db, remote);
+    final repo = PuzzleRepositoryImpl(db, remote, answerKey: () async => _key);
 
     await repo.ensureCacheReady();
 
@@ -75,7 +88,7 @@ void main() {
       assignedResult: [_p('AAA', 'easy')],
       drawResult: [_p('BBB', 'medium')],
     );
-    final repo = PuzzleRepositoryImpl(db, remote);
+    final repo = PuzzleRepositoryImpl(db, remote, answerKey: () async => _key);
 
     await repo.ensureCacheReady();
 
@@ -88,13 +101,14 @@ void main() {
   test('no refill when already at/above threshold', () async {
     // Seed >= kRefillThreshold unplayed rows.
     final remote = _FakeRemote(drawResult: [_p('X', 'easy')]);
-    final repo = PuzzleRepositoryImpl(db, remote);
+    final repo = PuzzleRepositoryImpl(db, remote, answerKey: () async => _key);
     final seed = [
       for (var i = 0; i < kRefillThreshold; i++) _p('P$i', 'easy'),
     ];
     // Insert directly via a first ensureCacheReady with a fat draw, then reset counts.
     final seedRemote = _FakeRemote(assignedResult: seed);
-    await PuzzleRepositoryImpl(db, seedRemote).ensureCacheReady();
+    await PuzzleRepositoryImpl(db, seedRemote, answerKey: () async => _key)
+        .ensureCacheReady();
     expect(await db.cachedPuzzlesDao.unplayedCount(), kRefillThreshold);
 
     await repo.ensureCacheReady();
@@ -130,7 +144,8 @@ void main() {
       () async {
     final remote = _FakeRemote(drawResult: [_p('NOW', 'easy')]);
     final seed = _FakeSeed([_p('WORD', 'easy')]);
-    final repo = PuzzleRepositoryImpl(db, remote, seed: seed);
+    final repo = PuzzleRepositoryImpl(db, remote,
+        seed: seed, answerKey: () async => _key);
 
     await repo.ensureCacheReady();
 

@@ -99,7 +99,6 @@ class _GamePageState extends ConsumerState<GamePage> {
                     )
                   : const Center(
                       child: PondLoader(
-                        theme: PondLoaderTheme.puzzle,
                         label: 'Loading puzzle',
                       ),
                     ))

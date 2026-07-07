@@ -14,8 +14,9 @@ abstract final class AppSizing {
   static const double lotusWidth = 168;
   // Render width of the vector currency petal in CoinPill. The petal fills its
   // tight SVG viewBox (unlike the old padded 2 MB PNG), so this is the coin's
-  // actual on-screen size, not a padded canvas width.
-  static const double coinPetal = 64;
+  // actual on-screen size, not a padded canvas width. Sized to sit on the
+  // compact pill without overhanging onto neighbours.
+  static const double coinPetal = 44;
 
   static const double progressTrackWidth = 300;
   static const double progressTrackHeight = 22;
@@ -44,9 +45,8 @@ abstract final class AppSizing {
   static const double loader = 48;
   static const double dialogMaxWidth = 360;
 
-  // Determinate loader: themed emblem footprint + progress track width. The
-  // track is narrower than the level-complete bar so it sits inside padded
-  // page bodies without overflowing on small phones.
-  static const double loaderEmblem = 72;
+  // Determinate loader: progress track width. Narrower than the level-complete
+  // bar so it sits inside padded page bodies without overflowing on small
+  // phones.
   static const double loaderTrackWidth = 220;
 }
