@@ -5,6 +5,7 @@ import '../../../../app/play_flow.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../shared/widgets/glyphs/pond_glyph.dart';
 import '../../../../shared/widgets/lily_pad.dart';
 import '../../../../shared/widgets/lily_pad_button.dart';
 
@@ -45,7 +46,7 @@ class _VersusContent extends StatelessWidget {
     return const Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.people_alt_rounded, size: 26, color: AppColors.padLabel),
+        PondIcon(PondGlyph.versus, size: AppSizing.secondaryPadIcon),
         SizedBox(height: AppSpacing.xxs),
         Text(
           'Versus',

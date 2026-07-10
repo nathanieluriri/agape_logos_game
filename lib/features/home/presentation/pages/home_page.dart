@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/play_flow.dart';
-import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../features/profile/application/profile_providers.dart';
@@ -18,6 +17,7 @@ import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_stage.dart';
 import '../../../../shared/widgets/pond_top_bar.dart';
 import '../../../../shared/widgets/wordmark_logo.dart';
+import '../../../../shared/widgets/glyphs/pond_glyph.dart';
 import '../widgets/progress_sync_notice.dart';
 
 /// The home screen. Thin composition of shared pond widgets.
@@ -64,10 +64,9 @@ class HomePage extends ConsumerWidget {
               PlayPadCluster(
                 nextLabel: nextLabel,
                 onPlay: () => startPlayFlow(context, ref),
-                secondaryIcon: const Icon(
-                  Icons.menu_book_rounded,
+                secondaryIcon: const PondIcon(
+                  PondGlyph.book,
                   size: AppSizing.secondaryPadIcon,
-                  color: AppColors.padLabel,
                 ),
                 secondaryLabel: 'Dictionary',
                 onSecondary: () => context.push('/dictionary'),

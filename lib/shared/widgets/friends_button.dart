@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/durations.dart';
@@ -6,6 +6,7 @@ import '../../core/design/tokens/gradients.dart';
 import '../../core/design/tokens/shadows.dart';
 import '../../core/design/tokens/sizing.dart';
 import '../../core/haptics/haptics.dart';
+import 'glyphs/pond_glyph.dart';
 
 /// Round Friends button that matches the settings gear: a translucent halo ring
 /// around a gradient teal disc with a filled cream people glyph. Scales down on
@@ -53,9 +54,7 @@ class _FriendsButtonState extends State<FriendsButton> {
                 gradient: AppGradients.settingsInner,
                 boxShadow: AppShadows.pill,
               ),
-              child: const ExcludeSemantics(
-                child: Icon(Icons.group, color: AppColors.wordmark, size: 22),
-              ),
+              child: const PondIcon(PondGlyph.friends, size: 22),
             ),
           ),
         ),
