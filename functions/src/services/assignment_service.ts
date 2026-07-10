@@ -80,33 +80,48 @@ async function drawTierCandidates(
   const want = n * OVERSAMPLE;
   const start = pickWindow(n, rng);
   const col = db.collection("puzzles").where("tier", "==", tier);
-  // Forward window from a random point.
-  const forward = await col
-    .where("random", ">=", start)
-    .orderBy("random")
-    .limit(want)
-    .select()
-    .get();
-  const ids = forward.docs.map((d) => d.id).filter((id) => !assignedIds.has(id));
-  if (ids.length >= n) return ids.slice(0, n);
-  // Wrap around: read from the start of the tier to top up.
-  const wrap = await col
-    .where("random", "<", start)
-    .orderBy("random")
-    .limit(want)
-    .select()
-    .get();
-  for (const d of wrap.docs) {
-    if (ids.length >= n) break;
-    if (!assignedIds.has(d.id)) ids.push(d.id);
-  }
-  if (ids.length >= n) return ids.slice(0, n);
 
-  // Fallback: a Firestore range filter SKIPS documents that lack the field, so
-  // any puzzle written before `random` existed (or before the backfill script
-  // ran) is invisible to the windowed query above. Without this scan a deploy
-  // that lands ahead of the backfill would serve zero puzzles. Costs a full
-  // tier read, but only when the window came up short.
+  const ids: string[] = [];
+  try {
+    // Forward window from a random point.
+    const forward = await col
+      .where("random", ">=", start)
+      .orderBy("random")
+      .limit(want)
+      .select()
+      .get();
+    for (const d of forward.docs) {
+      if (!assignedIds.has(d.id)) ids.push(d.id);
+    }
+    if (ids.length >= n) return ids.slice(0, n);
+    // Wrap around: read from the start of the tier to top up.
+    const wrap = await col
+      .where("random", "<", start)
+      .orderBy("random")
+      .limit(want)
+      .select()
+      .get();
+    for (const d of wrap.docs) {
+      if (ids.length >= n) break;
+      if (!assignedIds.has(d.id)) ids.push(d.id);
+    }
+    if (ids.length >= n) return ids.slice(0, n);
+  } catch (e) {
+    // The windowed query needs the composite index (puzzles: tier, random). If it
+    // is missing or still BUILDING, Firestore throws FAILED_PRECONDITION. Never
+    // let that fail a draw: fall through to the tier scan below.
+    // eslint-disable-next-line no-console
+    console.warn(`windowed draw unavailable for tier=${tier}, scanning`, e);
+    ids.length = 0;
+  }
+
+  // Fallback, for two cases:
+  //  1. A Firestore range filter SKIPS documents that lack the field, so any
+  //     puzzle written before `random` existed (or before backfill:random ran)
+  //     is invisible to the windowed query.
+  //  2. The composite index is missing or still building (the catch above).
+  // Either way a draw must still return puzzles. Costs one full tier read, and
+  // only when the window came up short or unavailable.
   const all = await col.select().get();
   const {chosen} = selectUnseen(all.docs.map((d) => d.id), assignedIds, n, rng);
   return chosen;
