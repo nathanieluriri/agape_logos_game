@@ -15,14 +15,15 @@ import '../../core/haptics/haptics.dart';
 class PondIconButton extends StatefulWidget {
   const PondIconButton({
     super.key,
-    required this.icon,
+    required this.glyph,
     required this.onPressed,
     this.semanticLabel,
     this.size = AppSizing.topBarButton,
   });
 
-  /// The glyph shown on the disc.
-  final IconData icon;
+  /// The glyph shown on the disc, already sized by the caller (a [PondIcon]
+  /// or, transitionally, an [Icon]).
+  final Widget glyph;
 
   /// Called when the button is tapped.
   final VoidCallback onPressed;
@@ -40,9 +41,6 @@ class PondIconButton extends StatefulWidget {
 class _PondIconButtonState extends State<PondIconButton> {
   /// Halo ring thickness around the inner disc (matches the settings gear).
   static const double _haloPadding = 5;
-
-  /// Icon diameter as a fraction of the outer size.
-  static const double _iconScale = 0.46;
 
   bool _pressed = false;
 
@@ -79,13 +77,7 @@ class _PondIconButtonState extends State<PondIconButton> {
                 gradient: AppGradients.settingsInner,
                 boxShadow: AppShadows.pill,
               ),
-              child: ExcludeSemantics(
-                child: Icon(
-                  widget.icon,
-                  color: AppColors.wordmark,
-                  size: widget.size * _iconScale,
-                ),
-              ),
+              child: ExcludeSemantics(child: widget.glyph),
             ),
           ),
         ),

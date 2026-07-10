@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../core/design/tokens/typography.dart';
 import '../../../../shared/widgets/coin_pill.dart';
+import '../../../../shared/widgets/glyphs/pond_glyph.dart';
 import '../../../../shared/widgets/pond_icon_button.dart';
 
 /// Game header: back, dictionary, centered level title, coins.
@@ -22,6 +23,9 @@ class GameTopBar extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onDictionary;
 
+  /// Glyph size on the top-bar discs.
+  static const double _glyphSize = 20;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -29,14 +33,14 @@ class GameTopBar extends StatelessWidget {
       child: Row(
         children: [
           PondIconButton(
-            icon: Icons.arrow_back_rounded,
+            glyph: const PondIcon(PondGlyph.chevronLeft, size: _glyphSize),
             semanticLabel: 'Back',
             onPressed: onBack,
             size: AppSizing.topBarButton,
           ),
           const SizedBox(width: AppSpacing.xs),
           PondIconButton(
-            icon: Icons.menu_book_outlined,
+            glyph: const PondIcon(PondGlyph.book, size: _glyphSize),
             semanticLabel: 'Dictionary',
             onPressed: onDictionary,
             size: AppSizing.topBarButton,

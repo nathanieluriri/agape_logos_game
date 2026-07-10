@@ -281,7 +281,10 @@ Widget pondControlsPreview() {
             onPressed: () {},
           ),
           const SizedBox(height: AppSpacing.lg),
-          PondIconButton(icon: Icons.arrow_back_rounded, onPressed: () {}),
+          PondIconButton(
+            glyph: const PondIcon(PondGlyph.chevronLeft, size: 20),
+            onPressed: () {},
+          ),
           const SizedBox(height: AppSpacing.lg),
           const PondLoader(label: 'Loading puzzle'),
           const SizedBox(height: AppSpacing.lg),
