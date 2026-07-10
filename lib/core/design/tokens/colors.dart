@@ -111,8 +111,12 @@ abstract final class AppColors {
 
   // Wordmark + play affordance.
   static const wordmark = Color(0xFFFDFBF3);
-  static const playTriangle = Color(0xFFFBF4DC);
-  static const playTriangleShadow = Color(0xFFE3D4AB);
+
+  /// Face and extrusion of every hand-painted glyph (play triangle, book,
+  /// versus chevrons, plus, key, back chevron, friends): cream over a darker
+  /// cream copy nudged down, the "pressed clay" recipe.
+  static const glyphFace = Color(0xFFFBF4DC);
+  static const glyphExtrusion = Color(0xFFE3D4AB);
 
   /// Shadowed-water pool under the floating lotus mark (fades to clear).
   static const lotusShadow = Color(0x4D043338);

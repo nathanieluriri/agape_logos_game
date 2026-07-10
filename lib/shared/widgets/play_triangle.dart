@@ -57,10 +57,10 @@ class _PlayTrianglePainter extends CustomPainter {
     canvas
       ..save()
       ..translate(0, size.height * 0.05)
-      ..drawPath(tri, Paint()..color = AppColors.playTriangleShadow)
+      ..drawPath(tri, Paint()..color = AppColors.glyphExtrusion)
       ..restore()
       // Face.
-      ..drawPath(tri, Paint()..color = AppColors.playTriangle);
+      ..drawPath(tri, Paint()..color = AppColors.glyphFace);
   }
 
   @override
