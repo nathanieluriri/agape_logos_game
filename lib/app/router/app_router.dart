@@ -60,8 +60,14 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/multiplayer',
-      pageBuilder: (context, state) =>
-          pondRevealPage(const MatchmakingPage(), state),
+      pageBuilder: (context, state) => pondRevealPage(
+        MatchmakingPage(
+          mode: state.uri.queryParameters['mode'] == 'join'
+              ? MatchmakingMode.join
+              : MatchmakingMode.create,
+        ),
+        state,
+      ),
     ),
     GoRoute(
       path: '/multiplayer/lobby/:id',
