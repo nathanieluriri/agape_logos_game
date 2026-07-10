@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/pond_background.dart';
+import '../../../../shared/widgets/pond_page_header.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_stage.dart';
 import '../../../auth/application/auth_providers.dart';
@@ -28,9 +29,17 @@ class MatchResultPage extends ConsumerWidget {
     return Scaffold(
       body: PondBackground(
         child: PondStage(
-          child: result == null
-              ? const Center(child: CircularProgressIndicator())
-              : _ResultBody(result: result),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const PondPageHeader(title: 'Result'),
+              Expanded(
+                child: result == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : _ResultBody(result: result),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -70,7 +79,8 @@ class _ResultBody extends StatelessWidget {
           const Spacer(),
           PondPillButton(
             label: 'Rematch',
-            onPressed: () => context.pushReplacement('/multiplayer'),
+            onPressed: () =>
+                context.pushReplacement('/multiplayer?mode=create'),
           ),
           const SizedBox(height: AppSpacing.sm),
           PondPillButton(

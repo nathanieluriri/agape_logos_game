@@ -7,6 +7,7 @@ import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/pond_background.dart';
+import '../../../../shared/widgets/pond_page_header.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_stage.dart';
 import '../../../auth/application/auth_providers.dart';
@@ -29,7 +30,7 @@ class LobbyPage extends ConsumerWidget {
       if (m.status == MatchStatus.active || m.status == MatchStatus.countdown) {
         context.pushReplacement('/multiplayer/match/$matchId');
       } else if (m.status == MatchStatus.cancelled) {
-        context.pushReplacement('/multiplayer');
+        context.go('/');
       }
     });
 
@@ -39,12 +40,38 @@ class LobbyPage extends ConsumerWidget {
     return Scaffold(
       body: PondBackground(
         child: PondStage(
-          child: match == null
-              ? const Center(child: CircularProgressIndicator())
-              : _LobbyBody(match: match, myUid: myUid, matchId: matchId),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PondPageHeader(
+                title: 'Lobby',
+                onBack: () => _leaveToHome(context, ref),
+              ),
+              Expanded(
+                child: match == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : _LobbyBody(
+                        match: match, myUid: myUid, matchId: matchId),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  /// Back = leave the lobby and return home. Pop FIRST so the match-stream
+  /// listener on this page is disposed before the leave call flips the match
+  /// to cancelled (otherwise the cancelled branch would immediately
+  /// pushReplacement us back into matchmaking).
+  void _leaveToHome(BuildContext context, WidgetRef ref) {
+    final service = ref.read(matchServiceProvider);
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
+    service.leave(matchId).ignore();
   }
 }
 
@@ -116,9 +143,14 @@ class _LobbyBody extends ConsumerWidget {
           PondPillButton(
             label: 'Leave',
             variant: PondPillVariant.quiet,
-            onPressed: () async {
-              await service.leave(matchId);
-              if (context.mounted) context.pushReplacement('/multiplayer');
+            onPressed: () {
+              final service = ref.read(matchServiceProvider);
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/');
+              }
+              service.leave(matchId).ignore();
             },
           ),
         ],

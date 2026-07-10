@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/pond_background.dart';
+import '../../../../shared/widgets/pond_dialog.dart';
+import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../../game/presentation/widgets/formed_word_pill.dart';
 import '../../../game/presentation/widgets/letter_wheel.dart';
@@ -107,13 +109,53 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     final effects = ref.watch(activeEffectsProvider(matchId));
     final playState = ref.watch(matchPlayControllerProvider);
 
-    return Scaffold(
-      body: PondBackground(
-        child: SafeArea(
-          child: _content(match, rack, effects, playState, myUid),
+    return PopScope(
+      // Mid-match: intercept back (OS gesture included) and confirm the
+      // forfeit instead of silently dropping the player out of the match.
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final leave = await _confirmForfeit();
+        if (leave) await _leaveMatch();
+      },
+      child: Scaffold(
+        body: PondBackground(
+          child: SafeArea(
+            child: _content(match, rack, effects, playState, myUid),
+          ),
         ),
       ),
     );
+  }
+
+  /// Pond-styled confirm before abandoning a live match. Returns true when
+  /// the player taps Forfeit.
+  Future<bool> _confirmForfeit() async {
+    final result = await showPondDialog<bool>(
+      context: context,
+      title: 'Leave the match?',
+      body: 'Leaving now forfeits the match.',
+      actions: [
+        PondPillButton(
+          label: 'Stay',
+          variant: PondPillVariant.quiet,
+          onPressed: () =>
+              Navigator.of(context, rootNavigator: true).pop(false),
+        ),
+        PondPillButton(
+          label: 'Forfeit',
+          onPressed: () =>
+              Navigator.of(context, rootNavigator: true).pop(true),
+        ),
+      ],
+    );
+    return result ?? false;
+  }
+
+  Future<void> _leaveMatch() async {
+    await ref.read(matchServiceProvider).leave(widget.matchId);
+    if (!mounted) return;
+    context.go('/');
   }
 
   Widget _content(
@@ -246,11 +288,8 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                   icon: Icons.flag_outlined,
                   semanticLabel: 'Leave match',
                   onTap: () async {
-                    await ref.read(matchServiceProvider).leave(match.matchId);
-                    // `context` here is State.context, so guard on the State's
-                    // own `mounted`, not `context.mounted`.
-                    if (!mounted) return;
-                    context.go('/');
+                    final leave = await _confirmForfeit();
+                    if (leave) await _leaveMatch();
                   },
                 ),
               ],
