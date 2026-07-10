@@ -4,9 +4,9 @@ import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/elevation.dart';
 import '../../core/design/tokens/sizing.dart';
 import '../../core/design/tokens/spacing.dart';
+import 'glyphs/pond_glyph.dart';
 import 'lily_pad.dart';
 import 'lily_pad_button.dart';
-import 'play_triangle.dart';
 
 /// The floating play cluster shared by the home and level-complete pages:
 /// a green Play pad centered, with a teal secondary pad floating up and to the
@@ -87,7 +87,7 @@ class _PlayContent extends StatelessWidget {
         // mass (not its bounding box) sits in the middle of the pad.
         const Padding(
           padding: EdgeInsets.only(left: AppSpacing.xs),
-          child: PlayTriangle(size: 52),
+          child: PondIcon(PondGlyph.play, size: 52),
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(

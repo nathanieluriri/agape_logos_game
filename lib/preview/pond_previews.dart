@@ -19,9 +19,9 @@ import '../features/settings/presentation/widgets/settings_header.dart';
 import '../features/settings/presentation/widgets/settings_section.dart';
 import '../features/settings/presentation/widgets/settings_switch_row.dart';
 import '../shared/widgets/film_play_icon.dart';
+import '../shared/widgets/glyphs/pond_glyph.dart';
 import '../shared/widgets/lily_pad.dart';
 import '../shared/widgets/play_pad_cluster.dart';
-import '../shared/widgets/play_triangle.dart';
 import '../shared/widgets/pond_icon_button.dart';
 import '../shared/widgets/pond_loader.dart';
 import '../shared/widgets/pond_progress_track.dart';
@@ -113,7 +113,7 @@ Widget playPadPreview() {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            PlayTriangle(size: 52),
+            PondIcon(PondGlyph.play, size: 52),
             SizedBox(height: AppSpacing.sm),
             Text(
               'Lv.26',

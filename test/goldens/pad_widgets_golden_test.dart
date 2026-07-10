@@ -9,9 +9,9 @@
 import 'package:agape_logos_game/core/design/tokens/colors.dart';
 import 'package:agape_logos_game/core/design/tokens/gradients.dart';
 import 'package:agape_logos_game/core/design/tokens/spacing.dart';
+import 'package:agape_logos_game/shared/widgets/glyphs/pond_glyph.dart';
 import 'package:agape_logos_game/shared/widgets/lily_pad.dart';
 import 'package:agape_logos_game/shared/widgets/play_pad_cluster.dart';
-import 'package:agape_logos_game/shared/widgets/play_triangle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -66,7 +66,7 @@ void main() {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              PlayTriangle(size: 56),
+              PondIcon(PondGlyph.play, size: 56),
               SizedBox(height: AppSpacing.sm),
               Text(
                 'Lv.26',
