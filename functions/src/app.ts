@@ -3,8 +3,12 @@ import express from "express";
 import {levelResultsRouter} from "./routes/level_results";
 import {puzzlesRouter} from "./routes/puzzles";
 import {profileRouter} from "./routes/profile";
+import {dictionaryRouter} from "./routes/dictionary";
+import {socialRouter} from "./routes/social";
 import {storeRouter} from "./routes/store";
 import {rewardsRouter} from "./routes/rewards";
+import {matchesRouter} from "./routes/matches";
+import {themesRouter} from "./routes/themes";
 import {errorHandler, notFound} from "./middleware/error";
 import {buildOpenApiDocument} from "./openapi/document";
 import {docsHtml} from "./openapi/docs_page";
@@ -27,10 +31,14 @@ export function createApp(): express.Express {
     res.status(200).json({status: "ok"});
   });
   app.use(profileRouter);
+  app.use(socialRouter);
+  app.use(dictionaryRouter);
   app.use(levelResultsRouter);
   app.use(puzzlesRouter);
   app.use(storeRouter);
   app.use(rewardsRouter);
+  app.use(matchesRouter);
+  app.use(themesRouter);
   app.get("/openapi.json", (_req, res) => {
     res.json(buildOpenApiDocument());
   });

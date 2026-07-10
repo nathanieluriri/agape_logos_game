@@ -14,6 +14,7 @@ import '../../../../shared/widgets/pond_stage.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../../auth/domain/auth_failure.dart';
 import '../../application/settings_providers.dart';
+import '../widgets/public_profile_switch_row.dart';
 import '../widgets/settings_action_row.dart';
 import '../widgets/settings_header.dart';
 import '../widgets/settings_section.dart';
@@ -87,6 +88,20 @@ class SettingsPage extends ConsumerWidget {
                           label: 'Haptics',
                           value: s.haptics,
                           onChanged: controller.setHaptics,
+                        ),
+                      ],
+                    ),
+                    SettingsSection(
+                      title: 'Social',
+                      children: [
+                        const PublicProfileSwitchRow(),
+                        SettingsActionRow(
+                          label: 'Friends',
+                          onTap: () => context.push('/friends'),
+                        ),
+                        SettingsActionRow(
+                          label: 'Match history',
+                          onTap: () => context.push('/history'),
                         ),
                       ],
                     ),

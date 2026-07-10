@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/design/tokens/colors.dart';
+import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../shared/widgets/petal_icon.dart';
 import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_loader.dart';
 import '../../../../shared/widgets/pond_page_header.dart';
@@ -56,7 +58,7 @@ class _SignedOutNotice extends StatelessWidget {
       child: Column(
         children: [
           const Text(
-            'Sign in to visit the store and spend your coins.',
+            'Sign in to visit the store and spend your petals.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.padLabelSoft, fontSize: 15),
           ),
@@ -161,17 +163,13 @@ class _CoinBalance extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 18,
-          height: 18,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.accent,
-          ),
-        ),
+        const PetalIcon(size: AppSizing.petalIconMd),
         const SizedBox(width: AppSpacing.sm),
+        // PLAN: user-facing label only. The value is `coinsProvider` and the
+        // backend field is still `coins`; the wallet stays coins internally,
+        // only the shown word changes to petals.
         Text(
-          '$coins coins',
+          '$coins petals',
           style: const TextStyle(
             color: AppColors.padLabel,
             fontSize: 16,

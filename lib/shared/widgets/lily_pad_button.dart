@@ -4,13 +4,13 @@ import 'package:flutter/widgets.dart';
 import '../../core/design/motion/curves.dart';
 import '../../core/design/tokens/durations.dart';
 import '../../core/haptics/haptics.dart';
+import 'float_motion.dart';
 import 'lily_pad.dart';
 
-enum IdleMotion { float, bob }
-
-/// A tappable lily pad: the shared "navigating button" used for Play,
-/// Withdraw, and Bonus. Idle float/bob plus a press scale-down; honors
-/// reduced-motion (no idle drift when animations are disabled).
+/// A tappable lily pad: the shared "navigating button" used for Play, Withdraw,
+/// and Bonus. Idle premium float (bob + scale breath + gentle tilt, with the
+/// cast shadow coupled to the bob) via [FloatMotion], plus a press scale-down.
+/// Honours reduced motion (static at rest when animations are disabled).
 class LilyPadButton extends StatefulWidget {
   const LilyPadButton({
     super.key,
@@ -20,7 +20,7 @@ class LilyPadButton extends StatefulWidget {
     required this.onPressed,
     this.shape = PadShape.notched,
     this.rotationDegrees = 0,
-    this.idle = IdleMotion.float,
+    this.phase = 0,
     this.shadow = true,
     this.semanticLabel,
   });
@@ -31,7 +31,10 @@ class LilyPadButton extends StatefulWidget {
   final double rotationDegrees;
   final Widget content;
   final VoidCallback onPressed;
-  final IdleMotion idle;
+
+  /// Bob phase (fraction of a cycle, 0..1) so several pads on one screen float
+  /// out of sync. See [FloatMotion.phase].
+  final double phase;
   final bool shadow;
   final String? semanticLabel;
 
@@ -39,35 +42,11 @@ class LilyPadButton extends StatefulWidget {
   State<LilyPadButton> createState() => _LilyPadButtonState();
 }
 
-class _LilyPadButtonState extends State<LilyPadButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _idle = AnimationController(
-    vsync: this,
-    duration: AppDurations.slow * 2,
-  );
+class _LilyPadButtonState extends State<LilyPadButton> {
   bool _pressed = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    if (reduceMotion) {
-      _idle.stop();
-      _idle.value = 0;
-    } else if (!_idle.isAnimating) {
-      _idle.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _idle.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final travel = widget.idle == IdleMotion.float ? 7.0 : 5.0;
     return Semantics(
       button: true,
       label: widget.semanticLabel,
@@ -80,24 +59,26 @@ class _LilyPadButtonState extends State<LilyPadButton>
           Haptics.instance.mediumImpact();
           widget.onPressed();
         },
+        // PLAN: the press scale 0.92 is the pre-existing value (unchanged
+        // behaviour); left as-is to avoid scope creep. FloatMotion sits INSIDE
+        // the press AnimatedScale, so pressing squashes the whole floating pad
+        // (bob + press compose), which is the intended feel.
         child: AnimatedScale(
           scale: _pressed ? 0.92 : 1.0,
           duration: AppDurations.instant,
           curve: AppCurves.emphasized,
-          child: AnimatedBuilder(
-            animation: _idle,
-            builder: (context, child) {
-              final dy = -travel * AppCurves.float.transform(_idle.value);
-              return Transform.translate(offset: Offset(0, dy), child: child);
-            },
-            child: LilyPad(
+          child: FloatMotion(
+            phase: widget.phase,
+            builder: (context, lift, child) => LilyPad(
               size: widget.size,
               palette: widget.palette,
               shape: widget.shape,
               rotationDegrees: widget.rotationDegrees,
               shadow: widget.shadow,
-              child: ExcludeSemantics(child: widget.content),
+              lift: lift,
+              child: child,
             ),
+            child: ExcludeSemantics(child: widget.content),
           ),
         ),
       ),

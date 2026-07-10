@@ -7,6 +7,7 @@ import '../../../../core/design/tokens/durations.dart';
 import '../../../../core/design/tokens/gradients.dart';
 import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../core/haptics/haptic_providers.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_text_link.dart';
 import '../../application/auth_providers.dart';
@@ -86,8 +87,19 @@ class _AuthSheetContentState extends ConsumerState<AuthSheetContent> {
   @override
   Widget build(BuildContext context) {
     ref.listen(authStateProvider, (prev, next) {
-      if (next.asData?.value != null && Navigator.of(context).canPop()) {
+      final signedIn = next.asData?.value != null;
+      final wasSignedIn = prev?.asData?.value != null;
+      if (signedIn && !wasSignedIn) {
+        ref.read(hapticServiceProvider).successPattern();
+      }
+      if (signedIn && Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
+      }
+    });
+    ref.listen(authControllerProvider, (prev, next) {
+      // A newly surfaced auth failure (bad password, cancelled Google, etc.).
+      if (next.hasError && prev?.hasError != true) {
+        ref.read(hapticServiceProvider).mistakeImpact();
       }
     });
 

@@ -5,6 +5,7 @@ import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/gradients.dart';
 import '../../core/design/tokens/radii.dart';
 import '../../core/design/tokens/spacing.dart';
+import '../../core/haptics/haptics.dart';
 import 'lily_pad.dart';
 import 'pond_pill_button.dart';
 
@@ -12,6 +13,7 @@ import 'pond_pill_button.dart';
 /// Store): a sprouting lily pad rising out of deep water. Shared by the home
 /// and level-complete pages.
 Future<void> showComingSoon(BuildContext context, String feature) {
+  Haptics.instance.lightImpact();
   return showModalBottomSheet<void>(
     context: context,
     backgroundColor: AppColors.transparent,

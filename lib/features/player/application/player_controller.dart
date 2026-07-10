@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../puzzles/domain/puzzle.dart';
 import 'player_state.dart';
 
 /// Holds the most recent [LevelSummary] for the level-complete screen. Written
@@ -15,11 +16,13 @@ class PlayerController extends Notifier<LevelSummary?> {
     required int completedLevel,
     required int wordsFound,
     required int totalWords,
+    required List<PuzzleAnswer> words,
   }) {
     state = LevelSummary(
       completedLevel: completedLevel,
       wordsFound: wordsFound,
       totalWords: totalWords,
+      words: words,
     );
   }
 }

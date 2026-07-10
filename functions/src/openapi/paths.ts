@@ -1,6 +1,19 @@
 import {z} from "zod";
 import {registry} from "./registry";
 import {AnswerKeyResponseSchema, CoinsResponseSchema, ProfileResponseSchema, ProfileUpdateSchema} from "../schemas/profile";
+import {DictionaryResponseSchema} from "../schemas/dictionary";
+import {
+  CreateMatchBodySchema,
+  CreateMatchResponseSchema,
+  JoinMatchBodySchema,
+  JoinMatchResponseSchema,
+  OkResponseSchema,
+  PowerupBodySchema,
+  ReadyBodySchema,
+  SubmitBodySchema,
+  SubmitResponseSchema,
+  ThemesResponseSchema,
+} from "../schemas/matches";
 import {LevelResultBodySchema} from "../schemas/level_results";
 import {DrawBodySchema, PuzzleResultBodySchema} from "../schemas/puzzles";
 import {
@@ -54,6 +67,20 @@ registry.registerPath({
     200: {
       description: "The base64 answer key",
       content: {"application/json": {schema: AnswerKeyResponseSchema}},
+    },
+    401: {description: "Missing or invalid token"},
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/me/dictionary",
+  summary: "The caller's solved words (with definitions) across all completed puzzles",
+  security: bearer,
+  responses: {
+    200: {
+      description: "Solved words with definitions, de-duplicated across completed puzzles",
+      content: {"application/json": {schema: DictionaryResponseSchema}},
     },
     401: {description: "Missing or invalid token"},
   },
@@ -233,6 +260,115 @@ registry.registerPath({
   responses: {
     200: {description: "Assigned puzzles"},
     400: {description: "Validation failed"},
+    401: {description: "Missing or invalid token"},
+  },
+});
+
+registry.registerPath({
+  method: "post", path: "/matches", summary: "Create a match lobby (draws the creator rack)",
+  security: bearer,
+  request: {
+    headers: z.object({"idempotency-key": z.string()}),
+    body: {content: {"application/json": {schema: CreateMatchBodySchema}}},
+  },
+  responses: {
+    201: {description: "Created", content: {"application/json": {schema: CreateMatchResponseSchema}}},
+    401: {description: "Missing or invalid token"},
+  },
+});
+
+registry.registerPath({
+  method: "post", path: "/matches/join", summary: "Join a lobby by code (draws the joiner rack)",
+  security: bearer,
+  request: {body: {content: {"application/json": {schema: JoinMatchBodySchema}}}},
+  responses: {
+    200: {description: "Joined", content: {"application/json": {schema: JoinMatchResponseSchema}}},
+    401: {description: "Missing or invalid token"},
+    404: {description: "Unknown or closed code"},
+    409: {description: "Match full or already started"},
+  },
+});
+
+registry.registerPath({
+  method: "post", path: "/matches/{id}/ready", summary: "Toggle ready (both ready -> countdown)",
+  security: bearer,
+  request: {
+    params: z.object({id: z.string()}),
+    body: {content: {"application/json": {schema: ReadyBodySchema}}},
+  },
+  responses: {
+    200: {description: "Ready state", content: {"application/json": {schema: OkResponseSchema}}},
+    401: {description: "Missing or invalid token"}, 403: {description: "Not a participant"},
+    404: {description: "Match not found"},
+  },
+});
+
+registry.registerPath({
+  method: "post", path: "/matches/{id}/start", summary: "Creator force-start",
+  security: bearer,
+  request: {params: z.object({id: z.string()})},
+  responses: {
+    200: {description: "Started", content: {"application/json": {schema: OkResponseSchema}}},
+    401: {description: "Missing or invalid token"}, 403: {description: "Only the creator"},
+    409: {description: "Need an opponent"},
+  },
+});
+
+registry.registerPath({
+  method: "post", path: "/matches/{id}/submit", summary: "Submit a word (validated vs the caller rack)",
+  security: bearer,
+  request: {
+    params: z.object({id: z.string()}),
+    body: {content: {"application/json": {schema: SubmitBodySchema}}},
+  },
+  responses: {
+    200: {description: "Result", content: {"application/json": {schema: SubmitResponseSchema}}},
+    401: {description: "Missing or invalid token"}, 403: {description: "Not a participant"},
+    404: {description: "Match not found"},
+  },
+});
+
+registry.registerPath({
+  method: "post", path: "/matches/{id}/powerup", summary: "Fire a powerup at the opponent (spends inventory)",
+  security: bearer,
+  request: {
+    params: z.object({id: z.string()}),
+    headers: z.object({"idempotency-key": z.string()}),
+    body: {content: {"application/json": {schema: PowerupBodySchema}}},
+  },
+  responses: {
+    200: {description: "Fired", content: {"application/json": {schema: OkResponseSchema}}},
+    401: {description: "Missing or invalid token"}, 402: {description: "Powerup not owned"},
+    409: {description: "Match not active / nothing to steal"},
+  },
+});
+
+registry.registerPath({
+  method: "post", path: "/matches/{id}/leave", summary: "Leave/cancel (finalizes if in progress)",
+  security: bearer,
+  request: {params: z.object({id: z.string()})},
+  responses: {
+    200: {description: "Left", content: {"application/json": {schema: OkResponseSchema}}},
+    401: {description: "Missing or invalid token"}, 403: {description: "Not a participant"},
+  },
+});
+
+registry.registerPath({
+  method: "get", path: "/matches/{id}", summary: "Get a match (participants only; optional, clients use listeners)",
+  security: bearer,
+  request: {params: z.object({id: z.string()})},
+  responses: {
+    200: {description: "The match doc"}, 401: {description: "Missing or invalid token"},
+    403: {description: "Not a participant"}, 404: {description: "Match not found"},
+  },
+});
+
+registry.registerPath({
+  method: "get", path: "/themes", summary: "Searchable theme list (empty when off)",
+  security: bearer,
+  request: {query: z.object({q: z.string().optional()})},
+  responses: {
+    200: {description: "Themes", content: {"application/json": {schema: ThemesResponseSchema}}},
     401: {description: "Missing or invalid token"},
   },
 });

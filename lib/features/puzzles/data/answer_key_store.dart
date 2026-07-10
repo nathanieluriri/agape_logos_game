@@ -51,6 +51,16 @@ class AnswerKeyStore {
     }
   }
 
+  /// Forces a fresh fetch of the key for [uid]: drops the in-memory memo and the
+  /// stored copy, then re-runs [keyFor] (which hits `GET /me/answer-key`). Used
+  /// by the game's recovery path so a first-login race where the key never
+  /// arrived is repaired when the player taps Retry.
+  Future<List<int>?> refresh(String uid) async {
+    _memo.remove(uid);
+    await _storage.delete(key: _slot(uid));
+    return keyFor(uid);
+  }
+
   /// Drops the cached key (on sign-out / account deletion).
   Future<void> clear(String uid) async {
     _memo.remove(uid);

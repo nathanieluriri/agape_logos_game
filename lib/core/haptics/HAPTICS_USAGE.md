@@ -2,6 +2,16 @@
 
 The `HapticService` provides centralized haptic feedback control across the app, similar to `AudioService`.
 
+## Platform support
+
+Haptics work on Android AND web. The low-level vibration mechanism is chosen at
+compile time in `haptic_platform.dart` (a conditional-export split like
+`core/storage/connection/`): Android uses the `vibration` plugin, web uses the
+browser Vibration API (`navigator.vibrate`, Chromium / Android browsers; a silent
+no-op on iOS Safari and where a user gesture has not happened yet). Never call
+`HapticFeedback` directly from a widget: always go through `HapticService` (via
+`hapticServiceProvider` or `Haptics.instance`) so the Settings mute is honoured.
+
 ## Basic Setup
 
 Haptics are automatically integrated in `bootstrap.dart`:
@@ -65,6 +75,12 @@ await haptics.heavyImpact();
 
 // Selection feedback (best for scrolling/selection)
 await haptics.selectionClick();
+
+// Rich celebration for a claim / level win (rising three-beat pattern)
+await haptics.successPattern();
+
+// Feather-light per-element tick (each tile filling in a cascade)
+await haptics.tickImpact();
 ```
 
 ## Integration Points

@@ -21,6 +21,16 @@ abstract class Profile with _$Profile {
     @JsonKey(defaultValue: 0) required int coins,
     required int createdAt,
     required int updatedAt,
+    // Social layer (plan 13). Defaulted so a response from an older backend and
+    // the Drift-cached path (which does not store these) both deserialize; the
+    // server response (`GET /me`) fills them in. `public` drives the settings
+    // toggle; `handle` is the searchable @handle; `isGuest` flags anonymous.
+    // PLAN: profileToCompanion / profileFromRow need NO change (the cached path
+    // reports the defaults offline); this avoids a Drift schema migration. The
+    // privacy toggle reads the authoritative `public` from a fresh GET /me.
+    @Default('') String handle,
+    @Default(false) bool public,
+    @Default(false) bool isGuest,
   }) = _Profile;
 
   factory Profile.fromJson(Map<String, dynamic> json) =>

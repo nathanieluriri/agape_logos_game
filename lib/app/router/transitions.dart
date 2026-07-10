@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/design/motion/curves.dart';
 import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/durations.dart';
+import '../../core/haptics/haptics.dart';
 
 /// Where the ripple is born: a droplet a touch below the screen's centre, so
 /// the new screen feels like it wells up from the pond / play area rather than
@@ -38,7 +39,21 @@ const Alignment _dropletOrigin = Alignment(0, 0.35);
 /// than a blink. Collapses to an instant cut when the platform requests
 /// reduced motion. Once a transition completes, the builders return the bare
 /// child, so settled screens pay zero compositing cost.
+/// Skips the landing tick for the very first page (cold boot), so launch is silent.
+bool _navHapticsPrimed = false;
+
 CustomTransitionPage<T> pondRevealPage<T>(Widget child, GoRouterState state) {
+  // A soft "landed" tick as the new screen wells up. Fired once per navigation
+  // (this factory runs once per route resolution, not per animation frame), and
+  // lighter than the tapped button so it does not double up as a second click.
+  // PLAN: do NOT move the haptic into transitionsBuilder (it runs every frame).
+  // If the double cue (tap buzz + landing tick) feels like too much on device,
+  // drop this tick; the button taps already cover navigation.
+  if (_navHapticsPrimed) {
+    Haptics.instance.tickImpact();
+  } else {
+    _navHapticsPrimed = true;
+  }
   return CustomTransitionPage<T>(
     key: state.pageKey,
     transitionDuration: AppDurations.slow,

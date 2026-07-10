@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/gradients.dart';
+import '../../../../core/haptics/haptic_providers.dart';
 import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/pond_snack.dart';
@@ -48,13 +49,25 @@ class _RewardTimerPadState extends ConsumerState<RewardTimerPad> {
   }
 
   void _announce(ClaimResult result) {
-    final message = switch (result) {
-      ClaimCoinsSuccess(:final claimed) => 'Claimed $claimed coins!',
-      ClaimPowerupSuccess(:final granted) => 'Claimed a free ${_pretty(granted)}!',
-      ClaimOnCooldown() => 'Already claimed. Check back soon.',
-      ClaimLocked(:final minLevel) => 'Reach Lv.$minLevel to unlock gifts.',
-      ClaimUnavailable() => 'Could not reach the server. Try again.',
-    };
+    final haptics = ref.read(hapticServiceProvider);
+    final String message;
+    switch (result) {
+      case ClaimCoinsSuccess(:final claimed):
+        haptics.successPattern();
+        message = 'Claimed $claimed petals!';
+      case ClaimPowerupSuccess(:final granted):
+        haptics.successPattern();
+        message = 'Claimed a free ${_pretty(granted)}!';
+      case ClaimOnCooldown():
+        haptics.mistakeImpact();
+        message = 'Already claimed. Check back soon.';
+      case ClaimLocked(:final minLevel):
+        haptics.mistakeImpact();
+        message = 'Reach Lv.$minLevel to unlock gifts.';
+      case ClaimUnavailable():
+        haptics.mistakeImpact();
+        message = 'Could not reach the server. Try again.';
+    }
     showPondSnack(context, message);
   }
 
@@ -75,7 +88,7 @@ class _RewardTimerPadState extends ConsumerState<RewardTimerPad> {
         claiming: _claiming,
         onClaim: _claimCoins,
         title: 'Daily gift ready',
-        subtitle: '${data.coins.amount} coins waiting for you',
+        subtitle: '${data.coins.amount} petals waiting for you',
         actionLabel: 'Claim',
         highlighted: true,
       );

@@ -31,7 +31,7 @@ class ProfileRepositoryImpl
   Future<Profile?> fetch(String uid) async {
     try {
       final Profile profile = await _remote.me();
-      await db.cachedProfileDao.upsert(profileToCompanion(profile));
+      await db.cachedProfileDao.mergeServerProfile(profileToCompanion(profile));
       return profile;
     } on DioException catch (e) {
       // Offline or transient: serve the cached profile for this account.

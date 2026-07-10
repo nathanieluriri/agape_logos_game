@@ -35,6 +35,8 @@ class _FakePuzzleController implements PuzzleController {
   }) async {}
   @override
   Future<void> refresh() async {}
+  @override
+  Future<void> recover() async {}
 }
 
 /// Silent haptics so widget tests never touch a platform channel.
@@ -55,6 +57,10 @@ class _NoopHaptics implements HapticService {
   Future<void> mistakeImpact() async {}
   @override
   Future<void> selectionClick() async {}
+  @override
+  Future<void> successPattern() async {}
+  @override
+  Future<void> tickImpact() async {}
   @override
   void setMuted(bool muted) {}
 }

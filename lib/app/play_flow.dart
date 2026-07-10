@@ -22,3 +22,15 @@ Future<void> startPlayFlow(BuildContext context, WidgetRef ref) async {
     ref.read(ambientPausedProvider.notifier).pause(false);
   }
 }
+
+/// Multiplayer entry: sign the player in first (guests welcome, since
+/// multiplayer is online anyway) then open matchmaking. Mirrors [startPlayFlow]
+/// but does not pause the pond ambient (matchmaking keeps the pond behind it).
+Future<void> startMultiplayerFlow(BuildContext context, WidgetRef ref) async {
+  if (ref.read(currentUserProvider) == null) {
+    await showAuthSheet(context);
+    if (!context.mounted) return;
+    if (ref.read(currentUserProvider) == null) return;
+  }
+  await context.push('/multiplayer');
+}

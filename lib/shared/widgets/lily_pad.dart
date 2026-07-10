@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../core/design/pad_geometry.dart';
 import '../../core/design/tokens/colors.dart';
+import '../../core/design/tokens/elevation.dart';
 import '../../core/design/tokens/gradients.dart';
 import '../../core/design/tokens/shadows.dart';
 
@@ -45,6 +46,11 @@ class LilyPadPalette {
     fillGradient: AppGradients.bonusBlue,
     underside: AppColors.bonusBlueUnder,
   );
+
+  static const coral = LilyPadPalette(
+    fillGradient: AppGradients.lilyCoral,
+    underside: AppColors.lilyCoralUnder,
+  );
 }
 
 /// The silhouette a pad is drawn with. Both are the softly rounded
@@ -62,6 +68,7 @@ class LilyPad extends StatelessWidget {
     this.shape = PadShape.notched,
     this.rotationDegrees = 0,
     this.shadow = true,
+    this.lift = 0,
     this.child,
   });
 
@@ -73,6 +80,12 @@ class LilyPad extends StatelessWidget {
   /// Whether to paint the soft cast shadow under the pad. On by default: the
   /// reference pads all sit on a pool of shadowed water.
   final bool shadow;
+
+  /// How high the pad is floating, 0 (resting on the water) to 1 (top of its
+  /// bob). Drives the cast shadow only: as the pad rises the shadow grows,
+  /// softens, drops further, and fades. Wire this to [FloatMotion]'s builder.
+  /// At 0 the shadow is identical to a static resting pad.
+  final double lift;
   final Widget? child;
 
   @override
@@ -86,6 +99,7 @@ class LilyPad extends StatelessWidget {
           shape: shape,
           rotationDegrees: rotationDegrees,
           shadow: shadow,
+          lift: lift,
         ),
         child: Center(child: child),
       ),
@@ -99,12 +113,14 @@ class _LilyPadPainter extends CustomPainter {
     required this.shape,
     required this.rotationDegrees,
     required this.shadow,
+    required this.lift,
   });
 
   final LilyPadPalette palette;
   final PadShape shape;
   final double rotationDegrees;
   final bool shadow;
+  final double lift;
 
   /// How far the darker underside peeks out below the fill (viewBox units).
   static const double _undersideDrop = 3.2;
@@ -133,18 +149,30 @@ class _LilyPadPainter extends CustomPainter {
 
     const rect = Rect.fromLTWH(0, 0, PadGeometry.viewBox, PadGeometry.viewBox);
 
-    // 1. Soft cast shadow on the water.
+    // 1. Soft cast shadow on the water. As the pad lifts (0..1) the shadow
+    //    grows and softens (blur), drops further from the pad (offset), and
+    //    fades (opacity), which reads as the pad floating higher above the
+    //    surface. At lift 0 this is byte-identical to the resting recipe.
+    // PLAN: `cast.color.a` uses the Flutter 3.27+ component accessor (0..1
+    // double), same wide-gamut Color API this file already uses via
+    // withValues. If the SDK rejects `.a`, read the base alpha via
+    // `(cast.color.value >> 24 & 0xFF) / 255.0` and keep the same fade math.
     if (shadow) {
       final cast = AppShadows.pad.first;
+      final t = lift.clamp(0.0, 1.0);
+      final blur = cast.blurRadius * (1 + t * PadElevation.shadowBlurGain);
+      final dropY = cast.offset.dy + t * PadElevation.shadowDrop;
       final shadowPaint = Paint()
-        ..color = cast.color
+        ..color = cast.color.withValues(
+          alpha: cast.color.a * (1 - t * PadElevation.shadowFade),
+        )
         ..maskFilter = MaskFilter.blur(
           BlurStyle.normal,
-          Shadow.convertRadiusToSigma(cast.blurRadius) / scale,
+          Shadow.convertRadiusToSigma(blur) / scale,
         );
       canvas
         ..save()
-        ..translate(0, cast.offset.dy / scale)
+        ..translate(0, dropY / scale)
         ..drawPath(_outline, shadowPaint)
         ..restore();
     }
@@ -192,5 +220,6 @@ class _LilyPadPainter extends CustomPainter {
       old.palette != palette ||
       old.shape != shape ||
       old.rotationDegrees != rotationDegrees ||
-      old.shadow != shadow;
+      old.shadow != shadow ||
+      old.lift != lift;
 }

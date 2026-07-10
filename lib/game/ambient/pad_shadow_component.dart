@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../core/design/pad_geometry.dart';
 import '../../core/design/tokens/colors.dart';
+import '../../core/design/tokens/elevation.dart';
 
 /// A large, flat submerged lily-pad silhouette drifting slowly under the
 /// surface. Uses the shared notched-pad outline so the background pads read
@@ -46,7 +47,21 @@ class PadShadowComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    final scale = (radius * 2) / PadGeometry.viewBox;
+    // Gentle depth breath: the pad swells and fades a touch, out of phase with
+    // its drift, so the field reads as water depth rather than a flat decal.
+    // Driven by the same [phase] that drives the drift in update().
+    // PLAN: `color.a` is the wide-gamut accessor used elsewhere; if the SDK
+    // rejects it, use `(color.value >> 24 & 0xFF) / 255.0`. Mutating
+    // _paint.color each frame is intended (Paint is mutable). Eyeball on
+    // device: the breath must be barely perceptible.
+    final wobble = sin(phase * PadElevation.ambientBreatheFreq); // -1..1
+    final scale = (radius * 2) /
+        PadGeometry.viewBox *
+        (1 + PadElevation.ambientScaleGain * wobble);
+    final breath = (wobble + 1) / 2; // 0 at deepest, 1 at shallowest.
+    _paint.color = color.withValues(
+      alpha: color.a * (1 - PadElevation.ambientOpacityGain * breath),
+    );
     canvas
       ..save()
       ..translate(radius, radius)

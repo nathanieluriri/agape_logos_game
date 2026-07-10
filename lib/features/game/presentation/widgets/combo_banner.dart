@@ -34,6 +34,11 @@ class _ComboBannerState extends State<ComboBanner> {
   /// Pop lands slightly larger than rest so higher streaks feel bigger.
   static const double _popFrom = 0.6;
 
+  /// The capsule drops in from a few px above as it pops (logical px, eased to 0).
+  // PLAN: _dropFrom and the AppDurations.normal duration are the feel knobs;
+  // keep the drop small so the banner does not shove the wheel.
+  static const double _dropFrom = -10;
+
   static const _decoration = BoxDecoration(
     gradient: AppGradients.progressFill,
     borderRadius: AppRadii.pill,
@@ -88,12 +93,20 @@ class _ComboBannerState extends State<ComboBanner> {
     // in the streak re-pops the capsule. No controller to manage.
     return TweenAnimationBuilder<double>(
       key: ValueKey<int>(widget.combo),
-      tween: Tween<double>(begin: _popFrom, end: 1),
-      duration: AppDurations.fast,
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: AppDurations.normal,
       curve: AppCurves.pop,
       child: interactive,
-      builder: (context, scale, child) =>
-          Transform.scale(scale: scale, child: child),
+      builder: (context, t, child) {
+        // t is the pop-curved 0..1 (it overshoots past 1 mid-flight), so the
+        // scale swells past rest and the drop settles with a tiny bounce.
+        final scale = _popFrom + (1 - _popFrom) * t;
+        final dy = _dropFrom * (1 - t);
+        return Transform.translate(
+          offset: Offset(0, dy),
+          child: Transform.scale(scale: scale, child: child),
+        );
+      },
     );
   }
 }

@@ -17,4 +17,18 @@ void main() {
       expect(game.children.whereType<RippleComponent>(), isNotEmpty);
     },
   );
+
+  testWithGame<AmbientBackgroundGame>(
+    'ambient pads keep breathing across frames without error',
+    AmbientBackgroundGame.new,
+    (game) async {
+      game.onGameResize(Vector2(384, 832));
+      await game.ready();
+      // Advance several frames: drift + breath both derive from the same phase.
+      for (var i = 0; i < 30; i++) {
+        game.update(0.016);
+      }
+      expect(game.children.whereType<PadShadowComponent>(), isNotEmpty);
+    },
+  );
 }

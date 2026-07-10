@@ -79,7 +79,10 @@ void main() {
     await repo.ensureCacheReady();
 
     expect(remote.assignedCalls, 1); // recovery attempted first
-    expect(remote.drawCalls, 1); // recovery empty -> draw
+    // Two-phase draw: recovery empty -> small first draw, then (still under
+    // the refill threshold) the full top-up draw. The fake returns the same
+    // rows twice; insertOrIgnore keeps the cache at 2.
+    expect(remote.drawCalls, 2);
     expect(await db.cachedPuzzlesDao.unplayedCount(), 2);
   });
 
@@ -168,6 +171,31 @@ void main() {
     expect(mutations.single.idempotencyKey, 'NOW');
     expect(mutations.single.endpoint, '/puzzles/NOW/result');
     expect(mutations.single.payloadJson, contains('"score":50'));
+  });
+
+  test('recover refreshes the key then ensures a playable puzzle (starter '
+      'floor when the backend is unreachable)', () async {
+    var keyRefreshed = false;
+    // Build the repo with an offline remote (draw throws) and a key refresher.
+    // PLAN: the plan snippet named _OfflineRemote/_TestSeed; this file already
+    // has equivalent fakes (_FakeRemote(throwOffline: true) and _FakeSeed), so
+    // those are reused per the plan's own guidance.
+    final repo = PuzzleRepositoryImpl(
+      db,
+      _FakeRemote(throwOffline: true),
+      seed: _FakeSeed([_p('${kStarterPuzzlePrefix}WORD', 'easy')]),
+      answerKey: () async => null, // no key available
+      keyRefresh: () async {
+        keyRefreshed = true;
+      },
+    );
+
+    await repo.recover();
+
+    expect(keyRefreshed, isTrue);
+    // A playable (plaintext starter) puzzle is now the front of the stream.
+    final puzzle = await repo.watchCurrentPuzzle().first;
+    expect(puzzle, isNotNull);
   });
 
   test('starter puzzle results complete locally and skip the sync queue',

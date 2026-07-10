@@ -13,7 +13,7 @@ profileRouter.get(
   "/me",
   requireAuth,
   asyncHandler<AuthedRequest>(async (req, res: Response) => {
-    const profile = await getOrCreateProfile(req.uid as string);
+    const profile = await getOrCreateProfile(req.uid as string, {isGuest: req.isGuest});
     res.status(200).json(profile);
   }),
 );

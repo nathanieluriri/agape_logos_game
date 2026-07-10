@@ -50,16 +50,20 @@ class GameController extends Notifier<GameSession?> {
         score: s.score + word.length * combo,
         selection: const [],
       );
-      // A building streak (combo >= 2) earns the celebratory rising pulse; a
-      // first correct word gets the solid single "landed" thump.
+      // Escalate the feel with the streak: a first solid landing, a building
+      // streak, then a full celebration once the combo is really rolling.
       final haptics = ref.read(hapticServiceProvider);
-      if (combo >= 2) {
+      if (combo >= 4) {
+        haptics.successPattern();
+      } else if (combo >= 2) {
         haptics.streakImpact();
       } else {
         haptics.heavyImpact();
       }
     } else if (isAnswer) {
-      state = s.copyWith(selection: const []); // duplicate: streak untouched
+      // Already found: keep the streak, but acknowledge the trace with a tick.
+      state = s.copyWith(selection: const []);
+      ref.read(hapticServiceProvider).selectionClick();
     } else {
       // Invalid word: the streak is broken. Reset the combo and fire the
       // distinct error buzz so the lost streak is felt, not silent.
@@ -98,8 +102,8 @@ class GameController extends Notifier<GameSession?> {
   Future<void> commitWin() async {
     final s = state;
     if (s == null || !s.isComplete) return;
-    // Celebrate the level win with the strongest pulse.
-    ref.read(hapticServiceProvider).gameImpact();
+    // Celebrate the level win with the full success burst.
+    ref.read(hapticServiceProvider).successPattern();
     final completedAt = DateTime.now().millisecondsSinceEpoch;
     final String puzzleId = s.puzzle.letterKey;
 
@@ -132,6 +136,7 @@ class GameController extends Notifier<GameSession?> {
           completedLevel: completedLevel,
           wordsFound: wordsFound,
           totalWords: totalWords,
+          words: s.targets,
         );
   }
 }

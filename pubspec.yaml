@@ -7,6 +7,7 @@ environment:
   sdk: ^3.12.0
 
 dependencies:
+  cloud_firestore: ^6.0.0
   connectivity_plus: ^7.1.1
   cryptography: ^2.7.0
   dio: ^5.9.2
@@ -34,6 +35,7 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.42
   uuid: ^4.5.3
   vibration: ^3.1.8
+  web: ^1.1.0
   workmanager: ^0.9.0+3
 
 dev_dependencies:
@@ -68,19 +70,23 @@ flutter:
 #   dart run flutter_launcher_icons
 #
 # This writes every Android mipmap density, the adaptive icon, and the web
-# icons/favicon. The adaptive background is crimson (#C01F5F, the lotus-bud
-# pink) so the ivory-framed pink tiles sit on a pink field rather than white.
-# If you later supply a padded transparent foreground
-# (assets/branding/app_icon_foreground.png), the masked edges match. See
-# assets/branding/README.md.
+# icons/favicon. app_icon.png is a transparent-backed RGBA lotus disc, so the
+# adaptive background color shows through behind the whole mark. The background
+# is teal-green (#0C7F80, AppColors.pond3), giving a lotus floating on the pond
+# to match the in-app look. See assets/branding/README.md.
+#
+# PLAN (orchestrator, after regen): the non-adaptive mipmap-*/ic_launcher.png and
+# web/icons/Icon-maskable-*.png are also built from this transparent source. A
+# transparent legacy square icon, or a maskable with a transparent safe-zone, may
+# want a filled background. Inspect both after regen (see plan 03 Task 7).
 flutter_launcher_icons:
   image_path: "assets/branding/app_icon.png"
   android: "ic_launcher"
   min_sdk_android: 21
-  adaptive_icon_background: "#C01F5F"
+  adaptive_icon_background: "#0C7F80"
   adaptive_icon_foreground: "assets/branding/app_icon.png"
   web:
     generate: true
     image_path: "assets/branding/app_icon.png"
-    background_color: "#F7F4EC"
-    theme_color: "#F7F4EC"
+    background_color: "#0C7F80"
+    theme_color: "#0C7F80"

@@ -8,7 +8,7 @@ import 'lotus_mark.dart';
 
 /// The lotus mark above the serif "ZEN WORD" wordmark.
 class WordmarkLogo extends StatelessWidget {
-  const WordmarkLogo({super.key, this.title = 'ZEN WORD', this.float = true});
+  const WordmarkLogo({super.key, this.title = 'NAT WORD', this.float = true});
 
   final String title;
   final bool float;

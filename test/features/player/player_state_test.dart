@@ -18,6 +18,7 @@ void main() {
           completedLevel: 7,
           wordsFound: 6,
           totalWords: 8,
+          words: const [],
         );
 
     final s = container.read(levelCompletionProvider)!;

@@ -176,20 +176,30 @@ class _Node extends StatelessWidget {
     boxShadow: AppShadows.pill,
   );
 
+  /// Selected nodes swell a touch so the active letters read as lifted.
+  // PLAN: keep _selectedScale subtle (1.06) so the nodes do not collide.
+  static const double _selectedScale = 1.06;
+
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return Center(
-      child: Container(
-        alignment: Alignment.center,
-        decoration: selected ? _selectedDecoration : null,
-        width: AppSizing.wheelNode,
-        height: AppSizing.wheelNode,
-        child: Text(
-          letter,
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: selected ? AppColors.padLabel : AppColors.wheelLetter,
+      child: AnimatedScale(
+        scale: selected ? _selectedScale : 1,
+        duration: reduceMotion ? Duration.zero : AppDurations.instant,
+        curve: AppCurves.pop,
+        child: Container(
+          alignment: Alignment.center,
+          decoration: selected ? _selectedDecoration : null,
+          width: AppSizing.wheelNode,
+          height: AppSizing.wheelNode,
+          child: Text(
+            letter,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: selected ? AppColors.padLabel : AppColors.wheelLetter,
+            ),
           ),
         ),
       ),
@@ -310,20 +320,49 @@ class _WheelPainter extends CustomPainter {
   final List<int> selected;
   final Offset? finger;
 
+  /// The bright core trail width.
+  static const double _coreWidth = 10;
+
+  /// The soft glow underlay: wider, blurred, and translucent so the trail reads
+  /// as luminous rather than a flat marker line.
+  // PLAN: _glowSigma / _glowWidth / _glowAlpha shape the trail glow; nudge
+  // on-device so it reads luminous but not muddy.
+  static const double _glowWidth = 18;
+  static const double _glowAlpha = 0.35;
+  static const double _glowSigma = 6;
+
   @override
   void paint(Canvas canvas, Size size) {
     if (selected.isEmpty) return;
-    final paint = Paint()
-      ..color = AppColors.wheelConnect
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    final path = Path()..moveTo(centers[selected.first].dx, centers[selected.first].dy);
+    final path = Path()
+      ..moveTo(centers[selected.first].dx, centers[selected.first].dy);
     for (final slot in selected.skip(1)) {
       path.lineTo(centers[slot].dx, centers[slot].dy);
     }
     if (finger != null) path.lineTo(finger!.dx, finger!.dy);
-    canvas.drawPath(path, paint);
+
+    // Soft glow underlay.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = AppColors.wheelConnect.withValues(alpha: _glowAlpha)
+        ..strokeWidth = _glowWidth
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke
+        ..maskFilter =
+            const MaskFilter.blur(BlurStyle.normal, _glowSigma),
+    );
+    // Crisp core stroke over the glow.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = AppColors.wheelConnect
+        ..strokeWidth = _coreWidth
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke,
+    );
   }
 
   @override

@@ -9,6 +9,7 @@ import '../../core/design/tokens/radii.dart';
 import '../../core/design/tokens/shadows.dart';
 import '../../core/design/tokens/sizing.dart';
 import '../../core/design/tokens/spacing.dart';
+import '../../core/haptics/haptics.dart';
 import 'lily_pad.dart';
 
 /// Shows a pond-styled dialog: a deep-water card that fades and grows in over
@@ -26,6 +27,7 @@ Future<T?> showPondDialog<T>({
   List<Widget> actions = const [],
   bool showPad = true,
 }) {
+  Haptics.instance.lightImpact();
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: true,

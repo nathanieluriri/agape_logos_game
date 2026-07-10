@@ -55,6 +55,21 @@ abstract final class AppColors {
   static const bonusBlueDeep = Color(0xFF2F8093);
   static const bonusBlueUnder = Color(0xFF266E82);
 
+  // Coral multiplayer lily pad: a warm accent distinct from the pond greens,
+  // teals, and blues so the "Versus" pad reads as its own affordance.
+  // PLAN: eyeball the coral hue against the pond background on device; nudge
+  // the four lilyCoral* values a shade warmer/cooler if it clashes.
+  static const lilyCoralLight = Color(0xFFF4A08B);
+  static const lilyCoralMid = Color(0xFFE9735A);
+  static const lilyCoralDeep = Color(0xFFD65B45);
+  static const lilyCoralUnder = Color(0xFFB94734);
+
+  // Incoming-effect overlays (multiplayer). Frost = a frozen wheel node; fog =
+  // the blurred board veil. Kept translucent so the pad/board read through.
+  static const frostFill = Color(0x99CDECF5);
+  static const frostBorder = Color(0xCCEAF8FC);
+  static const fogTint = Color(0x59E8F1F4);
+
   // Light rim glow along the top edge of every pad.
   static const padRimGlow = Color(0x8CEFFFF6);
 
@@ -65,6 +80,19 @@ abstract final class AppColors {
   static const progressFillMid = Color(0xFFC6DD3C);
   static const progressFillEnd = Color(0xFFECEC55);
   static const progressFraction = Color(0xFFFBF1CF);
+
+  // Awwwards loader + premium progress-fill accents (Part B).
+  /// Bright, near-white lime crest at the fill's leading edge, so the fill front
+  /// reads as a lit water crest that pushes whatever rides it.
+  static const progressFillCrest = Color(0xFFF7FFD6);
+  /// Glossy top-surface highlight laid over the fill (water read).
+  static const progressGlossHighlight = Color(0x3DFFFFFF);
+  /// Peak alpha of the sheen band that sweeps along the fill.
+  static const progressSheenPeak = Color(0x59FFFFFF);
+  /// Soft wake the petal leaves in the water as it rides the crest.
+  static const petalWake = Color(0x40FFFFFF);
+  /// Warm lime-gold core of the blooming-lotus completion flash.
+  static const loaderBloomCore = Color(0xFFF2F7C4);
 
   // Chrome: settings + currency pill + plus button.
   static const settingsFill = Color(0x8C0D786E);

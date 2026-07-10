@@ -79,7 +79,7 @@ void main() {
     );
 
     expect(find.text('Reveal a letter.'), findsOneWidget);
-    expect(find.bySemanticsLabel('Buy Hint for 50 coins'), findsOneWidget);
+    expect(find.bySemanticsLabel('Buy Hint for 50 petals'), findsOneWidget);
   });
 
   testWidgets('buying an item shows a success snack', (tester) async {
@@ -93,7 +93,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.bySemanticsLabel('Buy Hint for 50 coins'));
+    await tester.tap(find.bySemanticsLabel('Buy Hint for 50 petals'));
     await tester.pump(); // enter busy state
     await tester.pump(); // purchase resolves
     await tester.pump(); // snack shows
@@ -107,13 +107,13 @@ void main() {
       outcome: const PurchaseInsufficientCoins(cost: 50, coins: 10),
     );
 
-    await tester.tap(find.bySemanticsLabel('Buy Hint for 50 coins'));
+    await tester.tap(find.bySemanticsLabel('Buy Hint for 50 petals'));
     await tester.pump();
     await tester.pump();
     await tester.pump();
 
     expect(
-      find.text('Not enough coins. Hint costs 50, you have 10.'),
+      find.text('Not enough petals. Hint costs 50, you have 10.'),
       findsOneWidget,
     );
   });

@@ -37,6 +37,12 @@ export const ProfileResponseSchema = z.object({
   coins: z.number().int(),
   // Owned consumables (base store item id -> quantity). Empty for a new user.
   inventory: z.record(z.number().int()),
+  // Social layer (plan 13). handle is the searchable @handle; public gates
+  // whether the profile is findable/viewable by non-friends; isGuest is set
+  // from the anonymous sign-in provider at provision time.
+  handle: z.string(),
+  public: z.boolean(),
+  isGuest: z.boolean(),
   createdAt: z.number().int(),
   updatedAt: z.number().int(),
 });
@@ -64,4 +70,8 @@ export const DEFAULT_PROFILE = {
   totalScore: 0,
   coins: 0,
   inventory: {} as Record<string, number>,
+  // PLAN: handle/handleLower/displayNameLower are NOT static defaults; they are
+  // set during provisioning by ensureHandle and the displayNameLower write.
+  public: false,
+  isGuest: false,
 } as const;

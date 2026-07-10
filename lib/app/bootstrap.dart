@@ -157,6 +157,10 @@ class _BootstrapGateState extends ConsumerState<_BootstrapGate> {
                 firebaseDisplayName: next.asData?.value?.displayName,
               ),
         );
+        // The startup flush ran before Firebase restored the user, so any
+        // offline win mutation was skipped as transient. Now that the user is
+        // restored, ask the scheduler to flush so the queue reaches the server.
+        unawaited(_scheduler?.requestFlush() ?? Future<void>.value());
       }
     });
     return const AgapeApp();

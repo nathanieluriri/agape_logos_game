@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'connection/connection.dart';
 import 'daos/cached_profile_dao.dart';
 import 'daos/cached_puzzles_dao.dart';
+import 'daos/dictionary_entries_dao.dart';
 import 'daos/game_settings_dao.dart';
 import 'daos/level_results_dao.dart';
 import 'daos/pending_mutations_dao.dart';
@@ -17,6 +18,7 @@ part 'app_database.g.dart';
     CachedPuzzles,
     GameSettings,
     CachedProfile,
+    DictionaryEntries,
   ],
   daos: [
     PendingMutationsDao,
@@ -24,6 +26,7 @@ part 'app_database.g.dart';
     CachedPuzzlesDao,
     GameSettingsDao,
     CachedProfileDao,
+    DictionaryEntriesDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -33,7 +36,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -62,6 +65,9 @@ class AppDatabase extends _$AppDatabase {
             // algorithm so the device redraws from the regenerated pool.
             await delete(cachedPuzzles).go();
           }
+          if (from < 9) {
+            await m.createTable(dictionaryEntries);
+          }
         },
       );
 
@@ -72,5 +78,6 @@ class AppDatabase extends _$AppDatabase {
         await delete(levelResults).go();
         await delete(pendingMutations).go();
         await delete(cachedProfile).go();
+        await delete(dictionaryEntries).go();
       });
 }

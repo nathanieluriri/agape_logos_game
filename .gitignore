@@ -71,3 +71,6 @@ functions/data/definitions_cache.json
 
 # Golden-test failure artifacts (actual/expected/diff images)
 test/goldens/failures/
+
+# Building-agent working prompt (local workflow artifact, like docs/)
+/prompt.md

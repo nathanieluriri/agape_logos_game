@@ -16,7 +16,9 @@
     "purge:pool": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/purge_pool.js\"",
     "purge:userstate": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/purge_user_puzzle_state.js\"",
     "stats": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/stats.js\"",
-    "export:starter": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/export_starter_pack.js\""
+    "export:starter": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/export_starter_pack.js\"",
+    "backfill:random": "node lib/scripts/backfill_random.js",
+    "seed:themes": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/seed_themes.js\""
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.0",

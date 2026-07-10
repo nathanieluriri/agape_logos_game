@@ -5,7 +5,9 @@
 The launcher icon is generated from a single source PNG.
 
 1. Save the icon art (the glass-orb lotus mark) here as **`app_icon.png`**, a
-   square PNG, ideally **1024x1024**, no transparency needed.
+   square **RGBA** PNG, ideally **1024x1024**. The art is transparent-backed (the
+   lotus disc floats on a transparent field), which is what lets the adaptive
+   background color show through behind the whole mark.
 2. From the project root run:
 
    ```
@@ -17,11 +19,12 @@ The launcher icon is generated from a single source PNG.
 This regenerates:
 
 - every Android mipmap density (`android/app/src/main/res/mipmap-*/`)
-- the Android **adaptive** icon (foreground + `#F7F4EC` cream background)
+- the Android **adaptive** icon (transparent foreground + `#0C7F80` teal-green background, `AppColors.pond3`)
 - the web icons and favicon (`web/icons/`, `web/favicon.png`)
 
-The Android launch screen and the in-app splash reference `@mipmap/ic_launcher`
-and the cream tone, so they update to match automatically.
+The Android launch screen references `@mipmap/ic_launcher`, so it updates to match automatically.
+The in-app Flutter splash still paints cream (`AppColors.paper`); see plan 03 OPTIONAL Task 6 if
+you want it to match the pond green too.
 
 ### Optional: a crisper adaptive icon
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/design/tokens/colors.dart';
+import '../../core/design/tokens/elevation.dart';
 import '../../core/design/tokens/sizing.dart';
 import '../../core/design/tokens/spacing.dart';
 import 'lily_pad.dart';
@@ -43,6 +44,7 @@ class PlayPadCluster extends StatelessWidget {
               size: AppSizing.playPad,
               rotationDegrees: -135,
               palette: LilyPadPalette.green,
+              phase: PadElevation.playPhase,
               semanticLabel: 'Play $nextLabel',
               onPressed: onPlay,
               content: _PlayContent(label: nextLabel),
@@ -56,7 +58,11 @@ class PlayPadCluster extends StatelessWidget {
               shape: PadShape.smooth,
               rotationDegrees: 25,
               palette: LilyPadPalette.bonusBlue,
-              idle: IdleMotion.bob,
+              // PLAN: the two pads share PadElevation.bobAmplitude. The
+              // secondary pad is smaller, so an identical 7px bob is
+              // proportionally larger on it. If it bobs too eagerly on device,
+              // add an optional amplitude passthrough to LilyPadButton.
+              phase: PadElevation.secondaryPhase,
               semanticLabel: secondaryLabel,
               onPressed: onSecondary,
               content: _SecondaryContent(icon: secondaryIcon, label: secondaryLabel),

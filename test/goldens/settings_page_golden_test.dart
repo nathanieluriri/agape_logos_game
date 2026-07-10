@@ -11,6 +11,7 @@ import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/settings/application/settings_providers.dart';
 import 'package:agape_logos_game/features/settings/presentation/pages/settings_page.dart';
+import 'package:agape_logos_game/features/social/application/social_providers.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +25,12 @@ const _row = GameSettingsRow(
   haptics: true,
   tutorialSeen: false,
 );
+
+/// Deterministic, network-free Public profile switch (defaults to private).
+class _StubPrivacy extends ProfilePrivacyController {
+  @override
+  Future<bool> build() async => false;
+}
 
 class _FakeAuth implements AuthRepository {
   _FakeAuth(this._user);
@@ -62,6 +69,9 @@ Widget _app(AuthUser? user) => ProviderScope(
         settingsProvider.overrideWith((ref) => Stream.value(_row)),
         authRepositoryProvider.overrideWithValue(_FakeAuth(user)),
         ambientEnabledProvider.overrideWithValue(false),
+        // The Public profile switch reads `GET /me` on build. Stub it so the
+        // golden is deterministic and the test stays network-free.
+        profilePrivacyControllerProvider.overrideWith(_StubPrivacy.new),
       ],
       child: const MaterialApp(
         debugShowCheckedModeBanner: false,

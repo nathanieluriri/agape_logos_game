@@ -51,11 +51,16 @@ GoRouter _buildRouter() => GoRouter(
           path: '/game',
           builder: (_, __) => const Scaffold(body: Text('GAME PLACEHOLDER')),
         ),
+        GoRoute(
+          path: '/dictionary',
+          builder: (_, __) =>
+              const Scaffold(body: Text('DICTIONARY PLACEHOLDER')),
+        ),
       ],
     );
 
 void main() {
-  testWidgets('shows the Withdraw pad and no progress or bonus', (tester) async {
+  testWidgets('shows the Dictionary pad and no progress or bonus', (tester) async {
     const user = AuthUser(uid: 'u1');
     await tester.pumpWidget(
       ProviderScope(
@@ -73,8 +78,9 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('ZEN WORD'), findsOneWidget);
-    expect(find.bySemanticsLabel('Withdraw'), findsOneWidget);
+    expect(find.text('NAT WORD'), findsOneWidget);
+    expect(find.bySemanticsLabel('Dictionary'), findsOneWidget);
+    expect(find.bySemanticsLabel('Withdraw'), findsNothing);
     expect(find.bySemanticsLabel('Bonus Gift'), findsNothing);
     expect(find.textContaining('Completed'), findsNothing);
   });

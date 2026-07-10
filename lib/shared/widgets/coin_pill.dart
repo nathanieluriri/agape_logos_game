@@ -1,6 +1,5 @@
 // lib/shared/widgets/coin_pill.dart
 import 'package:flutter/widgets.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/durations.dart';
@@ -9,6 +8,7 @@ import '../../core/design/tokens/radii.dart';
 import '../../core/design/tokens/shadows.dart';
 import '../../core/design/tokens/sizing.dart';
 import '../../core/haptics/haptics.dart';
+import 'petal_icon.dart';
 
 /// Currency chip: a pink petal coin straddling the pill's left edge, the
 /// animated count-up amount, and a round plus button on the right.
@@ -76,20 +76,17 @@ class CoinPill extends StatelessWidget {
           // Petal straddling the pill's left edge. Its left edge lands at the
           // CoinPill's own left bound (via the reserved overhang above), and it
           // is vertically centred on the pill by the stack alignment.
-          Positioned(
+          const Positioned(
             left: -_petalOverhang,
             child: ExcludeSemantics(
-              child: SvgPicture.asset(
-                'assets/branding/coin_petal.svg',
-                width: AppSizing.coinPetal,
-              ),
+              child: PetalIcon(size: AppSizing.coinPetal),
             ),
           ),
           Positioned(
             right: 2,
             child: Semantics(
               button: true,
-              label: 'Add coins',
+              label: 'Add petals',
               child: GestureDetector(
                 onTap: onAdd == null
                     ? null

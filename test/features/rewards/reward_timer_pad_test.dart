@@ -105,7 +105,7 @@ void main() {
     await tester.pump(); // snack
 
     expect(remote.claimCoinsCalls, 1);
-    expect(find.text('Claimed 400 coins!'), findsOneWidget);
+    expect(find.text('Claimed 400 petals!'), findsOneWidget);
     final row = await db.cachedProfileDao.read('u1');
     expect(row?.coins, 900);
   });

@@ -5,6 +5,11 @@ abstract class PuzzleRepository {
   /// swallowed; the local cache is the offline-playable source of truth.
   Future<void> ensureCacheReady();
 
+  /// Recovery path for a stranded first login: force-refresh the answer key,
+  /// then run [ensureCacheReady] (which seeds the bundled starter pack as a last
+  /// resort). After this returns there is a playable puzzle to show.
+  Future<void> recover();
+
   /// The next puzzle to play (lowest tier, then insert order), or null if none.
   Stream<Puzzle?> watchCurrentPuzzle();
 

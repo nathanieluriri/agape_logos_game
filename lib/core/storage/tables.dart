@@ -59,6 +59,28 @@ class CachedPuzzles extends Table {
   Set<Column<Object>> get primaryKey => {puzzleId};
 }
 
+/// Local cache of the signed-in user's solved-word dictionary. Written through
+/// from `GET /me/dictionary`, served offline. Keyed by (uid, word) so reads are
+/// scoped to one account (a guest -> Google switch never surfaces the previous
+/// account's words), matching the CachedProfile uid-guard. `word` is stored
+/// UPPERCASE by the write-through mapper so the PK dedupe matches the backend.
+@DataClassName('DictionaryEntryRow')
+class DictionaryEntries extends Table {
+  TextColumn get uid => text()();
+  TextColumn get word => text()();
+  TextColumn get definition => text().nullable()();
+  TextColumn get tier => text()();
+  // The progression level this word was first solved at, if the server sends it.
+  // Nullable: the assignment ledger does not retain a per-puzzle level today, so
+  // the endpoint omits it and the UI groups by tier. Kept for future use.
+  IntColumn get level => integer().nullable()();
+  // When this row was written through to the cache (epoch millis).
+  IntColumn get foundAt => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {uid, word};
+}
+
 /// Single-row local game settings (the row id is always 0). Local-only,
 /// never synced. Booleans default ON, except [tutorialSeen] which defaults
 /// OFF (a fresh install has not seen the first-play tutorial yet).

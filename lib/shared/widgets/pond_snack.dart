@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/spacing.dart';
+import '../../core/haptics/haptics.dart';
 
 /// Shows a floating pond-styled snack: a translucent water capsule with soft
 /// cream text. The app-wide stand-in for the default [SnackBar] styling.
@@ -10,6 +11,10 @@ import '../../core/design/tokens/spacing.dart';
 /// Any snack currently on screen is removed first so quick successive
 /// messages replace each other instead of queueing.
 void showPondSnack(BuildContext context, String message) {
+  // PLAN: outcome handlers also fire successPattern / mistakeImpact; this soft
+  // "a message appeared" tick layers on top. If it feels muddy on device, drop
+  // this tick and keep the outcome haptics.
+  Haptics.instance.selectionClick();
   ScaffoldMessenger.of(context)
     ..removeCurrentSnackBar()
     ..showSnackBar(

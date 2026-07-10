@@ -89,7 +89,7 @@ class _RewardGiftButtonState extends ConsumerState<RewardGiftButton> {
   }
 
   static String _messageFor(ClaimResult result) => switch (result) {
-        ClaimCoinsSuccess(:final claimed) => 'Claimed $claimed coins!',
+        ClaimCoinsSuccess(:final claimed) => 'Claimed $claimed petals!',
         ClaimPowerupSuccess(:final granted) =>
           'Claimed a free ${_pretty(granted)}!',
         ClaimOnCooldown() => 'Already claimed. Check back soon.',

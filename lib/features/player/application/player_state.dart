@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../puzzles/domain/puzzle.dart';
+
 part 'player_state.freezed.dart';
 
 /// Summary of the level the player just completed, built from real backend
@@ -17,6 +19,11 @@ abstract class LevelSummary with _$LevelSummary {
 
     /// The puzzle's total answers (`answerCount` from the backend puzzle).
     required int totalWords,
+
+    /// The completed puzzle's answers (all found on a win), so the level-complete
+    /// Dictionary pad can show them without the game session, which is replaced
+    /// by the next Play.
+    required List<PuzzleAnswer> words,
   }) = _LevelSummary;
 
   const LevelSummary._();

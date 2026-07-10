@@ -18,6 +18,7 @@ const _puzzle = Puzzle(
 
 class _FakePuzzleController implements PuzzleController {
   bool recorded = false;
+  bool recovered = false;
   @override
   Future<void> recordResult(
     String puzzleId,
@@ -29,6 +30,10 @@ class _FakePuzzleController implements PuzzleController {
   }
   @override
   Future<void> refresh() async {}
+  @override
+  Future<void> recover() async {
+    recovered = true;
+  }
 }
 
 // A minimal router so GamePage's context.push('/level-complete') works in tests.
@@ -83,5 +88,30 @@ void main() {
 
     expect(fake.recorded, isTrue);
     expect(find.text('Level complete'), findsOneWidget);
+  });
+
+  testWidgets('empty pond: Try again runs recovery', (tester) async {
+    final fake = _FakePuzzleController();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          // Stream resolves to "no puzzle" -> empty pond.
+          currentPuzzleProvider.overrideWith((ref) => Stream.value(null)),
+          puzzleControllerProvider.overrideWithValue(fake),
+          ambientEnabledProvider.overrideWithValue(false),
+          coinsProvider.overrideWithValue(0),
+          nextLevelProvider.overrideWithValue(1),
+          currentUserProvider.overrideWithValue(null),
+        ],
+        child: MaterialApp.router(routerConfig: _router()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Try again'), findsOneWidget);
+    await tester.tap(find.text('Try again'));
+    await tester.pump();
+    expect(fake.recovered, isTrue);
   });
 }

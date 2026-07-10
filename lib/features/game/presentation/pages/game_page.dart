@@ -39,8 +39,16 @@ class _GamePageState extends ConsumerState<GamePage> {
     if (puzzle != null) {
       ref.read(gameSessionProvider.notifier).load(puzzle);
     } else {
-      ref.read(puzzleControllerProvider).refresh();
+      _recover();
     }
+  }
+
+  Future<void> _recover() async {
+    await ref.read(puzzleControllerProvider).recover();
+    if (!mounted) return;
+    // Re-subscribe so watchCurrentPuzzle re-runs its decrypt/guard with the
+    // (now refreshed) answer key, even when recover wrote no new rows.
+    ref.invalidate(currentPuzzleProvider);
   }
 
   @override
@@ -93,10 +101,7 @@ class _GamePageState extends ConsumerState<GamePage> {
         child: SafeArea(
           child: session == null
               ? (pondEmpty
-                  ? EmptyPondNotice(
-                      onRetry: () =>
-                          ref.read(puzzleControllerProvider).refresh(),
-                    )
+                  ? EmptyPondNotice(onRetry: _recover)
                   : const Center(
                       child: PondLoader(
                         label: 'Loading puzzle',

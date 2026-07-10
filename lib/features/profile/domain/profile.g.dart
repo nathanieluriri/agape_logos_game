@@ -18,6 +18,9 @@ _Profile _$ProfileFromJson(Map<String, dynamic> json) => _Profile(
   coins: (json['coins'] as num?)?.toInt() ?? 0,
   createdAt: (json['createdAt'] as num).toInt(),
   updatedAt: (json['updatedAt'] as num).toInt(),
+  handle: json['handle'] as String? ?? '',
+  public: json['public'] as bool? ?? false,
+  isGuest: json['isGuest'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$ProfileToJson(_Profile instance) => <String, dynamic>{
@@ -32,4 +35,7 @@ Map<String, dynamic> _$ProfileToJson(_Profile instance) => <String, dynamic>{
   'coins': instance.coins,
   'createdAt': instance.createdAt,
   'updatedAt': instance.updatedAt,
+  'handle': instance.handle,
+  'public': instance.public,
+  'isGuest': instance.isGuest,
 };

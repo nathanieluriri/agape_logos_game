@@ -53,4 +53,25 @@ class PendingMutationsDao extends DatabaseAccessor<AppDatabase>
           nextAttemptAt: Value(nextAttemptAt),
         ),
       );
+
+  /// Watches permanently-failed rows of [kind] (max retries exhausted or a
+  /// non-retryable 4xx). Used to surface a "progress didn't save" notice only
+  /// when the cloud will never learn about a local completion.
+  Stream<List<PendingMutation>> watchFailed(String kind) =>
+      (select(pendingMutations)
+            ..where((t) => t.status.equals('failed') & t.kind.equals(kind)))
+          .watch();
+
+  /// Re-arms failed rows of [kind] for another attempt (user tapped Retry):
+  /// status -> pending, retryCount -> 0, nextAttemptAt -> 0.
+  Future<void> resetFailed(String kind) =>
+      (update(pendingMutations)
+            ..where((t) => t.status.equals('failed') & t.kind.equals(kind)))
+          .write(
+        const PendingMutationsCompanion(
+          status: Value('pending'),
+          retryCount: Value(0),
+          nextAttemptAt: Value(0),
+        ),
+      );
 }

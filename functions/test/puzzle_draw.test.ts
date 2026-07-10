@@ -16,17 +16,33 @@ async function mintUser(): Promise<{idToken: string; uid: string}> {
   return {idToken: data.idToken, uid: data.localId};
 }
 
-async function seedPool(): Promise<void> {
+// `random` mirrors what `writePuzzles` stamps in production: the draw windows on
+// it, and a Firestore range filter skips docs that lack the field. Pass
+// `withRandom: false` to simulate a legacy doc written before the backfill.
+function mk(key: string, tier: string, withRandom = true) {
+  return {
+    tier, rackSize: key.length, letters: key.split(""), letterKey: key,
+    anchor: key, answers: [{word: key, length: key.length, definition: null}], answerCount: 1,
+    ...(withRandom ? {random: Math.random()} : {}),
+  };
+}
+
+async function clearPool(): Promise<void> {
   const db = admin.firestore();
   const existing = await db.collection("puzzles").get();
   await Promise.all(existing.docs.map((d) => d.ref.delete()));
-  const mk = (key: string, tier: string) => ({
-    tier, rackSize: key.length, letters: key.split(""), letterKey: key,
-    anchor: key, answers: [{word: key, length: key.length, definition: null}], answerCount: 1,
-  });
+}
+
+async function seedPool(withRandom = true): Promise<void> {
+  const db = admin.firestore();
+  await clearPool();
   const batch = db.batch();
-  for (const k of ["AAA", "BBB", "CCC", "DDD", "EEE"]) batch.set(db.collection("puzzles").doc(k), mk(k, "easy"));
-  for (const k of ["FFFF", "GGGG"]) batch.set(db.collection("puzzles").doc(k), mk(k, "medium"));
+  for (const k of ["AAA", "BBB", "CCC", "DDD", "EEE"]) {
+    batch.set(db.collection("puzzles").doc(k), mk(k, "easy", withRandom));
+  }
+  for (const k of ["FFFF", "GGGG"]) {
+    batch.set(db.collection("puzzles").doc(k), mk(k, "medium", withRandom));
+  }
   await batch.commit();
 }
 
@@ -77,6 +93,38 @@ describe("POST /puzzles/draw", () => {
     expect(res.body.byTier.medium.assigned).toBe(2);
     expect(res.body.byTier.medium.requested).toBe(5);
     expect(res.body.shortfall).toBe(true);
+  });
+
+  // A Firestore range filter skips docs missing the field, so puzzles written
+  // before `random` existed are invisible to the windowed query. The draw must
+  // fall back to a tier scan, otherwise deploying ahead of the backfill script
+  // would serve zero puzzles to everyone.
+  test("still draws puzzles that predate the `random` field (backfill safety)", async () => {
+    await seedPool(false); // legacy docs: no `random`
+    const {idToken} = await mintUser();
+    const res = await request(app).post("/puzzles/draw")
+      .set("Authorization", `Bearer ${idToken}`).set("idempotency-key", "legacy1")
+      .send({easy: 3});
+    expect(res.status).toBe(200);
+    expect(res.body.byTier.easy.assigned).toBe(3);
+    expect(res.body.byTier.easy.puzzles).toHaveLength(3);
+  });
+
+  test("draws from a pool that mixes legacy and backfilled puzzles", async () => {
+    const db = admin.firestore();
+    await clearPool();
+    const batch = db.batch();
+    batch.set(db.collection("puzzles").doc("AAA"), mk("AAA", "easy", true));
+    batch.set(db.collection("puzzles").doc("BBB"), mk("BBB", "easy", false));
+    batch.set(db.collection("puzzles").doc("CCC"), mk("CCC", "easy", false));
+    await batch.commit();
+
+    const {idToken} = await mintUser();
+    const res = await request(app).post("/puzzles/draw")
+      .set("Authorization", `Bearer ${idToken}`).set("idempotency-key", "mixed1")
+      .send({easy: 3});
+    expect(res.status).toBe(200);
+    expect(res.body.byTier.easy.assigned).toBe(3);
   });
 
   test("a second draw excludes already-assigned puzzles", async () => {

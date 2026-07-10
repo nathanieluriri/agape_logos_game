@@ -4,6 +4,15 @@ import {Tier, TIER_ORDER} from "../generation/config";
 import {Rng} from "../generation/random";
 import {selectUnseen} from "./select_unseen";
 
+// Read a few extra candidates so excluding already-assigned puzzles still
+// leaves enough. Keeps a draw at O(n) reads instead of O(pool size).
+const OVERSAMPLE = 3;
+
+/** Random lower bound in [0,1) for the range window. Pure, for tests. */
+export function pickWindow(_count: number, rng: Rng): number {
+  return Math.min(0.999999, Math.max(0, rng()));
+}
+
 export interface PuzzleDoc {
   tier: string;
   rackSize: number;
@@ -35,7 +44,7 @@ export interface DrawResult {
 
 // Encrypts a puzzle's answers with the caller's per-user key. Derive the key
 // once per request and reuse it across the batch.
-function encryptPuzzle(key: Buffer, p: PuzzleDoc): WirePuzzle {
+export function encryptPuzzle(key: Buffer, p: PuzzleDoc): WirePuzzle {
   return {...p, answers: p.answers.map((a) => encryptAnswerFields(key, a))};
 }
 
@@ -60,6 +69,47 @@ export async function fetchPuzzles(ids: string[]): Promise<PuzzleDoc[]> {
   return snaps
     .filter((s) => s.exists)
     .map((s) => toPuzzle(s.data() as Record<string, unknown>));
+}
+
+async function drawTierCandidates(
+  tier: Tier,
+  n: number,
+  assignedIds: Set<string>,
+  rng: Rng,
+): Promise<string[]> {
+  const want = n * OVERSAMPLE;
+  const start = pickWindow(n, rng);
+  const col = db.collection("puzzles").where("tier", "==", tier);
+  // Forward window from a random point.
+  const forward = await col
+    .where("random", ">=", start)
+    .orderBy("random")
+    .limit(want)
+    .select()
+    .get();
+  const ids = forward.docs.map((d) => d.id).filter((id) => !assignedIds.has(id));
+  if (ids.length >= n) return ids.slice(0, n);
+  // Wrap around: read from the start of the tier to top up.
+  const wrap = await col
+    .where("random", "<", start)
+    .orderBy("random")
+    .limit(want)
+    .select()
+    .get();
+  for (const d of wrap.docs) {
+    if (ids.length >= n) break;
+    if (!assignedIds.has(d.id)) ids.push(d.id);
+  }
+  if (ids.length >= n) return ids.slice(0, n);
+
+  // Fallback: a Firestore range filter SKIPS documents that lack the field, so
+  // any puzzle written before `random` existed (or before the backfill script
+  // ran) is invisible to the windowed query above. Without this scan a deploy
+  // that lands ahead of the backfill would serve zero puzzles. Costs a full
+  // tier read, but only when the window came up short.
+  const all = await col.select().get();
+  const {chosen} = selectUnseen(all.docs.map((d) => d.id), assignedIds, n, rng);
+  return chosen;
 }
 
 interface DrawRecordTier {
@@ -111,9 +161,8 @@ export async function draw(
   for (const tier of TIER_ORDER) {
     const n = counts[tier] ?? 0;
     if (n <= 0) continue;
-    const tierSnap = await db.collection("puzzles").where("tier", "==", tier).select().get();
-    const tierIds = tierSnap.docs.map((d) => d.id);
-    const {chosen, shortfall: sf} = selectUnseen(tierIds, assignedIds, n, rng);
+    const chosen = await drawTierCandidates(tier, n, assignedIds, rng);
+    const sf = n - chosen.length;
     chosen.forEach((id) => {
       assignedIds.add(id);
       chosenAll.push({id, tier});

@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/gradients.dart';
+import '../../../../core/haptics/haptic_providers.dart';
 import '../../../../core/design/tokens/radii.dart';
+import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../shared/widgets/petal_icon.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_snack.dart';
 import '../../application/store_providers.dart';
@@ -33,23 +36,28 @@ class StoreItemCard extends ConsumerWidget {
   );
 
   Future<void> _buy(BuildContext context, WidgetRef ref) async {
+    final haptics = ref.read(hapticServiceProvider);
     final outcome =
         await ref.read(storePurchaseControllerProvider.notifier).buy(item);
     if (!context.mounted) return;
     switch (outcome) {
       case PurchaseSuccess(:final replay):
+        haptics.successPattern();
         showPondSnack(
           context,
           replay ? '${item.name} already yours.' : '${item.name} purchased!',
         );
       case PurchaseInsufficientCoins(:final cost, :final coins):
+        haptics.mistakeImpact();
         showPondSnack(
           context,
-          'Not enough coins. ${item.name} costs $cost, you have $coins.',
+          'Not enough petals. ${item.name} costs $cost, you have $coins.',
         );
       case PurchaseUnknownItem():
+        haptics.mistakeImpact();
         showPondSnack(context, 'That item is no longer available.');
       case PurchaseUnavailable():
+        haptics.mistakeImpact();
         showPondSnack(context, 'Could not reach the store. Try again.');
     }
   }
@@ -135,7 +143,7 @@ class StoreItemCard extends ConsumerWidget {
                         )
                       : PondPillButton(
                           label: 'Buy',
-                          semanticLabel: 'Buy ${item.name} for ${item.cost} coins',
+                          semanticLabel: 'Buy ${item.name} for ${item.cost} petals',
                           onPressed: () => _buy(context, ref),
                         ),
                 ],
@@ -193,7 +201,7 @@ class _KindChip extends StatelessWidget {
   }
 }
 
-/// The coin cost, shown as a gold coin dot beside the number.
+/// The item cost, shown as a currency petal beside the number.
 class _CostTag extends StatelessWidget {
   const _CostTag({required this.cost});
 
@@ -204,14 +212,7 @@ class _CostTag extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 14,
-          height: 14,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.accent,
-          ),
-        ),
+        const PetalIcon(size: AppSizing.petalIconSm),
         const SizedBox(width: AppSpacing.xs),
         Text(
           '$cost',

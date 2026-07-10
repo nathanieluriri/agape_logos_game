@@ -2889,6 +2889,417 @@ class CachedProfileCompanion extends UpdateCompanion<CachedProfileRow> {
   }
 }
 
+class $DictionaryEntriesTable extends DictionaryEntries
+    with TableInfo<$DictionaryEntriesTable, DictionaryEntryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DictionaryEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _wordMeta = const VerificationMeta('word');
+  @override
+  late final GeneratedColumn<String> word = GeneratedColumn<String>(
+    'word',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _definitionMeta = const VerificationMeta(
+    'definition',
+  );
+  @override
+  late final GeneratedColumn<String> definition = GeneratedColumn<String>(
+    'definition',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tierMeta = const VerificationMeta('tier');
+  @override
+  late final GeneratedColumn<String> tier = GeneratedColumn<String>(
+    'tier',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
+  @override
+  late final GeneratedColumn<int> level = GeneratedColumn<int>(
+    'level',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _foundAtMeta = const VerificationMeta(
+    'foundAt',
+  );
+  @override
+  late final GeneratedColumn<int> foundAt = GeneratedColumn<int>(
+    'found_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    uid,
+    word,
+    definition,
+    tier,
+    level,
+    foundAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dictionary_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DictionaryEntryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('uid')) {
+      context.handle(
+        _uidMeta,
+        uid.isAcceptableOrUnknown(data['uid']!, _uidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('word')) {
+      context.handle(
+        _wordMeta,
+        word.isAcceptableOrUnknown(data['word']!, _wordMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_wordMeta);
+    }
+    if (data.containsKey('definition')) {
+      context.handle(
+        _definitionMeta,
+        definition.isAcceptableOrUnknown(data['definition']!, _definitionMeta),
+      );
+    }
+    if (data.containsKey('tier')) {
+      context.handle(
+        _tierMeta,
+        tier.isAcceptableOrUnknown(data['tier']!, _tierMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tierMeta);
+    }
+    if (data.containsKey('level')) {
+      context.handle(
+        _levelMeta,
+        level.isAcceptableOrUnknown(data['level']!, _levelMeta),
+      );
+    }
+    if (data.containsKey('found_at')) {
+      context.handle(
+        _foundAtMeta,
+        foundAt.isAcceptableOrUnknown(data['found_at']!, _foundAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_foundAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {uid, word};
+  @override
+  DictionaryEntryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DictionaryEntryRow(
+      uid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uid'],
+      )!,
+      word: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}word'],
+      )!,
+      definition: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}definition'],
+      ),
+      tier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tier'],
+      )!,
+      level: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}level'],
+      ),
+      foundAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}found_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DictionaryEntriesTable createAlias(String alias) {
+    return $DictionaryEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class DictionaryEntryRow extends DataClass
+    implements Insertable<DictionaryEntryRow> {
+  final String uid;
+  final String word;
+  final String? definition;
+  final String tier;
+  final int? level;
+  final int foundAt;
+  const DictionaryEntryRow({
+    required this.uid,
+    required this.word,
+    this.definition,
+    required this.tier,
+    this.level,
+    required this.foundAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['uid'] = Variable<String>(uid);
+    map['word'] = Variable<String>(word);
+    if (!nullToAbsent || definition != null) {
+      map['definition'] = Variable<String>(definition);
+    }
+    map['tier'] = Variable<String>(tier);
+    if (!nullToAbsent || level != null) {
+      map['level'] = Variable<int>(level);
+    }
+    map['found_at'] = Variable<int>(foundAt);
+    return map;
+  }
+
+  DictionaryEntriesCompanion toCompanion(bool nullToAbsent) {
+    return DictionaryEntriesCompanion(
+      uid: Value(uid),
+      word: Value(word),
+      definition: definition == null && nullToAbsent
+          ? const Value.absent()
+          : Value(definition),
+      tier: Value(tier),
+      level: level == null && nullToAbsent
+          ? const Value.absent()
+          : Value(level),
+      foundAt: Value(foundAt),
+    );
+  }
+
+  factory DictionaryEntryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DictionaryEntryRow(
+      uid: serializer.fromJson<String>(json['uid']),
+      word: serializer.fromJson<String>(json['word']),
+      definition: serializer.fromJson<String?>(json['definition']),
+      tier: serializer.fromJson<String>(json['tier']),
+      level: serializer.fromJson<int?>(json['level']),
+      foundAt: serializer.fromJson<int>(json['foundAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'uid': serializer.toJson<String>(uid),
+      'word': serializer.toJson<String>(word),
+      'definition': serializer.toJson<String?>(definition),
+      'tier': serializer.toJson<String>(tier),
+      'level': serializer.toJson<int?>(level),
+      'foundAt': serializer.toJson<int>(foundAt),
+    };
+  }
+
+  DictionaryEntryRow copyWith({
+    String? uid,
+    String? word,
+    Value<String?> definition = const Value.absent(),
+    String? tier,
+    Value<int?> level = const Value.absent(),
+    int? foundAt,
+  }) => DictionaryEntryRow(
+    uid: uid ?? this.uid,
+    word: word ?? this.word,
+    definition: definition.present ? definition.value : this.definition,
+    tier: tier ?? this.tier,
+    level: level.present ? level.value : this.level,
+    foundAt: foundAt ?? this.foundAt,
+  );
+  DictionaryEntryRow copyWithCompanion(DictionaryEntriesCompanion data) {
+    return DictionaryEntryRow(
+      uid: data.uid.present ? data.uid.value : this.uid,
+      word: data.word.present ? data.word.value : this.word,
+      definition: data.definition.present
+          ? data.definition.value
+          : this.definition,
+      tier: data.tier.present ? data.tier.value : this.tier,
+      level: data.level.present ? data.level.value : this.level,
+      foundAt: data.foundAt.present ? data.foundAt.value : this.foundAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DictionaryEntryRow(')
+          ..write('uid: $uid, ')
+          ..write('word: $word, ')
+          ..write('definition: $definition, ')
+          ..write('tier: $tier, ')
+          ..write('level: $level, ')
+          ..write('foundAt: $foundAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(uid, word, definition, tier, level, foundAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DictionaryEntryRow &&
+          other.uid == this.uid &&
+          other.word == this.word &&
+          other.definition == this.definition &&
+          other.tier == this.tier &&
+          other.level == this.level &&
+          other.foundAt == this.foundAt);
+}
+
+class DictionaryEntriesCompanion extends UpdateCompanion<DictionaryEntryRow> {
+  final Value<String> uid;
+  final Value<String> word;
+  final Value<String?> definition;
+  final Value<String> tier;
+  final Value<int?> level;
+  final Value<int> foundAt;
+  final Value<int> rowid;
+  const DictionaryEntriesCompanion({
+    this.uid = const Value.absent(),
+    this.word = const Value.absent(),
+    this.definition = const Value.absent(),
+    this.tier = const Value.absent(),
+    this.level = const Value.absent(),
+    this.foundAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DictionaryEntriesCompanion.insert({
+    required String uid,
+    required String word,
+    this.definition = const Value.absent(),
+    required String tier,
+    this.level = const Value.absent(),
+    required int foundAt,
+    this.rowid = const Value.absent(),
+  }) : uid = Value(uid),
+       word = Value(word),
+       tier = Value(tier),
+       foundAt = Value(foundAt);
+  static Insertable<DictionaryEntryRow> custom({
+    Expression<String>? uid,
+    Expression<String>? word,
+    Expression<String>? definition,
+    Expression<String>? tier,
+    Expression<int>? level,
+    Expression<int>? foundAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (uid != null) 'uid': uid,
+      if (word != null) 'word': word,
+      if (definition != null) 'definition': definition,
+      if (tier != null) 'tier': tier,
+      if (level != null) 'level': level,
+      if (foundAt != null) 'found_at': foundAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DictionaryEntriesCompanion copyWith({
+    Value<String>? uid,
+    Value<String>? word,
+    Value<String?>? definition,
+    Value<String>? tier,
+    Value<int?>? level,
+    Value<int>? foundAt,
+    Value<int>? rowid,
+  }) {
+    return DictionaryEntriesCompanion(
+      uid: uid ?? this.uid,
+      word: word ?? this.word,
+      definition: definition ?? this.definition,
+      tier: tier ?? this.tier,
+      level: level ?? this.level,
+      foundAt: foundAt ?? this.foundAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (word.present) {
+      map['word'] = Variable<String>(word.value);
+    }
+    if (definition.present) {
+      map['definition'] = Variable<String>(definition.value);
+    }
+    if (tier.present) {
+      map['tier'] = Variable<String>(tier.value);
+    }
+    if (level.present) {
+      map['level'] = Variable<int>(level.value);
+    }
+    if (foundAt.present) {
+      map['found_at'] = Variable<int>(foundAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DictionaryEntriesCompanion(')
+          ..write('uid: $uid, ')
+          ..write('word: $word, ')
+          ..write('definition: $definition, ')
+          ..write('tier: $tier, ')
+          ..write('level: $level, ')
+          ..write('foundAt: $foundAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2899,6 +3310,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CachedPuzzlesTable cachedPuzzles = $CachedPuzzlesTable(this);
   late final $GameSettingsTable gameSettings = $GameSettingsTable(this);
   late final $CachedProfileTable cachedProfile = $CachedProfileTable(this);
+  late final $DictionaryEntriesTable dictionaryEntries =
+      $DictionaryEntriesTable(this);
   late final PendingMutationsDao pendingMutationsDao = PendingMutationsDao(
     this as AppDatabase,
   );
@@ -2914,6 +3327,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final CachedProfileDao cachedProfileDao = CachedProfileDao(
     this as AppDatabase,
   );
+  late final DictionaryEntriesDao dictionaryEntriesDao = DictionaryEntriesDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2924,6 +3340,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cachedPuzzles,
     gameSettings,
     cachedProfile,
+    dictionaryEntries,
   ];
 }
 
@@ -4360,6 +4777,240 @@ typedef $$CachedProfileTableProcessedTableManager =
       CachedProfileRow,
       PrefetchHooks Function()
     >;
+typedef $$DictionaryEntriesTableCreateCompanionBuilder =
+    DictionaryEntriesCompanion Function({
+      required String uid,
+      required String word,
+      Value<String?> definition,
+      required String tier,
+      Value<int?> level,
+      required int foundAt,
+      Value<int> rowid,
+    });
+typedef $$DictionaryEntriesTableUpdateCompanionBuilder =
+    DictionaryEntriesCompanion Function({
+      Value<String> uid,
+      Value<String> word,
+      Value<String?> definition,
+      Value<String> tier,
+      Value<int?> level,
+      Value<int> foundAt,
+      Value<int> rowid,
+    });
+
+class $$DictionaryEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $DictionaryEntriesTable> {
+  $$DictionaryEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get uid => $composableBuilder(
+    column: $table.uid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get word => $composableBuilder(
+    column: $table.word,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get definition => $composableBuilder(
+    column: $table.definition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tier => $composableBuilder(
+    column: $table.tier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get foundAt => $composableBuilder(
+    column: $table.foundAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DictionaryEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $DictionaryEntriesTable> {
+  $$DictionaryEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get uid => $composableBuilder(
+    column: $table.uid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get word => $composableBuilder(
+    column: $table.word,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get definition => $composableBuilder(
+    column: $table.definition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tier => $composableBuilder(
+    column: $table.tier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get foundAt => $composableBuilder(
+    column: $table.foundAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DictionaryEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DictionaryEntriesTable> {
+  $$DictionaryEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumn<String> get word =>
+      $composableBuilder(column: $table.word, builder: (column) => column);
+
+  GeneratedColumn<String> get definition => $composableBuilder(
+    column: $table.definition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tier =>
+      $composableBuilder(column: $table.tier, builder: (column) => column);
+
+  GeneratedColumn<int> get level =>
+      $composableBuilder(column: $table.level, builder: (column) => column);
+
+  GeneratedColumn<int> get foundAt =>
+      $composableBuilder(column: $table.foundAt, builder: (column) => column);
+}
+
+class $$DictionaryEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DictionaryEntriesTable,
+          DictionaryEntryRow,
+          $$DictionaryEntriesTableFilterComposer,
+          $$DictionaryEntriesTableOrderingComposer,
+          $$DictionaryEntriesTableAnnotationComposer,
+          $$DictionaryEntriesTableCreateCompanionBuilder,
+          $$DictionaryEntriesTableUpdateCompanionBuilder,
+          (
+            DictionaryEntryRow,
+            BaseReferences<
+              _$AppDatabase,
+              $DictionaryEntriesTable,
+              DictionaryEntryRow
+            >,
+          ),
+          DictionaryEntryRow,
+          PrefetchHooks Function()
+        > {
+  $$DictionaryEntriesTableTableManager(
+    _$AppDatabase db,
+    $DictionaryEntriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DictionaryEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DictionaryEntriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DictionaryEntriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> uid = const Value.absent(),
+                Value<String> word = const Value.absent(),
+                Value<String?> definition = const Value.absent(),
+                Value<String> tier = const Value.absent(),
+                Value<int?> level = const Value.absent(),
+                Value<int> foundAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DictionaryEntriesCompanion(
+                uid: uid,
+                word: word,
+                definition: definition,
+                tier: tier,
+                level: level,
+                foundAt: foundAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String uid,
+                required String word,
+                Value<String?> definition = const Value.absent(),
+                required String tier,
+                Value<int?> level = const Value.absent(),
+                required int foundAt,
+                Value<int> rowid = const Value.absent(),
+              }) => DictionaryEntriesCompanion.insert(
+                uid: uid,
+                word: word,
+                definition: definition,
+                tier: tier,
+                level: level,
+                foundAt: foundAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DictionaryEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DictionaryEntriesTable,
+      DictionaryEntryRow,
+      $$DictionaryEntriesTableFilterComposer,
+      $$DictionaryEntriesTableOrderingComposer,
+      $$DictionaryEntriesTableAnnotationComposer,
+      $$DictionaryEntriesTableCreateCompanionBuilder,
+      $$DictionaryEntriesTableUpdateCompanionBuilder,
+      (
+        DictionaryEntryRow,
+        BaseReferences<
+          _$AppDatabase,
+          $DictionaryEntriesTable,
+          DictionaryEntryRow
+        >,
+      ),
+      DictionaryEntryRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4374,4 +5025,6 @@ class $AppDatabaseManager {
       $$GameSettingsTableTableManager(_db, _db.gameSettings);
   $$CachedProfileTableTableManager get cachedProfile =>
       $$CachedProfileTableTableManager(_db, _db.cachedProfile);
+  $$DictionaryEntriesTableTableManager get dictionaryEntries =>
+      $$DictionaryEntriesTableTableManager(_db, _db.dictionaryEntries);
 }

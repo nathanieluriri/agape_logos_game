@@ -3,6 +3,7 @@ import {auth} from "../firebase";
 
 export interface AuthedRequest extends Request {
   uid?: string;
+  isGuest?: boolean;
 }
 
 // Verifies "Authorization: Bearer <Firebase ID token>" and attaches req.uid.
@@ -21,6 +22,9 @@ export async function requireAuth(
   try {
     const decoded = await auth.verifyIdToken(match[1]);
     req.uid = decoded.uid;
+    // PLAN: decoded.firebase.sign_in_provider is on DecodedIdToken; anonymous
+    // Firebase users report "anonymous". Additive; no existing route changes.
+    req.isGuest = decoded.firebase?.sign_in_provider === "anonymous";
     next();
   } catch {
     res.status(401).json({error: "invalid token"});

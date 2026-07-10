@@ -4,6 +4,7 @@ import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/settings/application/settings_providers.dart';
 import 'package:agape_logos_game/features/settings/presentation/pages/settings_page.dart';
+import 'package:agape_logos_game/features/social/application/social_providers.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:agape_logos_game/shared/widgets/pond_switch.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +48,13 @@ class _FakeAuth implements AuthRepository {
   Future<String?> idToken() async => null;
 }
 
+/// The Social section's Public profile switch reads `GET /me` on build; stub it
+/// so this page test stays network-free.
+class _StubPrivacy extends ProfilePrivacyController {
+  @override
+  Future<bool> build() async => false;
+}
+
 void main() {
   testWidgets('renders all sections and binds setting values to switches',
       (tester) async {
@@ -55,6 +63,7 @@ void main() {
         settingsProvider.overrideWith((ref) => Stream.value(_row)),
         authRepositoryProvider.overrideWithValue(_FakeAuth()),
         ambientEnabledProvider.overrideWithValue(false),
+        profilePrivacyControllerProvider.overrideWith(_StubPrivacy.new),
       ],
       child: const MaterialApp(home: SettingsPage()),
     ));
@@ -68,11 +77,14 @@ void main() {
     expect(find.text('Sign out'), findsOneWidget);
     expect(find.text('Version 0.2.0'), findsOneWidget);
 
-    // Switches render in order: Sound effects, Music, Notifications, Haptics.
+    // Switches render in order: Sound effects, Music, Notifications, Haptics
+    // (Game section), then Public profile (Social section).
+    expect(find.text('Public profile'), findsOneWidget);
     final switches =
         tester.widgetList<PondSwitch>(find.byType(PondSwitch)).toList();
-    expect(switches.length, 4);
+    expect(switches.length, 5);
     expect(switches[0].value, isTrue); // sound effects
     expect(switches[2].value, isFalse); // notifications (false in _row)
+    expect(switches[4].value, isFalse); // public profile (stubbed private)
   });
 }

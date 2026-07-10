@@ -5,10 +5,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/play_flow.dart';
 import '../../../../core/design/tokens/colors.dart';
+import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../features/profile/application/profile_providers.dart';
 import '../../../../features/rewards/presentation/widgets/reward_gift_button.dart';
-import '../../../../shared/widgets/coming_soon_sheet.dart';
+import '../../../../shared/widgets/friends_button.dart';
+import '../../../multiplayer/presentation/widgets/multiplayer_pad.dart';
 import '../../../../shared/widgets/play_pad_cluster.dart';
 import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_dialog.dart';
@@ -16,9 +18,10 @@ import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_stage.dart';
 import '../../../../shared/widgets/pond_top_bar.dart';
 import '../../../../shared/widgets/wordmark_logo.dart';
+import '../widgets/progress_sync_notice.dart';
 
-/// The home screen (withdraw state). Thin composition of shared pond widgets.
-/// Shows the wordmark + the Play pad + a Withdraw pad. No progress, no bonus.
+/// The home screen. Thin composition of shared pond widgets.
+/// Shows the wordmark + the Play pad + a Dictionary pad. No progress, no bonus.
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
@@ -45,8 +48,16 @@ class HomePage extends ConsumerWidget {
                 coins: coins,
                 onSettings: () => context.push('/settings'),
                 onAddCoins: () => context.push('/store'),
-                action: const RewardGiftButton(),
+                action: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const RewardGiftButton(),
+                    const SizedBox(width: AppSpacing.sm),
+                    FriendsButton(onPressed: () => context.push('/friends')),
+                  ],
+                ),
               ),
+              const ProgressSyncNotice(),
               const Spacer(),
               const WordmarkLogo(),
               const Spacer(),
@@ -54,13 +65,20 @@ class HomePage extends ConsumerWidget {
                 nextLabel: nextLabel,
                 onPlay: () => startPlayFlow(context, ref),
                 secondaryIcon: const Icon(
-                  Icons.account_balance_wallet,
-                  size: 26,
+                  Icons.menu_book_rounded,
+                  size: AppSizing.secondaryPadIcon,
                   color: AppColors.padLabel,
                 ),
-                secondaryLabel: 'Withdraw',
-                onSecondary: () => showComingSoon(context, 'Withdraw'),
+                secondaryLabel: 'Dictionary',
+                onSecondary: () => context.push('/dictionary'),
               ),
+              // PLAN: eyeball the Home layout on a small phone: the cluster is
+              // 240px tall and the two Spacers absorb slack, so the added
+              // ~120px Versus pad may crowd short screens. If it overflows,
+              // move MultiplayerPad into the cluster's Stack as a third
+              // floating pad, or shrink a Spacer. Keep spacing token-based.
+              const SizedBox(height: AppSpacing.md),
+              const MultiplayerPad(),
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),

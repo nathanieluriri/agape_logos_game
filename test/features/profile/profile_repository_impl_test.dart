@@ -185,6 +185,40 @@ void main() {
     );
   });
 
+  test('fetch does not regress highestLevel when the server is behind an '
+      'unsynced local win (the offline reopen bug)', () async {
+    final remote = _FakeRemote(result: _profile('u1'));
+    final repo = ProfileRepositoryImpl(db, remote);
+    await repo.fetch('u1'); // seed row, highestLevel 0
+
+    // Player wins level 1 offline: local advance to 1 (server still 0).
+    await repo.advanceLevelLocally('u1', 1);
+    expect((await db.cachedProfileDao.read('u1'))?.highestLevel, 1);
+
+    // Reopen online: GET /me still returns highestLevel 0 (win not synced).
+    remote.result = _profile('u1'); // highestLevel 0
+    await repo.fetch('u1');
+
+    // The locally-advanced level must be preserved, not clobbered.
+    expect((await db.cachedProfileDao.read('u1'))?.highestLevel, 1);
+  });
+
+  test('fetch adopts a higher server level (progress made on another device)',
+      () async {
+    final remote = _FakeRemote(result: _profile('u1'));
+    final repo = ProfileRepositoryImpl(db, remote);
+    await repo.fetch('u1');
+    await repo.advanceLevelLocally('u1', 2);
+
+    remote.result = const Profile(
+      uid: 'u1', displayName: 'Player', avatarId: 'avatar_01', locale: 'en',
+      soundEnabled: true, musicEnabled: true, highestLevel: 6, totalScore: 0,
+      coins: 0, createdAt: 1000, updatedAt: 2000,
+    );
+    await repo.fetch('u1');
+    expect((await db.cachedProfileDao.read('u1'))?.highestLevel, 6);
+  });
+
   test('updateDisplayName only touches the row for the matching uid', () async {
     final repo = ProfileRepositoryImpl(db, _FakeRemote(result: _profile('u1')));
     await repo.fetch('u1');

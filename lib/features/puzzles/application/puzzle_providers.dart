@@ -32,6 +32,11 @@ final puzzleRepositoryProvider = Provider<PuzzleRepository>((ref) {
       if (user == null) return null;
       return store.keyFor(user.uid);
     },
+    keyRefresh: () async {
+      final user = ref.read(currentUserProvider);
+      if (user == null) return;
+      await store.refresh(user.uid);
+    },
   );
 });
 
@@ -49,6 +54,7 @@ class PuzzleController {
   final PuzzleRepository _repo;
 
   Future<void> refresh() => _repo.ensureCacheReady();
+  Future<void> recover() => _repo.recover();
   Future<void> recordResult(
     String puzzleId,
     int score,

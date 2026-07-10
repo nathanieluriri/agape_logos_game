@@ -18,6 +18,8 @@ import 'puzzle_seed.dart';
 
 Future<List<int>?> _noKey() async => null;
 
+Future<void> _noRefresh() async {}
+
 class PuzzleRepositoryImpl
     with OfflineAwareRepository
     implements PuzzleRepository {
@@ -28,10 +30,12 @@ class PuzzleRepositoryImpl
     PuzzleSeedSource? seed,
     AnswerCipher? cipher,
     Future<List<int>?> Function()? answerKey,
+    Future<void> Function()? keyRefresh,
   })  : _uuid = uuid ?? const Uuid(),
         _seed = seed ?? const BundledPuzzleSeedSource(),
         _cipher = cipher ?? AnswerCipher(),
-        _answerKey = answerKey ?? _noKey;
+        _answerKey = answerKey ?? _noKey,
+        _keyRefresh = keyRefresh ?? _noRefresh;
 
   @override
   final AppDatabase db;
@@ -44,12 +48,21 @@ class PuzzleRepositoryImpl
   /// signed out / offline before the key was ever fetched.
   final Future<List<int>?> Function() _answerKey;
 
+  /// Forces a fresh answer-key fetch (used by [recover]).
+  final Future<void> Function() _keyRefresh;
+
   @override
   Future<void> ensureCacheReady() async {
     try {
       if (await db.cachedPuzzlesDao.unplayedCount() == 0) {
         final recovered = await _remote.assignedIncomplete();
-        if (recovered.isNotEmpty) await _insert(recovered, encrypted: true);
+        if (recovered.isNotEmpty) {
+          await _insert(recovered, encrypted: true);
+        } else {
+          // Cold cache: a small first draw returns fast so play starts quickly.
+          final first = await _remote.draw(kFirstDrawComposition);
+          if (first.isNotEmpty) await _insert(first, encrypted: true);
+        }
       }
       if (await db.cachedPuzzlesDao.unplayedCount() < kRefillThreshold) {
         final drawn = await _remote.draw(kDrawComposition);
@@ -70,6 +83,16 @@ class PuzzleRepositoryImpl
       final starter = await _seed.load();
       if (starter.isNotEmpty) await _insert(starter, encrypted: false);
     }
+  }
+
+  @override
+  Future<void> recover() async {
+    // Repair the first-login race: the encrypted front cannot decrypt until the
+    // per-user key arrives. Force a fresh fetch, then (re)prepare the cache. If
+    // the backend is unreachable, ensureCacheReady seeds the plaintext starter
+    // pack so the player is never stranded.
+    await _keyRefresh();
+    await ensureCacheReady();
   }
 
   /// Whether the cache holds a puzzle the player can actually start right now:

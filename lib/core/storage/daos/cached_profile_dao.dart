@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:drift/drift.dart';
 
 import '../app_database.dart';
@@ -16,6 +18,32 @@ class CachedProfileDao extends DatabaseAccessor<AppDatabase>
   /// Write-through: replaces the single cached row with the latest profile.
   Future<void> upsert(CachedProfileCompanion row) =>
       into(cachedProfile).insertOnConflictUpdate(row);
+
+  /// Write-through that never regresses monotonic progress. Replaces the single
+  /// cached row with [server], EXCEPT `highestLevel` and `totalScore`, which take
+  /// the max of the existing cached value and the server value. This stops a
+  /// stale `GET /me` (server behind an offline win that has not synced yet) from
+  /// clobbering the locally-advanced level. Server-owned columns (coins, name,
+  /// avatar, locale, timestamps) follow the server. A full replace is used when
+  /// no row exists or the existing row belongs to a different account.
+  Future<void> mergeServerProfile(CachedProfileCompanion server) =>
+      transaction(() async {
+        final existing = await (select(cachedProfile)
+              ..where((t) => t.id.equals(0)))
+            .getSingleOrNull();
+        if (existing == null || existing.uid != server.uid.value) {
+          await into(cachedProfile).insertOnConflictUpdate(server);
+          return;
+        }
+        await into(cachedProfile).insertOnConflictUpdate(
+          server.copyWith(
+            highestLevel:
+                Value(max(existing.highestLevel, server.highestLevel.value)),
+            totalScore:
+                Value(max(existing.totalScore, server.totalScore.value)),
+          ),
+        );
+      });
 
   /// The cached profile for [uid], or null when absent or belonging to a
   /// different account.

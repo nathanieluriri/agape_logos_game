@@ -38,4 +38,38 @@ void main() {
     expect(LilyPadPalette.green.fillGradient,
         isNot(LilyPadPalette.bonusBlue.fillGradient));
   });
+
+  testWidgets('LilyPad accepts a lift and repaints without error across values',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Center(
+        child: LilyPad(size: 180, palette: LilyPadPalette.green, lift: 0),
+      ),
+    ));
+    // Rebuild at full lift: the shadow layer recomputes (blur/offset/opacity).
+    await tester.pumpWidget(const MaterialApp(
+      home: Center(
+        child: LilyPad(size: 180, palette: LilyPadPalette.green, lift: 1),
+      ),
+    ));
+    // And an intermediate value.
+    await tester.pumpWidget(const MaterialApp(
+      home: Center(
+        child: LilyPad(size: 180, palette: LilyPadPalette.green, lift: 0.5),
+      ),
+    ));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('LilyPad lift defaults to 0 (shadowless-safe, golden-stable)',
+      (tester) async {
+    // No lift argument: must still build (default 0) exactly like the existing
+    // call sites that never pass lift.
+    await tester.pumpWidget(const MaterialApp(
+      home: Center(
+        child: LilyPad(size: 120, palette: LilyPadPalette.bonusBlue),
+      ),
+    ));
+    expect(tester.takeException(), isNull);
+  });
 }

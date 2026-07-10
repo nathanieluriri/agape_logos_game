@@ -24,6 +24,7 @@ import '../shared/widgets/play_pad_cluster.dart';
 import '../shared/widgets/play_triangle.dart';
 import '../shared/widgets/pond_icon_button.dart';
 import '../shared/widgets/pond_loader.dart';
+import '../shared/widgets/pond_progress_track.dart';
 import '../shared/widgets/pond_pill_button.dart';
 import '../shared/widgets/pond_switch.dart';
 import '../shared/widgets/pond_top_bar.dart';
@@ -82,8 +83,8 @@ Widget levelCompleteScreenPreview() {
         const SizedBox(height: AppSpacing.xl),
         const LevelProgressBar(
           label: 'Level 3 Completed!',
-          fraction: 5 / 8,
-          fractionText: '5/8',
+          wordsFound: 5,
+          totalWords: 8,
         ),
         const Spacer(),
         PlayPadCluster(
@@ -177,8 +178,35 @@ Widget progressBarPreview() {
     child: const Center(
       child: LevelProgressBar(
         label: 'Level 3 Completed!',
-        fraction: 5 / 8,
-        fractionText: '5/8',
+        wordsFound: 5,
+        totalWords: 8,
+      ),
+    ),
+  );
+}
+
+@Preview(name: 'Awwwards loaders (indeterminate + determinate + bar)')
+Widget loadersPreview() {
+  return _stage(
+    height: 720,
+    child: const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PondLoader(label: 'Loading the store'), // indeterminate
+          SizedBox(height: AppSpacing.xl),
+          PondLoader(label: 'Almost there', progress: 0.65), // determinate
+          SizedBox(height: AppSpacing.xl),
+          PondLoader(label: 'Ready', progress: 1.0), // completion bloom
+          SizedBox(height: AppSpacing.xl),
+          PondProgressTrack(fraction: 0.6, shimmer: true), // raw premium track
+          SizedBox(height: AppSpacing.xl),
+          LevelProgressBar(
+            label: 'Level 3 Completed!',
+            wordsFound: 8,
+            totalWords: 8,
+          ), // full-clear bloom
+        ],
       ),
     ),
   );

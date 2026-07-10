@@ -32,17 +32,21 @@
   <title>Agape Logos</title>
   <link rel="manifest" href="manifest.json">
 
+  <!-- PLAN: this boot splash is now pond green; the in-app Flutter splash
+       (lib/features/splash/presentation/splash_scene.dart, AppColors.paper) is
+       still cream. If the green->cream hand-off flashes on web, apply OPTIONAL
+       Task 6 Step 1 to green the in-app splash backdrop too. -->
   <style>
-    /* Cream loading splash, shown until Flutter paints its first frame so the
-       page never flashes white. It mirrors the in-app splash backdrop. */
-    html, body { margin: 0; padding: 0; background-color: #F7F4EC; }
+    /* Teal-green loading splash, shown until Flutter paints its first frame so
+       the page never flashes white. The pink lotus floats on the pond green. */
+    html, body { margin: 0; padding: 0; background-color: #0C7F80; }
     #boot-splash {
       position: fixed;
       inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      background-color: #F7F4EC;
+      background-color: #0C7F80;
       transition: opacity 320ms ease;
       z-index: 2;
     }
