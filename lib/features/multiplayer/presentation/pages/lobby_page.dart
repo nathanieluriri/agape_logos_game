@@ -144,7 +144,6 @@ class _LobbyBody extends ConsumerWidget {
             label: 'Leave',
             variant: PondPillVariant.quiet,
             onPressed: () {
-              final service = ref.read(matchServiceProvider);
               if (context.canPop()) {
                 context.pop();
               } else {

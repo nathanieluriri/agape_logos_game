@@ -116,7 +116,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         final leave = await _confirmForfeit();
-        if (leave) await _leaveMatch();
+        if (leave && mounted) _leaveMatch();
       },
       child: Scaffold(
         body: PondBackground(
@@ -152,10 +152,14 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     return result ?? false;
   }
 
-  Future<void> _leaveMatch() async {
-    await ref.read(matchServiceProvider).leave(widget.matchId);
-    if (!mounted) return;
+  /// Forfeit: get off the page first (disposing this page's match-stream
+  /// listener before the status flip lands), then fire the leave without
+  /// awaiting; an offline failure must never trap the player behind the
+  /// PopScope.
+  void _leaveMatch() {
+    final service = ref.read(matchServiceProvider);
     context.go('/');
+    service.leave(widget.matchId).ignore();
   }
 
   Widget _content(
@@ -289,7 +293,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                   semanticLabel: 'Leave match',
                   onTap: () async {
                     final leave = await _confirmForfeit();
-                    if (leave) await _leaveMatch();
+                    if (leave && mounted) _leaveMatch();
                   },
                 ),
               ],

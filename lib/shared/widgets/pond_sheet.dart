@@ -8,8 +8,9 @@ import '../../core/design/tokens/spacing.dart';
 import '../../core/haptics/haptics.dart';
 
 /// Shows a pond-styled modal bottom sheet: deep-water card, hand-rolled drag
-/// bar, teal scrim. The shared chrome behind the auth, coming-soon and
-/// multiplayer sheets, so every rising surface reads the same.
+/// bar, teal scrim. The shared chrome behind the coming-soon and multiplayer
+/// sheets (auth and dictionary can migrate later), so every rising surface
+/// reads the same.
 Future<T?> showPondSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
