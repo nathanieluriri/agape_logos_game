@@ -42,7 +42,13 @@ Zen word game: offline-first, optimistic, **Android + Web only** (no iOS/desktop
    models, or json. Generated `*.g.dart` / `*.freezed.dart` **are committed**.
 2. `flutter analyze` - must be **clean** (No issues found).
 3. `flutter test` - must **pass**.
-4. `flutter build apk --release` - must **succeed** (primary gate).
+4. `flutter build apk --release --no-tree-shake-icons` - must **succeed** (primary gate).
+   The flag ships the full MaterialIcons font (~1.6MB): Shorebird patches cannot add
+   glyphs to the release APK's tree-shaken font subset, so any `Icons.*` reference added
+   after a release renders blank on patched installs without it. Use the same flag on
+   `shorebird release` / `shorebird patch`. New UI glyphs should prefer the hand-painted
+   `PondIcon`/`PondGlyph` family (`lib/shared/widgets/glyphs/`), which has no font
+   dependency at all.
 
 ## Plan execution (workflow preference - never violate)
 
