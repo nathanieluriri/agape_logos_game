@@ -11,6 +11,9 @@ Widget _host(Widget child, {bool reduceMotion = false}) => MaterialApp(
       ),
     );
 
+double _trackFraction(WidgetTester tester) =>
+    tester.widget<PondProgressTrack>(find.byType(PondProgressTrack)).fraction;
+
 void main() {
   testWidgets('indeterminate loader builds and shows its label', (tester) async {
     await tester.pumpWidget(_host(const PondLoader(label: 'Loading the store')));
@@ -58,6 +61,49 @@ void main() {
     );
     // The bloom is one-shot; the fill is static (external progress), so settle.
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('indeterminate fill only ever moves forward', (tester) async {
+    await tester.pumpWidget(_host(const PondLoader(label: 'Loading')));
+    var last = 0.0;
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      final f = _trackFraction(tester);
+      expect(f, greaterThanOrEqualTo(last),
+          reason: 'fill went backward at sample $i');
+      last = f;
+    }
+    // It genuinely advanced, and never claims completion on its own.
+    expect(last, greaterThan(0.5));
+    expect(last, lessThan(1.0));
+  });
+
+  testWidgets('handoff to a lower determinate value never moves backward',
+      (tester) async {
+    await tester.pumpWidget(_host(const PondLoader(label: 'Loading')));
+    await tester.pump(const Duration(seconds: 3));
+    final before = _trackFraction(tester);
+    expect(before, greaterThan(0.5)); // trickle is well underway
+    // Same widget type: State (and the latch) is preserved across rebuild.
+    await tester.pumpWidget(
+      _host(const PondLoader(label: 'Loading', progress: 0.1)),
+    );
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(_trackFraction(tester), greaterThanOrEqualTo(before));
+  });
+
+  testWidgets('completion eases the shown fill to 1.0 and settles',
+      (tester) async {
+    await tester.pumpWidget(
+      _host(const PondLoader(label: 'Loading', progress: 0.4)),
+    );
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pumpWidget(
+      _host(const PondLoader(label: 'Loading', progress: 1.0)),
+    );
+    await tester.pumpAndSettle();
+    expect(_trackFraction(tester), 1.0);
     expect(tester.takeException(), isNull);
   });
 }

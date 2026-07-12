@@ -27,9 +27,16 @@ abstract final class AppDurations {
   /// One full bob-and-tilt cycle of the petal riding the loader fill crest.
   static const Duration petalBob = Duration(milliseconds: 1600);
 
-  /// One indeterminate loop of the loader fill: the water advances then recedes,
-  /// pushing the petal forward and drawing it back, so it never hard-resets.
-  static const Duration loaderLoop = Duration(milliseconds: 2600);
+  /// Full span of the indeterminate trickle: one forward-only run of the
+  /// loader controller. The asymptotic fill has flattened near its ceiling
+  /// long before this elapses; afterwards the fill simply holds (the sheen
+  /// keeps sweeping, so the loader still reads as alive).
+  static const Duration loaderTrickleSpan = Duration(seconds: 20);
+
+  /// Time constant of the indeterminate trickle: the fill covers ~63% of the
+  /// remaining distance to its ceiling every interval of this length, so it
+  /// starts briskly and visibly decelerates the longer a request takes.
+  static const Duration loaderTrickleTau = Duration(milliseconds: 1600);
 
   /// The blooming-lotus pop when a determinate loader reaches 1.0 (also the
   /// level-complete full-clear bloom).

@@ -1,6 +1,9 @@
 // lib/shared/widgets/pond_loader.dart
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
+import '../../core/design/motion/curves.dart';
 import '../../core/design/tokens/colors.dart';
 import '../../core/design/tokens/durations.dart';
 import '../../core/design/tokens/sizing.dart';
@@ -15,9 +18,10 @@ import 'pond_progress_track.dart';
 /// beneath (also the accessibility label).
 ///
 /// Two modes:
-///  - INDETERMINATE ([progress] null, the default): the water breathes forward
-///    and back so the petal keeps gliding while a load is in flight. Used for
-///    every first-load wait (puzzle, store, settings, account).
+///  - INDETERMINATE ([progress] null, the default): the fill trickles forward,
+///    decelerating toward a ceiling it never claims, and only completes when
+///    a real load does. Used for every first-load wait (puzzle, store,
+///    settings, account).
 ///  - DETERMINATE ([progress] 0..1): the fill tracks a real value and blooms at
 ///    1.0.
 ///
@@ -40,39 +44,71 @@ class _PondLoaderState extends State<PondLoader> with TickerProviderStateMixin {
   /// Where the indeterminate fill rests when reduced motion is requested.
   static const double _reducedRamp = 0.33;
 
-  /// Indeterminate breathing bounds: the water advances to [_ceil] then recedes
-  /// to [_floor], pushing and drawing back the petal without a hard reset.
-  static const double _floor = 0.08;
-  static const double _ceil = 0.92;
+  /// Indeterminate ceiling: the trickle approaches but never claims full;
+  /// only a real completion (determinate progress reaching 1.0) fills the bar.
+  static const double _ceil = 0.9;
 
-  late final AnimationController _loop =
-      AnimationController(vsync: this, duration: AppDurations.loaderLoop);
+  late final AnimationController _trickle =
+      AnimationController(vsync: this, duration: AppDurations.loaderTrickleSpan);
   late final AnimationController _bob =
       AnimationController(vsync: this, duration: AppDurations.petalBob);
+
+  /// One-shot ease from the latched fill to 1.0 when the load completes.
+  late final AnimationController _finish =
+      AnimationController(vsync: this, duration: AppDurations.fast);
 
   bool _reduceMotion = false;
   bool _bloomed = false;
 
-  bool get _determinate => widget.progress != null;
+  /// Monotonic latch: the highest fill ever shown. Applied every frame, so
+  /// the bar can never move backward, including across the indeterminate to
+  /// determinate handoff and jittery caller progress.
+  double _shown = 0;
 
-  /// Nothing should keep ticking once the loader is finished (a determinate
-  /// loader at 100%) or when motion is disabled. The completion bloom is a
+  /// The latched fill at the moment the completion ease began.
+  double _finishFrom = 0;
+
+  bool get _determinate => widget.progress != null;
+  bool get _finished => _determinate && widget.progress! >= 1.0;
+
+  /// Nothing should keep ticking once the loader is finished (the completion
+  /// ease has run) or when motion is disabled. The completion bloom is a
   /// one-shot and ends on its own, so a finished loader settles.
-  bool get _atRest => _reduceMotion || (_determinate && _fractionAtFull());
+  bool get _atRest =>
+      _reduceMotion || (_finished && _finish.isCompleted);
+
+  @override
+  void initState() {
+    super.initState();
+    // When the completion ease lands, nothing else re-evaluates the tickers
+    // (no widget update happens), so re-sync here or the petal bob would spin
+    // forever and pumpAndSettle-style waits would never settle.
+    _finish.addStatusListener((status) {
+      if (status == AnimationStatus.completed) _syncTickers();
+    });
+  }
 
   /// Single place that decides which tickers run, so entering/leaving
-  /// determinate mode, reaching 100%, and reduced motion cannot disagree.
+  /// determinate mode, completion, and reduced motion cannot disagree.
   void _syncTickers() {
+    if (_finished &&
+        !_reduceMotion &&
+        _finish.status == AnimationStatus.dismissed) {
+      _finishFrom = _shown;
+      _finish.forward();
+    }
     if (_atRest) {
-      _loop.stop();
+      _trickle.stop();
       _bob.stop();
       return;
     }
     if (!_bob.isAnimating) _bob.repeat(reverse: true);
     if (_determinate) {
-      if (_loop.isAnimating) _loop.stop();
-    } else if (!_loop.isAnimating) {
-      _loop.repeat();
+      if (_trickle.isAnimating) _trickle.stop();
+    } else if (!_trickle.isAnimating && !_trickle.isCompleted) {
+      // Forward only, never repeated: if the full span elapses the fill just
+      // holds near the ceiling (the latch keeps the value).
+      _trickle.forward();
     }
   }
 
@@ -87,32 +123,48 @@ class _PondLoaderState extends State<PondLoader> with TickerProviderStateMixin {
   void didUpdateWidget(PondLoader old) {
     super.didUpdateWidget(old);
     // Re-arms on any change to determinate mode or to the progress value
-    // (notably crossing into 100%, which parks the loader).
+    // (notably crossing into 100%, which runs the completion ease).
     _syncTickers();
   }
 
   @override
   void dispose() {
-    _loop.dispose();
+    _trickle.dispose();
     _bob.dispose();
+    _finish.dispose();
     super.dispose();
   }
 
   /// The fill fraction driving both the track and the petal position.
+  /// Strictly non-decreasing for the lifetime of the State (see [_shown]).
   double _fraction() {
-    if (_determinate) return widget.progress!.clamp(0.0, 1.0);
-    if (_reduceMotion) return _reducedRamp;
-    // Triangle 0..1..0 over the loop, eased into a gentle breath.
-    final t = _loop.value;
-    final tri = t < 0.5 ? t * 2 : (1 - t) * 2;
-    return _floor + (_ceil - _floor) * Curves.easeInOut.transform(tri);
+    if (_reduceMotion) {
+      return _determinate ? widget.progress!.clamp(0.0, 1.0) : _reducedRamp;
+    }
+    final double raw;
+    if (_finished) {
+      final eased = AppCurves.enter.transform(_finish.value);
+      raw = _finishFrom + (1 - _finishFrom) * eased;
+    } else if (_determinate) {
+      raw = widget.progress!.clamp(0.0, 1.0);
+    } else {
+      // Asymptotic trickle: fast start, visible slowdown, never reaches the
+      // ceiling on its own. value = ceil * (1 - e^(-elapsed / tau)).
+      final elapsed = _trickle.value *
+          AppDurations.loaderTrickleSpan.inMilliseconds /
+          1000.0;
+      final tau = AppDurations.loaderTrickleTau.inMilliseconds / 1000.0;
+      raw = _ceil * (1 - math.exp(-elapsed / tau));
+    }
+    _shown = math.max(_shown, raw);
+    return _shown;
   }
 
   @override
   Widget build(BuildContext context) {
     final base = Theme.of(context).textTheme.labelLarge;
     final showBloom =
-        _determinate && !_reduceMotion && _fractionAtFull() && !_bloomed;
+        _determinate && !_reduceMotion && _finished && !_bloomed;
     return Semantics(
       label: widget.label,
       liveRegion: false,
@@ -121,8 +173,8 @@ class _PondLoaderState extends State<PondLoader> with TickerProviderStateMixin {
           mainAxisSize: MainAxisSize.min,
           children: [
             AnimatedBuilder(
-              // Rebuild on either controller; the petal is built once.
-              animation: Listenable.merge([_loop, _bob]),
+              // Rebuild on any controller; the petal is built once.
+              animation: Listenable.merge([_trickle, _bob, _finish]),
               child: const PetalIcon(size: _PetalRider.petalSize),
               builder: (context, child) => _PetalRider(
                 fraction: _fraction(),
@@ -146,8 +198,6 @@ class _PondLoaderState extends State<PondLoader> with TickerProviderStateMixin {
       ),
     );
   }
-
-  bool _fractionAtFull() => (widget.progress ?? 0) >= 1.0;
 
   void _onBloomEnd() {
     if (mounted) setState(() => _bloomed = true);
