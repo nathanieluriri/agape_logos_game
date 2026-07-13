@@ -348,3 +348,96 @@ body { margin: 0; background: var(--paper); }
 #end-line { color: rgba(26, 28, 26, 0.6); }
 #end-dot { color: rgba(26, 28, 26, 0.6); }
 #end-handle { color: rgba(26, 28, 26, 0.92); font-weight: 600; }
+
+/* ======================= BREAK-OUT ELEMENTS (Task 7) =======================
+   Lily pads, letter tiles and coins that leave the phone's screen and pass the
+   camera. They sit in #fg-layer, the topmost track, so they are always drawn
+   OVER the device: a break-out element that renders behind the phone is just a
+   sticker on the paper.
+
+   The layer keeps its own perspective, so a rotationX / rotationY on a flying
+   element reads as a genuine tilt in depth rather than a flat 2D skew. But the
+   APPROACH to the lens is carried by `scale`, never by translateZ: under a CSS
+   perspective a translateZ also magnifies the element's x/y by 1/(1 - z/d), so
+   z and x/y are not independent and an endpoint authored in frame pixels lands
+   hundreds of pixels away from where it was written. Scale gives the identical
+   growth with geometry that stays predictable.
+
+   left/top are pinned to 0 so the timeline's x/y ARE the element's position in
+   the 1080x1350 frame (GSAP transforms about the centre, so the timeline offsets
+   by half the element's size). Everything starts invisible: every reveal, and
+   every position, is authored on the timeline against the projected screen quad. */
+#breakout {
+  position: absolute;
+  inset: 0;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.pad,
+.tile,
+.coin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  will-change: transform;
+}
+
+/* The pad silhouette, the nick and the veins are all stamped from the ported formula at
+   init, so the video and the app cannot drift apart. The fill is the app's own
+   AppColors.lilyGreenMid.
+
+   TWO drop shadows, not one: a tight contact shadow and a wide soft one. The pad is the
+   game's own green flying across a screen of the game's own green, so a single soft
+   shadow simply disappears into the teal and the pad reads as part of the UI behind the
+   glass. The tight one gives it an edge to sit proud of; the wide one puts it in the room.
+   (The filter applies AFTER the mask, so both shadows follow the notched outline.) */
+.pad {
+  width: 200px;
+  height: 200px;
+  fill: #5cc295;
+  filter: drop-shadow(0 6px 8px rgba(26, 28, 26, 0.26))
+          drop-shadow(0 26px 38px rgba(26, 28, 26, 0.28));
+}
+
+/* The veins are open polylines, so they must not inherit the body's fill. */
+.pad-veins {
+  fill: none;
+  stroke: rgba(26, 28, 26, 0.13);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+}
+
+/* Letter tiles: the game's own cream wheel letters, lifting off the screen. */
+.tile {
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border-radius: 20px;
+  background: #f2ead6;
+  color: #37946a;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 46px;
+  font-weight: 700;
+  box-shadow: 0 18px 32px rgba(26, 28, 26, 0.22);
+}
+
+/* Coins: they flip as they arc, so the timeline spins rotationY and the layer's
+   perspective takes each one edge-on. A flat radial-gradient disc has no EDGE, so the
+   moment the spin squashes it, it stops being a coin and becomes a gold egg: the first
+   render was three gold eggs. So the disc is struck like a real one, with an inset rim
+   and a lit top / shadowed bottom, and the rim is what survives the squash. */
+.coin {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f0c66e, var(--gold) 60%, #b8862f);
+  box-shadow: 0 12px 22px rgba(26, 28, 26, 0.22),
+              inset 0 0 0 3px rgba(184, 134, 47, 0.6),
+              inset 0 5px 9px rgba(255, 255, 255, 0.4),
+              inset 0 -5px 9px rgba(184, 134, 47, 0.55);
+}

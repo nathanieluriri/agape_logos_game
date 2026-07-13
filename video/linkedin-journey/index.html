@@ -135,6 +135,78 @@
             <span id="end-handle">@your-handle</span>
           </div>
         </div>
+
+        <!-- BREAK-OUT ELEMENTS (Task 7). Things that leave the screen and pass the lens:
+             this is what stops the phone being a picture of a phone.
+             They live here, in the topmost layer, so they render OVER the device.
+             Every one of them starts at opacity 0 and is launched from the projected
+             screen quad on the timeline, so nothing is positioned here.
+             The pads' `d` is filled at init from the formula ported from
+             lib/core/design/pad_geometry.dart: the silhouette lives in exactly one
+             place, and it is a formula, never a snapshotted path. -->
+        <!-- data-layout-allow-overflow: leaving the frame is the entire point. Every one
+             of these elements is authored to fly PAST the lens and out of the canvas, so
+             the checker's canvas_overflow on them is the effect working, not a defect. -->
+        <div id="breakout" data-layout-allow-overflow>
+          <!-- The pad is PadGeometry.notchedPad, not smoothPad. The first render proved
+               why: smoothPad's three-lobe modulation is only 5% of the radius, so at
+               200-400px, tilted in 3D, it reads as a plain egg. The app's own pad is
+               recognisable in a tenth of a second because of the NICK and the VEINS, and
+               the whole point of this element is that a viewer knows it is the game's pad.
+
+               notchedPad is `Path.combine(difference, base, cuts)` in Dart. The brief
+               called that un-portable to SVG, but a <mask> IS exactly a difference: the
+               base painted white (keep) and the same two cut triangles painted black
+               (remove). The cuts run 6% past the rim exactly as in the Dart, and the mask
+               outside the base is already black, so the overhang costs nothing. (fill-rule
+               evenodd is the tempting alternative and it is WRONG here: the overhanging
+               part of each triangle has odd winding and would fill, spiking out of the rim.)
+               Every path is stamped from the ported formula at init: nothing is snapshotted. -->
+          <svg class="pad" id="pad-a" viewBox="0 0 100 100" aria-hidden="true">
+            <defs>
+              <mask id="pad-cut-a" maskUnits="userSpaceOnUse" x="-10" y="-10" width="120" height="120">
+                <path class="pad-base" d="" fill="#ffffff" />
+                <path class="pad-cuts" d="" fill="#000000" />
+              </mask>
+              <radialGradient id="pad-sheen-a" cx="38%" cy="30%" r="72%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.30" />
+                <stop offset="60%" stop-color="#ffffff" stop-opacity="0.07" />
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+              </radialGradient>
+            </defs>
+            <g mask="url(#pad-cut-a)">
+              <path class="pad-body" d="" />
+              <path class="pad-sheen" d="" fill="url(#pad-sheen-a)" />
+              <path class="pad-veins" d="" />
+            </g>
+          </svg>
+          <svg class="pad" id="pad-b" viewBox="0 0 100 100" aria-hidden="true">
+            <defs>
+              <mask id="pad-cut-b" maskUnits="userSpaceOnUse" x="-10" y="-10" width="120" height="120">
+                <path class="pad-base" d="" fill="#ffffff" />
+                <path class="pad-cuts" d="" fill="#000000" />
+              </mask>
+              <radialGradient id="pad-sheen-b" cx="34%" cy="26%" r="70%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28" />
+                <stop offset="60%" stop-color="#ffffff" stop-opacity="0.06" />
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+              </radialGradient>
+            </defs>
+            <g mask="url(#pad-cut-b)">
+              <path class="pad-body" d="" />
+              <path class="pad-sheen" d="" fill="url(#pad-sheen-b)" />
+              <path class="pad-veins" d="" />
+            </g>
+          </svg>
+
+          <div class="tile" id="tile-m">M</div>
+          <div class="tile" id="tile-a">A</div>
+          <div class="tile" id="tile-y">Y</div>
+
+          <div class="coin" id="coin-1"></div>
+          <div class="coin" id="coin-2"></div>
+          <div class="coin" id="coin-3"></div>
+        </div>
       </div>
     </div>
 
@@ -655,6 +727,264 @@
       // --- End card (34-40s). Settles, and rests. ---
       tl.fromTo("#end-title", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 1.0, ease: "power3.out" }, "close+=1.0");
       tl.fromTo("#end-sub", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, "close+=1.5");
+
+      // ===================== BREAK-OUT ELEMENTS (Task 7) ======================
+      // There is no pads.js. The producer strips every external <script src>, so the
+      // geometry has to live inline, here, next to the choreography that uses it.
+      //
+      // Ported from lib/core/design/pad_geometry.dart (_base / smoothPad, 100x100
+      // viewBox). The FORMULA is the shared source of truth, not a pasted path string:
+      // a snapshot silently drifts the day the Dart changes, a formula cannot.
+      //
+      //   r(rad) = radius * (1 - sideDepth + sideDepth * cos(3 * rad))
+      //
+      // The 3-lobe cosine is the whole point: it is what makes the pad a softly
+      // rounded THREE-SIDED shape instead of a circle. Spot checks against the Dart:
+      // rad = 0 gives (95.000, 50.000); rad = PI/3 gives (70.250, 85.074). The x
+      // bounds come out at 9.500..95.000 and the y at 6.762..93.238: an asymmetric
+      // hull, which a circle could never produce.
+      //
+      // All three of the Dart's paths are ported, because a pad without its nick and its
+      // veins is an egg: the first render proved that at size, and the nick is how a
+      // viewer recognises the game's own pad. _base, _cut and _buildVeins, same constants.
+      const PAD_CENTER = 50;
+      const PAD_RADIUS = 45;
+      const PAD_SIDE_DEPTH = 0.05;
+      const PAD_STEPS = 144;
+      const PAD_VEIN_DEGREES = [30, 66, 103, 140, 220, 257, 294, 330];
+
+      function padRadius(rad) {
+        return PAD_RADIUS * (1 - PAD_SIDE_DEPTH + PAD_SIDE_DEPTH * Math.cos(3 * rad));
+      }
+
+      // PadGeometry._at(deg, factor).
+      function padAt(deg, factor = 1) {
+        const rad = (deg * Math.PI) / 180;
+        const r = padRadius(rad) * factor;
+        return [PAD_CENTER + Math.cos(rad) * r, PAD_CENTER + Math.sin(rad) * r];
+      }
+
+      const f3 = (n) => n.toFixed(3);
+
+      // PadGeometry._base(): 144 steps around the modulated radius.
+      function buildPadPath() {
+        const parts = [];
+        for (let i = 0; i <= PAD_STEPS; i++) {
+          const [x, y] = padAt((i / PAD_STEPS) * 360);
+          parts.push(`${i === 0 ? "M" : "L"} ${f3(x)} ${f3(y)}`);
+        }
+        return `${parts.join(" ")} Z`;
+      }
+
+      // PadGeometry._cut()'s two nicks: the medium one on the +x rim and the smaller one
+      // opposite. Both run to factor 1.06, past the rim, so the cut passes cleanly through
+      // it; neither reaches the centre. Subtracted through the SVG mask, not filled.
+      function buildPadCuts() {
+        const nick = (apexX, fromDeg, toDeg) => {
+          const [x1, y1] = padAt(fromDeg, 1.06);
+          const [x2, y2] = padAt(toDeg, 1.06);
+          return `M ${f3(apexX)} ${f3(PAD_CENTER)} L ${f3(x1)} ${f3(y1)} L ${f3(x2)} ${f3(y2)} Z`;
+        };
+        return [
+          nick(PAD_CENTER + 26, -7, 7),
+          nick(PAD_CENTER - 33, 174.5, 185.5),
+        ].join(" ");
+      }
+
+      // PadGeometry._buildVeins(): eight radial strokes, clear of the centre and of both
+      // nicks. They cost nothing and they are most of why the shape reads as a lily pad.
+      function buildPadVeins() {
+        const parts = [];
+        for (const deg of PAD_VEIN_DEGREES) {
+          const rad = (deg * Math.PI) / 180;
+          const dx = Math.cos(rad);
+          const dy = Math.sin(rad);
+          const inner = padRadius(rad) - 9;
+          parts.push(
+            `M ${f3(PAD_CENTER + dx * 9)} ${f3(PAD_CENTER + dy * 9)}` +
+              ` L ${f3(PAD_CENTER + dx * inner)} ${f3(PAD_CENTER + dy * inner)}`,
+          );
+        }
+        return parts.join(" ");
+      }
+
+      const PAD_PATH = buildPadPath();
+      const PAD_CUTS = buildPadCuts();
+      const PAD_VEINS = buildPadVeins();
+      // The base drives the mask, the body and the sheen: one silhouette, three uses.
+      document.querySelectorAll(".pad-base, .pad-body, .pad-sheen").forEach((p) => p.setAttribute("d", PAD_PATH));
+      document.querySelectorAll(".pad-cuts").forEach((p) => p.setAttribute("d", PAD_CUTS));
+      document.querySelectorAll(".pad-veins").forEach((p) => p.setAttribute("d", PAD_VEINS));
+
+      // --- Launching from where the screen ACTUALLY is ---------------------------
+      // The device turns and the camera pushes for the whole 40s, so a hardcoded launch
+      // coordinate is wrong by the time it is used. The timeline is paused and every
+      // device and camera tween is already on it, so seeking it (events suppressed:
+      // this is a measurement, not a playback) and re-projecting the screen quad gives
+      // the exact on-screen geometry at any beat. Same projection the homography that
+      // lands the <video> on the phone's face uses, so there is only ever one copy of it.
+      // Deterministic: a pure function of timeline position, no clocks, no randomness.
+      const { projectedScreenCorners } = window.__hfScene;
+
+      function screenQuadAt(time) {
+        tl.time(time, true);
+        const pts = projectedScreenCorners();
+        tl.time(0, true);
+        return pts;
+      }
+
+      // Bilinear map from screen UV (0..1 across the panel, from the projected corners
+      // in clockwise order from the top left) to frame pixels. So "the wallet pill" or
+      // "the M on the wheel" is an exact point on the running footage, tracked through
+      // the device's rotation, not a guess in frame coordinates.
+      function uv(quad, u, v) {
+        const [tlc, trc, brc, blc] = quad;
+        const tx = tlc[0] + (trc[0] - tlc[0]) * u;
+        const ty = tlc[1] + (trc[1] - tlc[1]) * u;
+        const bx = blc[0] + (brc[0] - blc[0]) * u;
+        const by = blc[1] + (brc[1] - blc[1]) * u;
+        return { x: tx + (bx - tx) * v, y: ty + (by - ty) * v };
+      }
+
+      // GSAP transforms about the element's centre and the elements are pinned at
+      // left/top 0, so x/y are top-left offsets: convert from the centre point we mean.
+      const at = (p, size) => ({ x: p.x - size / 2, y: p.y - size / 2 });
+
+      const PAD_SIZE = 200;
+      const TILE_SIZE = 92;
+      const COIN_SIZE = 52;
+
+      // Every quad sampled up front, before a single break-out tween is added, so the
+      // measurement can never see a half-built timeline.
+      const padQuad = screenQuadAt(12.0);
+      const tileQuad = screenQuadAt(16.3);
+      const coinQuad = screenQuadAt(24.6);
+
+      // --- Pads peel off the board and drift past the lens (pond beat, 12-17). ---
+      //
+      // They exit RIGHT, both of them. The left margin belongs to the architecture column
+      // from 12s on and its planes are arriving one by one through this exact beat: a
+      // 400px pad crossing "Presentation" as it lands is noise, and this video does not
+      // carry noise. The right margin is bare paper for the whole 40s.
+      //
+      // POSITION and SCALE are separate tweens, on different eases, and that is the
+      // difference between the pad reading as in front of the phone and reading as
+      // printed on it. With one power1.in tween the pad is only 12% along its path at
+      // 13.5s: it sits dead centre ON the screen, in the game's own green, and there is
+      // nothing in the frame to say it is nearer the lens. Position on a LINEAR drift
+      // carries it across the phone's right bezel instead, so it is half on the glass and
+      // half on the paper, and the overlap itself proves the depth. Scale keeps the
+      // power1.in, which is the acceleration of something approaching a lens. Linear
+      // position is also the calmer read: it drifts past, it never whips by.
+      //
+      // pad-a is routed BELOW the wallet pill on purpose: it crosses the bezel at mid
+      // height, so it never parks on the balance.
+      const padAFrom = at(uv(padQuad, 0.34, 0.46), PAD_SIZE);
+      const padATo = at({ x: 1240, y: 330 }, PAD_SIZE);
+      tl.fromTo("#pad-a",
+        { x: padAFrom.x, y: padAFrom.y, rotation: -12, rotationX: 0, rotationY: 0 },
+        { x: padATo.x, y: padATo.y, rotation: 16, rotationX: -12, rotationY: 16,
+          duration: 4.4, ease: "none" },
+        "pond");
+      // Starts at 0.85 (170px), not 0.75: the on-screen Lv.38 pad it peels away from is
+      // itself about 190px in the frame, and a break-out pad that is SMALLER than its own
+      // counterpart on the glass is a pad that is further away, which is the opposite of
+      // the point. By 13.5s it is past 220px and still growing.
+      tl.fromTo("#pad-a", { scale: 0.85 }, { scale: 2.7, duration: 4.4, ease: "power1.in" }, "pond");
+      tl.fromTo("#pad-a", { opacity: 0 }, { opacity: 1, duration: 0.7, ease: "power1.out" }, "pond");
+      tl.to("#pad-a", { opacity: 0, duration: 0.5, ease: "power2.in" }, "pond+=3.9");
+
+      // pad-b tumbles out low and to the right, and its nick is turned the other way
+      // (the silhouette is nearly three-fold symmetric, so a base rotation re-aims the
+      // nick without making it a different shape). Two pads, one shape, two reads.
+      const padBFrom = at(uv(padQuad, 0.34, 0.66), PAD_SIZE);
+      const padBTo = at({ x: 1160, y: 1230 }, PAD_SIZE);
+      tl.fromTo("#pad-b",
+        { x: padBFrom.x, y: padBFrom.y, rotation: 140, rotationX: 0, rotationY: 0 },
+        { x: padBTo.x, y: padBTo.y, rotation: 172, rotationX: 12, rotationY: -16,
+          duration: 4.1, ease: "none" },
+        "pond+=0.9");
+      tl.fromTo("#pad-b", { scale: 0.8 }, { scale: 2.35, duration: 4.1, ease: "power1.in" }, "pond+=0.9");
+      tl.fromTo("#pad-b", { opacity: 0 }, { opacity: 1, duration: 0.7, ease: "power1.out" }, "pond+=0.9");
+      tl.to("#pad-b", { opacity: 0, duration: 0.6, ease: "power2.in" }, "pond+=4.4");
+
+      // --- Letters lift off the wheel (word beat, 16-19). ---
+      // Each tile launches from its REAL letter on the wheel (the UV of the M, the A and
+      // the Y in the footage) and rises toward the lens. The fan is deliberately tight:
+      // the tiles stay inside the device's own silhouette for their whole flight and fade
+      // while they are still on it, so they never reach the architecture column and never
+      // touch a plane label. power2.out is a lift that settles, not a launch that snaps.
+      // The fan is wide enough that the three tiles never stack on each other (the first
+      // render had M and A overlapping into one cream slab) and that the word actually
+      // being played on the board above stays legible between them.
+      const tiles = [
+        // sel,        from u/v (the letter on the wheel),  rise u/v,     exit u/v
+        ["#tile-m", 0.49, 0.715, 0.33, 0.33, 0.26, 0.15],
+        ["#tile-a", 0.69, 0.867, 0.74, 0.30, 0.80, 0.12],
+        ["#tile-y", 0.30, 0.865, 0.50, 0.46, 0.52, 0.26],
+      ];
+      tiles.forEach(([sel, fu, fv, ru, rv, xu, xv], i) => {
+        const from = at(uv(tileQuad, fu, fv), TILE_SIZE);
+        const rise = at(uv(tileQuad, ru, rv), TILE_SIZE);
+        const exit = at(uv(tileQuad, xu, xv), TILE_SIZE);
+        const lift = 0.3 + i * 0.25;
+        tl.fromTo(sel,
+          { x: from.x, y: from.y, scale: 0.6, rotation: 0, rotationX: 0, rotationY: 0 },
+          { x: rise.x, y: rise.y, scale: 1.75, rotation: -3 + i * 3, rotationX: -12, rotationY: 8 - i * 8,
+            duration: 1.7, ease: "power2.out" },
+          `word+=${lift}`);
+        tl.fromTo(sel, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.out" }, `word+=${lift}`);
+        tl.to(sel,
+          { x: exit.x, y: exit.y, scale: 2.1, rotationX: -20, duration: 0.9, ease: "power1.in" },
+          `word+=${lift + 1.7}`);
+        tl.to(sel, { opacity: 0, duration: 0.8, ease: "power2.in" }, `word+=${lift + 1.8}`);
+      });
+
+      // --- Coins arc out of the wallet as the purchase lands (backend beat, 24-28). ---
+      // They launch from the wallet pill itself (its UV in the footage), not from the
+      // middle of the phone: the pill is where the balance lives, and that is the point
+      // the beat is making. Ballistic, not linear: x carries on at a constant rate while
+      // y rises and then falls back, so each coin describes a real arc. They fly up and
+      // RIGHT into the empty margin, well clear of the beat caption in the lower band and
+      // of the architecture column, and they are gone before the caption leaves.
+      const wallet = uv(coinQuad, 0.83, 0.075);
+      const coins = [
+        // sel,      delay, start offset, exit x, apex y, landing y, flight, tumble from/to
+        ["#coin-1", 0.45, -10, 0, 1190, 135, 320, 2.6, -34, 46],
+        ["#coin-2", 0.80, 2, 6, 1265, 245, 450, 2.9, 40, -52],
+        ["#coin-3", 1.15, 12, 12, 1120, 350, 545, 2.4, -18, 54],
+      ];
+      coins.forEach(([sel, delay, ox, oy, exitX, apexY, landY, flight, spinFrom, spinTo]) => {
+        const from = at({ x: wallet.x + ox, y: wallet.y + oy }, COIN_SIZE);
+        const rise = flight * 0.45;
+        const p = `backend+=${delay}`;
+        // A coin runs four concurrent property tweens (x, y, scale, spin), so its rest
+        // state is a plain set rather than a fromTo's startAt: startAt only applies at
+        // the tween's own start, and leaning on that to seed four other tweens' recorded
+        // start values is exactly the kind of ordering dependency that survives a
+        // snapshot and dies in a render. The coin is at opacity 0 until it launches.
+        gsap.set(sel, { x: from.x, y: from.y, scale: 0.45, rotationY: spinFrom, rotationX: 22 });
+        tl.to(sel, { x: exitX - COIN_SIZE / 2, duration: flight, ease: "none" }, p);
+        // The pop: it is out of the phone and at full size early, then it sails.
+        tl.to(sel, { scale: 1.95, duration: 0.9, ease: "power2.out" }, p);
+        // A slow TUMBLE, and deliberately not a flip. A coin that spins through rotationY
+        // 90deg is a zero-thickness div seen edge-on: it renders as a gold needle. The
+        // brief's two full turns did exactly that, and slowing the spin only moved which
+        // frames it ruins. So the tumble is bounded well inside +/-90: the disc never
+        // degenerates, its rim and its lit edge turn in the light, and a lazy tumble is
+        // the calmer read anyway. This video does not flip coins at the viewer.
+        tl.to(sel, { rotationY: spinTo, rotationX: -16, duration: flight, ease: "none" }, p);
+        // The arc.
+        tl.to(sel, { y: apexY - COIN_SIZE / 2, duration: rise, ease: "power2.out" }, p);
+        tl.to(sel, { y: landY - COIN_SIZE / 2, duration: flight - rise, ease: "power1.in" },
+          `backend+=${delay + rise}`);
+        tl.fromTo(sel, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, p);
+        tl.to(sel, { opacity: 0, duration: 0.7, ease: "power2.in" }, `backend+=${delay + flight - 0.7}`);
+      });
+
+      // The measurement seeks above left the scene at the timeline's t=0 pose but never
+      // re-drew it, so paint it once: frame 0 must be the frame the timeline describes.
+      renderAt(0);
 
       window.__timelines["main"] = tl;
     </script>
