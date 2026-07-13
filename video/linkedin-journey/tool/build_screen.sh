@@ -85,3 +85,17 @@ ffmpeg -y -v error -f concat -safe 0 -i "$TMP/list.txt" \
 echo "Built $OUT"
 ffprobe -v error -show_entries format=duration -show_entries stream=width,height,nb_frames \
   -of default=noprint_wrappers=1 "$OUT"
+
+# Self-check, not a courtesy print. Every beat in the composition is timed against
+# this file, so a screen track that is not exactly 1200 frames at 30fps silently
+# shifts the whole video. The per-segment -frames:v caps only land on 1200 because
+# each segment currently overshoots before capping; a different ffmpeg build could
+# undershoot instead, and the cap would become a no-op with no error. Fail loudly.
+frames=$(ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames \
+  -of default=noprint_wrappers=1:nokey=1 "$OUT")
+if [ "$frames" != "1200" ]; then
+  echo "FAIL: $OUT has $frames frames, expected 1200 (40.000s at 30fps)." >&2
+  echo "Every downstream beat is anchored to this. Do not proceed." >&2
+  exit 1
+fi
+echo "OK: 1200 frames / 40.000s."
