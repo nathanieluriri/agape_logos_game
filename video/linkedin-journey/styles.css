@@ -549,13 +549,19 @@ body { margin: 0; background: var(--paper); }
    moment the spin squashes it, it stops being a coin and becomes a gold egg: the first
    render was three gold eggs. So the disc is struck like a real one, with an inset rim
    and a lit top / shadowed bottom, and the rim is what survives the squash. */
+/* The currency is PETALS, not coins. The store screen behind this beat literally reads
+   "1285 petals" next to a pink petal, so a gold disc flying out of it would be the one
+   dishonest object in the frame. This is the app's own coin_petal mark
+   (assets/branding/coin_petal.svg), stamped from the same paths. The pink is already
+   native to the frame (the lotus, the petal pill), so it costs the palette nothing. */
 .coin {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #f0c66e, var(--gold) 60%, #b8862f);
-  box-shadow: 0 12px 22px rgba(26, 28, 26, 0.22),
-              inset 0 0 0 3px rgba(184, 134, 47, 0.6),
-              inset 0 5px 9px rgba(255, 255, 255, 0.4),
-              inset 0 -5px 9px rgba(184, 134, 47, 0.55);
+  width: 56px;
+  height: 57px;
+  filter: drop-shadow(0 10px 18px rgba(26, 28, 26, 0.26));
+}
+
+.coin svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
