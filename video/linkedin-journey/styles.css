@@ -82,3 +82,82 @@ body { margin: 0; background: var(--paper); }
   mix-blend-mode: screen;
   opacity: 0.62;
 }
+
+/* Architecture layers (Task 5): translucent planes receding behind the device.
+   The device occupies roughly x:300-780 (of 1080) at its widest, so each plane's
+   readable text sits in the untouched margin on its own side (left planes read
+   left-aligned near x:50-300, right planes read right-aligned near x:780-1030);
+   the card itself can run wider and simply disappear behind the phone, which is
+   the intended depth cue: the stack sits behind the hero, not beside it. */
+.arch-stack {
+  position: absolute;
+  inset: 0;
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+
+.arch-plane {
+  position: absolute;
+  width: 480px;
+  height: 150px;
+  box-sizing: border-box;
+  padding: 22px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(91, 138, 114, 0.4);
+  border-radius: 18px;
+  background: rgba(91, 138, 114, 0.09);
+  backdrop-filter: blur(2px);
+  opacity: 0;               /* revealed on the timeline */
+  transform-style: preserve-3d;
+}
+
+/* Recede each plane further back and further down: a stack in depth, all in the
+   left margin so the readable text and the connectors never sit under the phone
+   (which occupies roughly x:300-780). The card body is generous (480px) and its
+   right portion simply disappears behind the device: that occlusion IS the depth
+   cue, but only the card, never the label text or the connector line. */
+#arch-1 { left: 24px; top: 210px;  transform: translateZ(-30px)  rotateX(5deg); }
+#arch-2 { left: 24px; top: 375px;  transform: translateZ(-70px)  rotateX(5deg); }
+#arch-3 { left: 24px; top: 540px;  transform: translateZ(-110px) rotateX(5deg); }
+#arch-4 { left: 24px; top: 705px;  transform: translateZ(-150px) rotateX(5deg); }
+#arch-5 { left: 24px; top: 870px;  transform: translateZ(-190px) rotateX(5deg); }
+#arch-6 { left: 24px; top: 1035px; transform: translateZ(-230px) rotateX(5deg); }
+
+.arch-name {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 29px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.arch-sub {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 19px;
+  font-weight: 400;
+  color: rgba(26, 28, 26, 0.8);
+  /* Wraps within the visible left margin instead of running under the device:
+     the card itself is wide (480px), but the readable text must clear the
+     phone, which sits at roughly x:300 at its widest. */
+  max-width: 240px;
+}
+
+#arch-lines {
+  position: absolute;
+  inset: 0;
+  width: 1080px;
+  height: 1350px;
+  overflow: visible;
+}
+
+.arch-line {
+  stroke: var(--gold);
+  stroke-width: 2.5;
+  fill: none;
+  opacity: 0;
+  stroke-dasharray: 165;
+  stroke-dashoffset: 165;   /* drawn on the timeline */
+}

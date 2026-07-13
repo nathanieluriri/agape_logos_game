@@ -39,7 +39,23 @@
       data-duration="40"
     >
       <!-- Layer 1: paper ground + architecture planes (Task 5) -->
-      <div id="bg-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="1"></div>
+      <div id="bg-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="1">
+        <div class="arch-stack">
+          <div class="arch-plane" id="arch-1"><span class="arch-name">Presentation</span><span class="arch-sub">Flutter + Flame</span></div>
+          <div class="arch-plane" id="arch-2"><span class="arch-name">Application</span><span class="arch-sub">Riverpod</span></div>
+          <div class="arch-plane" id="arch-3"><span class="arch-name">Data</span><span class="arch-sub">repositories</span></div>
+          <div class="arch-plane" id="arch-4"><span class="arch-name">Drift</span><span class="arch-sub">local SQLite, the source of truth</span></div>
+          <div class="arch-plane" id="arch-5"><span class="arch-name">Sync engine</span><span class="arch-sub">optimistic queue</span></div>
+          <div class="arch-plane" id="arch-6"><span class="arch-name">Cloud Function</span><span class="arch-sub">puzzles, wallet, rewards</span></div>
+          <svg id="arch-lines" viewBox="0 0 1080 1350" preserveAspectRatio="none">
+            <path class="arch-line" id="arch-line-1" d="M 110 285 L 110 450" />
+            <path class="arch-line" id="arch-line-2" d="M 110 450 L 110 615" />
+            <path class="arch-line" id="arch-line-3" d="M 110 615 L 110 780" />
+            <path class="arch-line" id="arch-line-4" d="M 110 780 L 110 945" />
+            <path class="arch-line" id="arch-line-5" d="M 110 945 L 110 1110" />
+          </svg>
+        </div>
+      </div>
 
       <!-- Layer 2: the device BODY only (plus its contact shadow and the screen spill).
            The screen itself is NOT drawn here: see below. -->
@@ -512,6 +528,30 @@
       tl.to(camera.position, { z: 12.7, duration: 6, ease: "power2.inOut" }, "wall");
       // The close settles.
       tl.to(camera.position, { z: 12.3, duration: 6, ease: "power3.out" }, "close");
+
+      // --- Architecture layers: assemble behind the device through the build. ---
+      // They arrive one at a time, each settling (long ease-out), never snapping.
+      const archPlanes = ["#arch-1", "#arch-2", "#arch-3", "#arch-4", "#arch-5", "#arch-6"];
+      archPlanes.forEach((sel, i) => {
+        tl.fromTo(sel,
+          { opacity: 0, y: 40 },
+          { opacity: 1, y: 0, duration: 1.4, ease: "power3.out" },
+          `pond+=${i * 1.6}`,
+        );
+      });
+
+      // The connectors draw downward through the stack, gold, unhurried.
+      for (let i = 1; i <= 5; i++) {
+        tl.fromTo(`#arch-line-${i}`,
+          { opacity: 0, strokeDashoffset: 165 },
+          { opacity: 0.85, strokeDashoffset: 0, duration: 1.0, ease: "power2.inOut" },
+          `pond+=${1.2 + i * 1.6}`,
+        );
+      }
+
+      // They recede and fade as the wall of numbers takes the frame.
+      tl.to(".arch-plane", { opacity: 0.12, duration: 1.6, ease: "power2.inOut" }, "wall");
+      tl.to(".arch-line", { opacity: 0.08, duration: 1.6, ease: "power2.inOut" }, "wall");
 
       window.__timelines["main"] = tl;
     </script>
