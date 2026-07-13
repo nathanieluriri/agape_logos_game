@@ -74,3 +74,8 @@ test/goldens/failures/
 
 # Building-agent working prompt (local workflow artifact, like docs/)
 /prompt.md
+
+# LinkedIn trailer video: track composition source, ignore media
+video/linkedin-journey/footage/
+video/linkedin-journey/assets/*.mp4
+video/linkedin-journey/out/
