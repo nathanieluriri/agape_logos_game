@@ -12,6 +12,10 @@ body { margin: 0; background: var(--paper); }
   width: 1080px;
   height: 1350px;
   overflow: hidden;
+  /* Contains #screen-sheen's blend: mix-blend-mode blends against the nearest stacking
+     context, and the sheen must only ever light up the phone's own layers, never the
+     page behind them. */
+  isolation: isolate;
   /* Full-bleed fill lives on a child, never the root: the producer can drop the
      root's own background and render black. */
 }
@@ -25,13 +29,56 @@ body { margin: 0; background: var(--paper); }
 
 .layer { position: absolute; inset: 0; }
 
-/* Parked off-frame: hidden elements may not decode, so do not use display:none. */
-#screen-src {
+#three-layer { width: 100%; height: 100%; display: block; }
+
+/* THE SCREEN, and the glass on top of it.
+   Both are laid out at the footage's own pixel rect at the frame's origin, then warped
+   onto the phone's face by a matrix3d homography recomputed every frame in renderAt().
+   transform-origin MUST be the top left: the homography maps the source rect's corner
+   (0,0) onto the projected corner, so any other origin shifts the whole mapping. */
+#screen-src,
+#screen-sheen {
   position: absolute;
-  left: -2000px;
+  left: 0;
   top: 0;
   width: 720px;
   height: 1640px;
+  transform-origin: 0 0;
+  will-change: transform;
+  /* Concentric with the body: the body's silhouette radius is 0.16 world units (52px in
+     source pixels) and the bezel eats 23px of that, so the panel's own corners round at
+     roughly 30px. Square corners overhang the body's rounded ones. */
+  border-radius: 34px;
 }
 
-#three-layer { width: 100%; height: 100%; display: block; }
+#screen-sheen {
+  pointer-events: none;
+  /* The specular sweep. Wider than the panel so renderAt() can slide it across as the
+     device turns, by moving background-position. */
+  background-image: linear-gradient(
+    108deg,
+    rgba(255, 255, 255, 0) 26%,
+    rgba(255, 255, 255, 0.34) 40%,
+    rgba(255, 255, 255, 0.08) 47%,
+    rgba(255, 255, 255, 0.26) 54%,
+    rgba(255, 255, 255, 0) 68%
+  );
+  background-size: 240% 100%;
+  background-repeat: no-repeat;
+  /* Falls off before the panel edges, so the highlight reads as a reflection in the
+     glass rather than a lit rectangle. */
+  -webkit-mask-image: radial-gradient(
+    115% 62% at 46% 40%,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.72) 58%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: radial-gradient(
+    115% 62% at 46% 40%,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.72) 58%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.62;
+}

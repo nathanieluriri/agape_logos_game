@@ -38,27 +38,44 @@
       data-height="1350"
       data-duration="40"
     >
-      <!-- Direct root child. HyperFrames owns its playback. Parked off-frame so it
-           still decodes; Three.js samples it as a texture. Never wrap this. -->
+      <!-- Layer 1: paper ground + architecture planes (Task 5) -->
+      <div id="bg-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="1"></div>
+
+      <!-- Layer 2: the device BODY only (plus its contact shadow and the screen spill).
+           The screen itself is NOT drawn here: see below. -->
+      <canvas id="three-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="2"></canvas>
+
+      <!-- Layer 3: THE SCREEN.
+           This <video> IS the screen. It cannot be a WebGL texture: HyperFrames renders
+           a <video> by pre-extracting every frame with ffmpeg and injecting it into the
+           element for DOM compositing, and it never advances the element's internal
+           decode. So the pixels reach the DOM compositor but never reach WebGL, and both
+           drawImage(video) and THREE.VideoTexture read a pipeline stuck on frame 0: in a
+           real render the screen was frozen for all 40s while the device animated. (A
+           `snapshot` passes anyway, because snapshot mode uses a real page with real
+           seeking. A passing snapshot does not imply a passing render.)
+           So the screen stays in the DOM, and a matrix3d homography lands it on the
+           phone's face every frame: see renderAt(). It must remain a direct child of the
+           composition root, and nothing here may ever call play/pause or set currentTime:
+           HyperFrames owns the playback. -->
       <video
         id="screen-src"
         class="clip"
         src="assets/screen.mp4"
         data-start="0"
         data-duration="40"
-        data-track-index="0"
+        data-track-index="3"
         muted
         playsinline
       ></video>
 
-      <!-- Layer 0: paper ground + architecture planes (Task 5) -->
-      <div id="bg-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="1"></div>
+      <!-- Layer 4: the glass. Carries the SAME matrix3d as the video, so the specular
+           sweep sits on the panel and travels across it as the device turns. Replaces the
+           Three.js glass plane, which a DOM screen would have covered anyway. -->
+      <div id="screen-sheen" class="clip" data-start="0" data-duration="40" data-track-index="4"></div>
 
-      <!-- Layer 1: the device -->
-      <canvas id="three-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="2"></canvas>
-
-      <!-- Layer 2: typography (Task 6) + break-out elements (Task 7) -->
-      <div id="fg-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="3"></div>
+      <!-- Layer 5: typography (Task 6) + break-out elements (Task 7) -->
+      <div id="fg-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="5"></div>
     </div>
 
     <!-- ==================================================================
@@ -101,8 +118,15 @@
       const BODY_D = 0.22;
       const BODY_R = 0.16;
 
+      // The footage's own pixel rect. The DOM screen is laid out at this exact size and
+      // then mapped onto the phone's face by the homography, so it is never resampled
+      // twice and the maths below stays in source coordinates.
+      const SRC_W = 720;
+      const SRC_H = 1640;
+
       const canvas = document.getElementById("three-layer");
       const video = document.getElementById("screen-src");
+      const sheen = document.getElementById("screen-sheen");
 
       const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
       renderer.setSize(W, H, false);
@@ -232,94 +256,67 @@
       );
       device.add(body);
 
-      // Screen: the footage. Basic + toneMapped:false so the pond teal keeps its own
-      // luminance and glows against the paper instead of being flattened by ACES.
-      // The screen texture is a 2D-canvas mirror of the <video>, not a VideoTexture.
-      // A WebGL upload straight from the element takes the last frame the compositor
-      // PRESENTED, which in a headless seek-and-shoot lags the seek by one frame (the
-      // t=37 shot came back showing the t=14 beat). drawImage takes the frame the
-      // element has currently DECODED, which is the one the seek just landed on.
-      const frameCanvas = document.createElement("canvas");
-      frameCanvas.width = 720;
-      frameCanvas.height = 1640;
-      const frameCtx = frameCanvas.getContext("2d");
-      const texture = new THREE.CanvasTexture(frameCanvas);
-      texture.colorSpace = THREE.SRGBColorSpace;
-      const screen = new THREE.Mesh(
-        new THREE.PlaneGeometry(SCREEN_W, SCREEN_H),
-        new THREE.MeshBasicMaterial({
-          map: texture,
-          // Rounds the screen's corners into the body's radius, so the glass does not
-          // read as a square sticker on a rounded slab.
-          alphaMap: rectFalloffTexture({ insetFrac: 0.004, softFrac: 0.004, radiusFrac: 0.055 }),
-          transparent: true,
-          toneMapped: false,
-        }),
-      );
-      screen.position.z = BODY_D / 2 + 0.002;
-      device.add(screen);
+      // The screen plane exists only as GEOMETRY, never as a mesh: nothing is drawn for
+      // it in WebGL. Its four corners are projected each frame and the DOM <video> is
+      // warped onto them. Held a hair proud of the body's front face so the corners
+      // project onto the glass, not into it.
+      const SCREEN_CORNERS = [
+        new THREE.Vector3(-SCREEN_W / 2, SCREEN_H / 2, BODY_D / 2 + 0.002),
+        new THREE.Vector3(SCREEN_W / 2, SCREEN_H / 2, BODY_D / 2 + 0.002),
+        new THREE.Vector3(SCREEN_W / 2, -SCREEN_H / 2, BODY_D / 2 + 0.002),
+        new THREE.Vector3(-SCREEN_W / 2, -SCREEN_H / 2, BODY_D / 2 + 0.002),
+      ];
 
-      // Glass: a single specular sheen plane over the screen. Nearly transparent,
-      // very smooth, so the environment leaves a soft diagonal highlight that moves
-      // when the device turns.
-      const glass = new THREE.Mesh(
-        new THREE.PlaneGeometry(BODY_W, BODY_H),
-        new THREE.MeshPhysicalMaterial({
-          color: 0xffffff,
-          transparent: true,
-          opacity: 0.1,
-          roughness: 0.06,
-          metalness: 0.0,
-          clearcoat: 1.0,
-          clearcoatRoughness: 0.04,
-          reflectivity: 0.75,
-          depthWrite: false,
-        }),
-      );
-      glass.position.z = BODY_D / 2 + 0.014;
-      device.add(glass);
-
-      // Specular streak: the soft diagonal window reflection that makes glass read as
-      // glass instead of flat plastic. An additive band, painted once, deterministic.
-      const streakCanvas = document.createElement("canvas");
-      streakCanvas.width = 256;
-      streakCanvas.height = 512;
-      {
-        const ctx = streakCanvas.getContext("2d");
-        const g = ctx.createLinearGradient(0, 0, 256, 512);
-        g.addColorStop(0.0, "rgba(255,255,255,0)");
-        g.addColorStop(0.3, "rgba(255,255,255,0)");
-        g.addColorStop(0.42, "rgba(255,255,255,0.55)");
-        g.addColorStop(0.5, "rgba(255,255,255,0.16)");
-        g.addColorStop(0.56, "rgba(255,255,255,0.42)");
-        g.addColorStop(0.68, "rgba(255,255,255,0)");
-        g.addColorStop(1.0, "rgba(255,255,255,0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, 256, 512);
-        // Fade the streak out at the panel edges so it does not spill past the glass.
-        const edge = ctx.createRadialGradient(128, 256, 40, 128, 256, 270);
-        ctx.globalCompositeOperation = "destination-in";
-        edge.addColorStop(0, "rgba(255,255,255,1)");
-        edge.addColorStop(0.75, "rgba(255,255,255,0.75)");
-        edge.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.fillStyle = edge;
-        ctx.fillRect(0, 0, 256, 512);
+      // Projects the screen quad's corners, in clockwise order from the top left, through
+      // the device transform and the camera, into CSS pixels within the 1080x1350 frame.
+      const _proj = new THREE.Vector3();
+      function projectedScreenCorners() {
+        device.updateWorldMatrix(true, false);
+        camera.updateMatrixWorld();
+        return SCREEN_CORNERS.map((c) => {
+          _proj.copy(c).applyMatrix4(device.matrixWorld).project(camera);
+          return [(_proj.x * 0.5 + 0.5) * W, (-_proj.y * 0.5 + 0.5) * H];
+        });
       }
-      const streakTex = new THREE.CanvasTexture(streakCanvas);
-      streakTex.colorSpace = THREE.SRGBColorSpace;
-      const streak = new THREE.Mesh(
-        new THREE.PlaneGeometry(SCREEN_W * 1.02, SCREEN_H * 1.01),
-        new THREE.MeshBasicMaterial({
-          map: streakTex,
-          transparent: true,
-          opacity: 0.16,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-          toneMapped: false,
-        }),
-      );
-      streak.position.z = BODY_D / 2 + 0.016;
-      device.add(streak);
+
+      // Solves the 8 unknowns of the homography that maps the source rect's corners
+      // (0,0),(w,0),(w,h),(0,h) onto four arbitrary destination points, by Gaussian
+      // elimination with partial pivoting on the standard 8x8 system. Returns a CSS
+      // matrix3d string. Pure maths: deterministic, no timing, no randomness.
+      function homographyMatrix3d(w, h, dst) {
+        const src = [[0, 0], [w, 0], [w, h], [0, h]];
+        const A = [];
+        const b = [];
+        for (let i = 0; i < 4; i++) {
+          const [x, y] = src[i];
+          const [u, v] = dst[i];
+          A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]);
+          b.push(u);
+          A.push([0, 0, 0, x, y, 1, -v * x, -v * y]);
+          b.push(v);
+        }
+        for (let col = 0; col < 8; col++) {
+          let pivot = col;
+          for (let r = col + 1; r < 8; r++) {
+            if (Math.abs(A[r][col]) > Math.abs(A[pivot][col])) pivot = r;
+          }
+          const tA = A[col]; A[col] = A[pivot]; A[pivot] = tA;
+          const tb = b[col]; b[col] = b[pivot]; b[pivot] = tb;
+          const p = A[col][col];
+          for (let r = 0; r < 8; r++) {
+            if (r === col) continue;
+            const f = A[r][col] / p;
+            if (!f) continue;
+            for (let c = col; c < 8; c++) A[r][c] -= f * A[col][c];
+            b[r] -= f * b[col];
+          }
+        }
+        const s = b.map((val, i) => val / A[i][i]);
+        const [a, bb, c, d, e, f, g, i] = s;
+        // CSS matrix3d is column-major. The homography is 2D, so the third row and column
+        // are identity apart from the perspective terms g and i, which live in the w row.
+        return `matrix3d(${a}, ${d}, 0, ${g}, ${bb}, ${e}, 0, ${i}, 0, 0, 1, 0, ${c}, ${f}, 0, 1)`;
+      }
 
       // Screen spill: the pond light bleeding onto the paper around the device.
       // Additive, sage, and wide, so the phone reads as lit from within.
@@ -373,71 +370,52 @@
       scene.add(new THREE.AmbientLight(PAPER, 0.35));
 
       // ----------------------------------------------------------------- render
-      let lastTime = 0;
-
+      // The one render entry point. The GSAP timeline's onUpdate calls this on every
+      // seek, and that call is the ONLY bridge that works: registering a timeline makes
+      // GSAP the seek owner, so the three adapter never engages and `hf-seek` never
+      // fires. Nothing here may depend on hf-seek.
       function renderAt(time) {
-        // Task 4 owns every device and camera move on the GSAP timeline. This hook
-        // stays inert; it exists so motion has one home.
-        lastTime = time;
-
-        // Keep the shadow and the spill glued under the device wherever Task 4 moves
-        // it. Derived from the device transform, not animated here.
+        // Keep the shadow and the spill glued under the device wherever the timeline
+        // moves it. Derived from the device transform, not animated here.
         shadowGroup.position.set(device.position.x, device.position.y, 0);
         spill.position.set(device.position.x, device.position.y, -0.5);
 
-        if (video.readyState >= 2) {
-          frameCtx.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
-          texture.needsUpdate = true;
-        }
+        // WebGL first: renderer.render() refreshes the camera's world matrix, which the
+        // projection below reads. The camera pushes in over the 40s, so a stale matrix
+        // would leave the screen a frame behind the body.
         renderer.render(scene, camera);
+
+        // Then lay the DOM screen onto the face the renderer just drew.
+        const m = homographyMatrix3d(SRC_W, SRC_H, projectedScreenCorners());
+        video.style.transform = m;
+        sheen.style.transform = m;
+
+        // The specular sweep travels across the glass as the device turns. Driven by the
+        // yaw the timeline authored (which stays inside roughly [-0.42, -0.07]), so it is
+        // a pure function of timeline position, like everything else here.
+        const t = Math.min(1, Math.max(0, (-device.rotation.y - 0.05) / 0.4));
+        sheen.style.backgroundPosition = `${((1 - t) * 100).toFixed(3)}% 0%`;
       }
 
-      // The producer seeks the <video> and dispatches hf-seek without waiting for the
-      // new frame to be decoded, so a render done only on hf-seek uploads the PREVIOUS
-      // frame (verified: the t=37 frame showed the t=14 beat). Re-render whenever the
-      // element actually presents its new frame. Still deterministic: the frame is a
-      // pure function of the seek time, this only decides when it is uploaded.
-      function repaintCurrentFrame() {
-        renderAt(lastTime);
-      }
-      video.addEventListener("seeked", repaintCurrentFrame);
-      video.addEventListener("loadeddata", repaintCurrentFrame);
-      if (typeof video.requestVideoFrameCallback === "function") {
-        const onVideoFrame = () => {
-          repaintCurrentFrame();
-          video.requestVideoFrameCallback(onVideoFrame);
-        };
-        video.requestVideoFrameCallback(onVideoFrame);
-      }
-      // The runtime calls this right after it dispatches hf-seek.
-      window.__hfThreeRender = repaintCurrentFrame;
-
-      // Screen rect in CSS pixels within the 1080x1350 frame, for Task 7's break-out
-      // elements. Projects the four screen corners so it stays correct under any
-      // camera or device transform Task 4 applies.
+      // Axis-aligned bounding box of the screen, in CSS pixels within the 1080x1350
+      // frame, for Task 7's break-out elements. Same projection as the homography uses,
+      // so it stays correct under any camera or device transform.
       function deviceScreenWorldRect() {
-        device.updateWorldMatrix(true, false);
-        const v = new THREE.Vector3();
-        const pts = [
-          [-SCREEN_W / 2, SCREEN_H / 2],
-          [SCREEN_W / 2, SCREEN_H / 2],
-          [SCREEN_W / 2, -SCREEN_H / 2],
-          [-SCREEN_W / 2, -SCREEN_H / 2],
-        ].map(([x, y]) => {
-          v.set(x, y, BODY_D / 2).applyMatrix4(device.matrixWorld).project(camera);
-          return { x: (v.x * 0.5 + 0.5) * W, y: (-v.y * 0.5 + 0.5) * H };
-        });
-        const xs = pts.map((p) => p.x);
-        const ys = pts.map((p) => p.y);
+        const pts = projectedScreenCorners();
+        const xs = pts.map((p) => p[0]);
+        const ys = pts.map((p) => p[1]);
         const x = Math.min(...xs);
         const y = Math.min(...ys);
         return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
       }
 
-      window.__hfScene = { scene, camera, device, renderer, renderAt, deviceScreenWorldRect };
+      window.__hfScene = {
+        scene, camera, device, renderer, renderAt,
+        deviceScreenWorldRect, projectedScreenCorners, homographyMatrix3d,
+      };
 
-      window.addEventListener("hf-seek", (e) => renderAt(e.detail.time));
-      renderAt(window.__hfThreeTime || 0);
+      // First paint, so frame 0 is correct before the timeline's first onUpdate.
+      renderAt(0);
     </script>
 
     <!-- ============================ THE TIMELINE ==========================
