@@ -5,12 +5,26 @@
     <meta name="viewport" content="width=1080, height=1350" />
     <title>Agape Logos - 30 days</title>
     <link rel="stylesheet" href="styles.css" />
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <!-- gsap 3.14.2 and three 0.181.2 are VENDORED under vendor/, not pulled from a
+         CDN, and they have to be. `snapshot` and `check` navigate with a hard-coded
+         10s domcontentloaded budget (not raised by --timeout: it is `timeout: 1e4` at
+         the goto call site). Module scripts block DOMContentLoaded, so the CDN round
+         trips for gsap plus the three module graph (three.module.js -> three.core.js,
+         plus the two addons) were charging ~2.6s against that budget, on top of the
+         ~5.9s the first render spends compiling the clearcoat/PMREM shaders on
+         software GL. Measured DCL was 8.9s at best and the tools timed out. Served
+         from disk it is ~6.3s, with headroom. It also makes the render deterministic
+         and offline: the CLI's own timeout hint tells you to vendor for exactly this.
+         The bundler inlines relative script[src] into one classic inline script, so
+         gsap must stay a plain (non-module) file. The importmap is inline JSON, not a
+         script[src], so the bundler leaves it alone and the bare "three" specifier
+         still resolves. -->
+    <script src="vendor/gsap.min.js"></script>
     <script type="importmap">
       {
         "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js",
-          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"
+          "three": "./vendor/three.module.js",
+          "three/addons/": "./vendor/addons/"
         }
       }
     </script>
@@ -427,15 +441,100 @@
     </script>
 
     <!-- ============================ THE TIMELINE ==========================
-         Task 4 fills this. For now it registers an empty paused timeline so the
-         composition satisfies the HyperFrames contract.
+         Every device and camera move for the 40s, on the one paused timeline.
+         Tasks 5-8 ADD to this timeline; they never create their own.
+
+         This is a module, not a classic script, and it has to be: the DEVICE block
+         above is `type="module"`, so it is deferred to after parsing, while a classic
+         inline script runs during parsing. A classic block here would read
+         window.__hfScene before the scene exists and throw on the destructure.
+         Modules execute in document order, after parsing and before DOMContentLoaded,
+         so the scene is always up by the time this runs and __timelines is always
+         registered before anything looks for it.
          =================================================================== -->
-    <script>
+    <script type="module">
+      const { camera, device, renderAt } = window.__hfScene;
+
       window.__timelines = window.__timelines || {};
-      const tl = gsap.timeline({ paused: true });
-      // Spacer only: gives the empty timeline the composition's full duration so it
-      // advances under seek. Task 4 replaces this with the real choreography.
-      tl.to({}, { duration: 40 }, 0);
+      const tl = gsap.timeline({
+        paused: true,
+        // Three.js does not re-render on GSAP tweens by itself: every timeline update
+        // must push the scene. This is the bridge between GSAP and the three adapter,
+        // and without it the device is frozen at its base pose for all 40s.
+        onUpdate: () => renderAt(tl.time()),
+      });
+
+      // Beat labels. Later tasks position everything against these, never raw numbers.
+      tl.addLabel("coldOpen", 0)
+        .addLabel("claim", 4)
+        .addLabel("rewind", 8)
+        .addLabel("pond", 12)
+        .addLabel("word", 16)
+        .addLabel("sync", 19)
+        .addLabel("backend", 24)
+        .addLabel("wall", 28)
+        .addLabel("close", 34);
+
+      // --- Device: a continuous, unhurried turn. Never static, never fast. ---
+      //
+      // Yaw stays NEGATIVE for the whole arc, and that is a lighting constraint, not
+      // a taste one. The rim light sits out at (7, 1.5, -1.2): it grazes the body's
+      // +X side face. Negative yaw swings that face toward the lens, which is what
+      // puts the gold line down the right edge. Positive yaw hides it and shows the
+      // opposite face instead, which is lit by the white key: the rim goes out and the
+      // device reads as a flat grey slab. So the arc is authored as a change in the
+      // MAGNITUDE of the turn (a deep three-quarter view relaxing toward square, and
+      // back) rather than as a swing through zero. Pitch carries the direction change.
+      //
+      // Cold open: turned well away, catching the light, then easing toward the lens.
+      tl.fromTo(
+        device.rotation,
+        { y: -0.42, x: 0.07 },
+        { y: -0.26, x: 0.05, duration: 8, ease: "power2.out" },
+        "coldOpen",
+      );
+
+      // Rewind: the device tips back and opens up, as if being turned back to the start.
+      tl.to(device.rotation, { y: -0.09, x: -0.03, duration: 4, ease: "power2.inOut" }, "rewind");
+
+      // The build: leans back into the turn as the architecture crowds in, then
+      // progressively settles square to camera as the story accumulates.
+      tl.to(device.rotation, { y: -0.24, x: 0.02, duration: 6, ease: "sine.inOut" }, "pond");
+      tl.to(device.rotation, { y: -0.11, duration: 5, ease: "sine.inOut" }, "sync");
+      tl.to(device.rotation, { y: -0.21, duration: 4, ease: "sine.inOut" }, "backend");
+
+      // Close: settles square to the lens and comes to rest. A few degrees of yaw are
+      // kept: dead-on at exactly 0 is what kills the rim and the glass sheen, so this
+      // is as square as the device can be and still read as a lit object.
+      tl.to(device.rotation, { y: -0.07, x: 0.025, duration: 6, ease: "power3.out" }, "wall");
+
+      // Breathing drift, layered on top so the device is never dead. Finite repeats
+      // only (repeat: -1 is banned: it makes the render non-deterministic). 5s each way,
+      // 7 repeats: 8 half-cycles, exactly the 40s, and it lands at rest on the last frame.
+      tl.to(
+        device.position,
+        { y: 0.07, duration: 5, ease: "sine.inOut", yoyo: true, repeat: 7 },
+        0,
+      );
+
+      // --- Camera: one slow, continuous push. No cuts, no whips. ---
+      //
+      // Framed against the 32deg lens and the 5.15-unit body: at z=13.4 the device is
+      // about two thirds of the frame height, at z=11.6 about three quarters. Closer
+      // than ~9 and the body is taller than the frame.
+      tl.fromTo(
+        camera.position,
+        { z: 13.4 },
+        { z: 12.3, duration: 12, ease: "power2.out" },
+        "coldOpen",
+      );
+      // The build pushes in a touch as the architecture crowds in around the device.
+      tl.to(camera.position, { z: 11.6, duration: 12, ease: "sine.inOut" }, "pond");
+      // The wall pulls back to make room for the numbers.
+      tl.to(camera.position, { z: 12.7, duration: 6, ease: "power2.inOut" }, "wall");
+      // The close settles.
+      tl.to(camera.position, { z: 12.3, duration: 6, ease: "power3.out" }, "close");
+
       window.__timelines["main"] = tl;
     </script>
   </body>
