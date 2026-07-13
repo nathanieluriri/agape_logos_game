@@ -161,3 +161,190 @@ body { margin: 0; background: var(--paper); }
   stroke-dasharray: 165;
   stroke-dashoffset: 165;   /* drawn on the timeline */
 }
+
+/* ============================ TYPOGRAPHY (Task 6) ==========================
+   The frame is far tighter than a normal title-safe grid, and the copy has to
+   respect what is actually in it. Measured off real renders:
+
+     - the DEVICE is the hero and never leaves. It runs roughly x:315-770 and
+       y:150-1200 at the camera's closest push (about 77% of frame height).
+     - the ARCHITECTURE column owns the left margin from 12s to 31s: six planes
+       plus the gold rail, roughly y:210-1185, with readable text out to x:300.
+
+   So exactly two regions are collision-free, and all copy lives in them:
+
+     LEFT RAIL   x:60-300, free whenever the architecture is not up, which is
+                 precisely the claim (4-8s) and the wall (28-34s). The numbers
+                 literally take the column the stack vacates.
+     LOWER BAND  y:1210-1350, below the device for the whole 40s. The beat
+                 titles run here as captions (a headline in the rail from 12s
+                 on would sit on a plane; one in the centre would sit on the
+                 phone), and the end card centres here once the wall has gone.
+
+   Nothing is ever laid over the phone, and nothing is ever laid over a plane. */
+
+.type-block,
+.beat-title,
+#endcard {
+  position: absolute;
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--ink);
+}
+
+/* Everything except #endcard fades as a block. #endcard is a bare container whose
+   three children carry their own fades, so it needs no opacity of its own: that
+   avoids a gsap.set on a late-scene element, which the determinism rules ban at
+   time 0 and which is simply unnecessary here. */
+.type-block,
+.beat-title,
+#endcard > * {
+  opacity: 0;                /* every reveal is authored on the timeline */
+}
+
+/* A counter: the number, and its unit beneath it. Stacked rather than laid out on
+   one baseline, because the rail is only ~240px wide and "20,463 lines of Dart" on
+   a single line would run straight under the device. */
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.num {
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;   /* stops width jitter while counting */
+  line-height: 1.0;
+  color: var(--ink);
+}
+
+.unit {
+  font-weight: 450;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  /* 0.6, not 0.5: at 0.5 the unit lands on 2.97:1 against the paper, a hair under
+     the 3:1 floor, and this video is watched small and silent. */
+  color: rgba(26, 28, 26, 0.6);
+}
+
+/* The claim: the opening hook, and the biggest type in the video. */
+#claim {
+  left: 84px;
+  bottom: 300px;
+  width: 235px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+#claim .num { font-size: 104px; }
+#claim .unit { font-size: 28px; margin-top: 6px; }
+
+/* The wall: five counters on the same rail, hung off a gold rule.
+   The numbers are INK, not gold. Gold (#D9A441) on the paper is 1.57:1: it is a
+   rule and an accent colour in this palette, not a text colour, and 68px of it on
+   paper would be a wash in a muted LinkedIn feed. The gold instead survives as the
+   rule the numbers hang from, which is the architecture's own gold connector line
+   left standing after the planes have gone. */
+#wall {
+  left: 56px;
+  bottom: 215px;
+  width: 262px;
+  box-sizing: border-box;
+  padding-left: 29px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* The gold rule, as an element rather than a border-left. It has to be: the wash below
+   is a negative-z-index child, and per the CSS painting order a negative-z child paints
+   ABOVE its parent's background and border, so an opaque wash simply erases a border.
+   A positioned pseudo-element paints later than any negative-z child, so the rule
+   survives the wash. (This cost the rail one silent render: the border was there in the
+   markup and invisible in the frame.) */
+#wall::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--gold);
+}
+#wall .num { font-size: 64px; }
+#wall .unit { font-size: 24px; margin-top: 5px; }
+
+/* The architecture does not leave: it sinks to a 0.12 ghost and stays in this exact
+   rail. Ghost labels crossing through "284 files" is noise, and this video does not
+   carry noise. So the wall clears its own space: a soft wash of the paper colour,
+   falling off to nothing well before the device, which reads as bare paper and eats
+   the ghosts underneath. It rides #wall's own opacity, so it fades in with the block.
+   z-index is safe here: #wall's animated opacity makes it a stacking context, so the
+   wash sits behind the counters and in front of the planes, and nowhere else.
+
+   The falloff is a BLURRED rounded rect, not a radial gradient: the device throws a
+   broad soft shadow across this whole corner of the paper, so any wash with a hard
+   boundary erases a slice of that shadow and leaves a visible rectangle. A radial
+   cannot fix it either (an ellipse that clears the text's corners has already run
+   past the phone). The blur feathers every edge over ~30px, and the box stops well
+   short of the device, so the wash dies out on bare paper and touches nothing. */
+#wall::before {
+  content: "";
+  position: absolute;
+  left: -40px;
+  right: 14px;
+  top: -34px;
+  bottom: -34px;
+  z-index: -1;
+  border-radius: 48px;
+  background: var(--paper);
+  /* Tuned, not guessed. The plane labels run out to about x:300 and the device's left
+     edge sits at about x:330 through this beat, so the wash has to be opaque at 300 and
+     nothing at 330. blur(16px) puts full paper out to ~288, half at 304, and under 2%
+     by 330: it swallows the ghosts and dies before it can touch the phone. */
+  filter: blur(16px);
+}
+
+/* Beat captions: one line, centred in the band under the device. Kept to a caption
+   weight on purpose, so they support the frame rather than compete with it.
+   nowrap is load-bearing: a second line would climb into the device. */
+.beat-title {
+  left: 60px;
+  right: 60px;
+  bottom: 60px;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+/* End card: centred in the same band, once the wall has cleared it. */
+#endcard {
+  left: 0;
+  right: 0;
+  bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+#end-title {
+  font-size: 50px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+#end-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 26px;
+  font-weight: 450;
+  line-height: 1.3;
+}
+/* The handle is the one line a viewer might act on, so it is ink at full weight,
+   not gold: gold reads as decoration here and measures 1.67:1 against the paper. */
+#end-line { color: rgba(26, 28, 26, 0.6); }
+#end-dot { color: rgba(26, 28, 26, 0.6); }
+#end-handle { color: rgba(26, 28, 26, 0.92); font-weight: 600; }

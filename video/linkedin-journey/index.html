@@ -90,8 +90,52 @@
            Three.js glass plane, which a DOM screen would have covered anyway. -->
       <div id="screen-sheen" class="clip" data-start="0" data-duration="40" data-track-index="4"></div>
 
-      <!-- Layer 5: typography (Task 6) + break-out elements (Task 7) -->
-      <div id="fg-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="5"></div>
+      <!-- Layer 5: typography (Task 6) + break-out elements (Task 7).
+           Mute-first: this layer carries the whole story on its own.
+           Placement is dictated by what the frame actually leaves free (see the
+           TYPOGRAPHY block in styles.css): the LEFT RAIL for the claim and the wall,
+           the BAND BELOW THE DEVICE for the beat captions and the end card. -->
+      <!-- data-layout-allow-overlap: the layout checker tests bounding boxes and ignores
+           opacity, and `.arch-stack` is inset:0 (a full-frame container), so EVERY node in
+           the composition "overlaps" it by box even when the planes are unlit or ghosted at
+           0.12. The layering here is deliberate and was verified against real rendered
+           frames, not snapshots: nothing sits on the phone and nothing sits on a lit plane. -->
+      <div id="fg-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="5" data-layout-allow-overlap>
+        <!-- The claim (4-8s). The architecture column is not up yet, so the rail is free. -->
+        <div id="claim" class="type-block">
+          <div class="stat"><span class="num" id="claim-days">0</span><span class="unit">days</span></div>
+          <div class="stat"><span class="num" id="claim-build">0</span><span class="unit">build days</span></div>
+          <div class="stat"><span class="num" id="claim-commits">0</span><span class="unit">commits</span></div>
+        </div>
+
+        <!-- Beat titles. Captions, not headlines: the rail belongs to the architecture
+             stack from 12s to 31s, so a headline there would land on a plane or on the
+             phone. The band below the device is free for the whole 40s. -->
+        <div id="t-rewind" class="beat-title">It started with an empty Flutter project.</div>
+        <div id="t-sync" class="beat-title">Every word lands locally first.</div>
+        <div id="t-backend" class="beat-title">The wallet is server-authoritative.</div>
+
+        <!-- The wall (28-34s). Takes the rail the architecture has just vacated: the
+             stack dissolves and the numbers move into its place. -->
+        <div id="wall" class="type-block">
+          <div class="stat"><span class="num" id="w-lines">0</span><span class="unit">lines of Dart</span></div>
+          <div class="stat"><span class="num" id="w-files">0</span><span class="unit">files</span></div>
+          <div class="stat"><span class="num" id="w-tests">0</span><span class="unit">test files</span></div>
+          <div class="stat"><span class="num" id="w-backend">0</span><span class="unit">lines of backend</span></div>
+          <div class="stat"><span class="num" id="w-features">0</span><span class="unit">features shipped</span></div>
+        </div>
+
+        <!-- End card (34-40s). PLACEHOLDER COPY: the closing line and the handle are
+             still unresolved and must be replaced with the real ones before publishing. -->
+        <div id="endcard">
+          <div id="end-title">Agape Logos</div>
+          <div id="end-sub">
+            <span id="end-line">built in the open</span>
+            <span id="end-dot">&middot;</span>
+            <span id="end-handle">@your-handle</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ==================================================================
@@ -552,6 +596,65 @@
       // They recede and fade as the wall of numbers takes the frame.
       tl.to(".arch-plane", { opacity: 0.12, duration: 1.6, ease: "power2.inOut" }, "wall");
       tl.to(".arch-line", { opacity: 0.08, duration: 1.6, ease: "power2.inOut" }, "wall");
+
+      // ======================= TYPOGRAPHY (Task 6) =========================
+      // Mute-first: LinkedIn autoplays silent, so this copy is the whole story.
+      // Positions are authored against the beat labels above, never raw numbers.
+
+      // Counts an integer up into a DOM node. Deterministic: it tweens a plain
+      // object off the timeline's own playhead, so it is a pure function of
+      // position (no clocks, no randomness) and it survives seeking. A number that
+      // COUNTS is a number the eye follows; a number that just appears is a number
+      // the eye skips.
+      function countUp(selector, to, duration, position) {
+        const el = document.querySelector(selector);
+        const state = { v: 0 };
+        tl.to(
+          state,
+          {
+            v: to,
+            duration,
+            ease: "power2.out",
+            onUpdate: () => {
+              el.textContent = Math.round(state.v).toLocaleString("en-US");
+            },
+          },
+          position,
+        );
+      }
+
+      // --- The claim (4-8s). Three numbers, arriving one at a time and holding. ---
+      tl.fromTo("#claim", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, "claim");
+      countUp("#claim-days", 30, 1.1, "claim+=0.15");
+      countUp("#claim-build", 14, 1.1, "claim+=0.85");
+      countUp("#claim-commits", 223, 1.4, "claim+=1.55");
+      // Leaves late and fast, so the final values hold on screen right up to the cut.
+      tl.to("#claim", { opacity: 0, y: -24, duration: 0.7, ease: "power2.in" }, "rewind-=0.2");
+
+      // --- Beat captions: one line each, arriving and settling in the lower band. ---
+      const titles = [["#t-rewind", "rewind"], ["#t-sync", "sync"], ["#t-backend", "backend"]];
+      titles.forEach(([sel, label]) => {
+        tl.fromTo(sel, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, `${label}+=0.4`);
+        tl.to(sel, { opacity: 0, y: -16, duration: 0.6, ease: "power2.in" }, `${label}+=3.6`);
+      });
+
+      // --- The wall (28-34s). Every figure measured from the repository. Do not alter. ---
+      // It rises into the rail the architecture is vacating: the planes take 1.6s to
+      // sink to their 0.12 ghost, so the wall waits 0.7s and then crosses with the tail
+      // of that fade rather than landing on top of six lit cards.
+      tl.fromTo("#wall", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, "wall+=0.7");
+      countUp("#w-lines", 20463, 1.6, "wall+=1.0");
+      countUp("#w-files", 284, 1.2, "wall+=1.4");
+      countUp("#w-tests", 117, 1.2, "wall+=1.8");
+      countUp("#w-backend", 5165, 1.4, "wall+=2.2");
+      countUp("#w-features", 16, 1.2, "wall+=2.4");
+      // Holds its final values for a beat, then leaves. Late enough that the last frame
+      // of the wall is a frame of numbers, not a frame of fade.
+      tl.to("#wall", { opacity: 0, y: -22, duration: 1.0, ease: "power2.in" }, "close-=0.3");
+
+      // --- End card (34-40s). Settles, and rests. ---
+      tl.fromTo("#end-title", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 1.0, ease: "power3.out" }, "close+=1.0");
+      tl.fromTo("#end-sub", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, "close+=1.5");
 
       window.__timelines["main"] = tl;
     </script>
