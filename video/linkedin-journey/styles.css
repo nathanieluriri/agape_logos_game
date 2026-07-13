@@ -1,0 +1,37 @@
+:root {
+  --paper: #f7f4ec;
+  --ink: #1a1c1a;
+  --gold: #d9a441;
+  --sage: #5b8a72;
+}
+
+body { margin: 0; background: var(--paper); }
+
+#root {
+  position: relative;
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  /* Full-bleed fill lives on a child, never the root: the producer can drop the
+     root's own background and render black. */
+}
+
+#bg-layer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+}
+
+.layer { position: absolute; inset: 0; }
+
+/* Parked off-frame: hidden elements may not decode, so do not use display:none. */
+#screen-src {
+  position: absolute;
+  left: -2000px;
+  top: 0;
+  width: 720px;
+  height: 1640px;
+}
+
+#three-layer { width: 100%; height: 100%; display: block; }

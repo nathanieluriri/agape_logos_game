@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1350" />
+    <title>Agape Logos - 30 days</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1080"
+      data-height="1350"
+      data-duration="40"
+    >
+      <!-- Direct root child. HyperFrames owns its playback. Parked off-frame so it
+           still decodes; Three.js samples it as a texture. Never wrap this. -->
+      <video
+        id="screen-src"
+        class="clip"
+        src="assets/screen.mp4"
+        data-start="0"
+        data-duration="40"
+        data-track-index="0"
+        muted
+        playsinline
+      ></video>
+
+      <!-- Layer 0: paper ground + architecture planes (Task 5) -->
+      <div id="bg-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="1"></div>
+
+      <!-- Layer 1: the device -->
+      <canvas id="three-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="2"></canvas>
+
+      <!-- Layer 2: typography (Task 6) + break-out elements (Task 7) -->
+      <div id="fg-layer" class="clip layer" data-start="0" data-duration="40" data-track-index="3"></div>
+    </div>
+
+    <!-- ==================================================================
+         ALL COMPOSITION JS MUST LIVE INLINE.
+
+         The HyperFrames producer strips every external <script src="..."> from
+         the page before capture (verified against v0.7.55: the tags are absent
+         from the rendered DOM) and it also blocks module fetches of local files,
+         so `import "./scene.js"` never resolves. An external scene.js / timeline.js
+         renders a dead frame with no error. The CDN gsap tag and the CDN importmap
+         above are the exception: the producer serves those two URLs from its own
+         bundle. This matches the HyperFrames three.js adapter docs, which put the
+         whole scene in an inline module.
+
+         Task 4: author the choreography in the TIMELINE block at the bottom of
+         this file, against window.__hfScene (camera, device, renderAt).
+         ================================================================== -->
+
+    <!-- ============================ THE DEVICE ============================ -->
+    <script type="module">
+      import * as THREE from "three";
+      import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+      import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
+      const W = 1080;
+      const H = 1350;
+
+      // Palette (shared with styles.css).
+      const PAPER = 0xf7f4ec;
+      const INK = 0x1a1c1a;
+      const GOLD = 0xd9a441;
+      const SAGE = 0x5b8a72;
+
+      // Device proportions, from the footage: 720x1640 => 0.439 aspect.
+      const SCREEN_W = 2.2;
+      const SCREEN_H = SCREEN_W * (1640 / 720);
+      const BEZEL = 0.07;
+      const BODY_W = SCREEN_W + BEZEL * 2;
+      const BODY_H = SCREEN_H + BEZEL * 2;
+      const BODY_D = 0.22;
+      const BODY_R = 0.16;
+
+      const canvas = document.getElementById("three-layer");
+      const video = document.getElementById("screen-src");
+
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      renderer.setSize(W, H, false);
+      renderer.setPixelRatio(1);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+
+      const scene = new THREE.Scene();
+
+      // Procedural environment: gives the glass and the anodised body something to
+      // reflect. Generated in-process, so nothing is fetched at render time.
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+      const camera = new THREE.PerspectiveCamera(32, W / H, 0.1, 100);
+      camera.position.set(0, 0, 13.2);
+      camera.lookAt(0, 0, 0);
+
+      // ---------------------------------------------------------------- shadows
+      // The paper is the DOM layer behind this canvas, so the "ground" is a plane
+      // parallel to the device, not a floor. The device is lit from the upper left,
+      // so its shadow falls down and to the right, onto that paper.
+      const TEX_W = 256;
+      const TEX_H = 512;
+
+      // A rounded-box signed-distance field, evaluated per pixel. Canvas
+      // `ctx.filter = blur(...)` is not dependable in the render browser (it came
+      // back as a hard-edged card), so the falloff is computed rather than filtered.
+      // Fully deterministic: no randomness, no timing.
+      function rectFalloffTexture({ insetFrac, softFrac, radiusFrac }) {
+        const c = document.createElement("canvas");
+        c.width = TEX_W;
+        c.height = TEX_H;
+        const ctx = c.getContext("2d");
+        const img = ctx.createImageData(TEX_W, TEX_H);
+        const halfW = TEX_W / 2 - TEX_W * insetFrac;
+        const halfH = TEX_H / 2 - TEX_W * insetFrac;
+        const radius = TEX_W * radiusFrac;
+        const soft = Math.max(TEX_W * softFrac, 0.5);
+        for (let y = 0; y < TEX_H; y++) {
+          for (let x = 0; x < TEX_W; x++) {
+            const px = Math.abs(x + 0.5 - TEX_W / 2) - (halfW - radius);
+            const py = Math.abs(y + 0.5 - TEX_H / 2) - (halfH - radius);
+            const d =
+              Math.hypot(Math.max(px, 0), Math.max(py, 0)) +
+              Math.min(Math.max(px, py), 0) -
+              radius;
+            // Smoothstep across the edge: 1 well inside, 0 well outside.
+            let t = 1 - (d + soft) / (2 * soft);
+            t = Math.min(1, Math.max(0, t));
+            const a = Math.round(255 * t * t * (3 - 2 * t));
+            const i = (y * TEX_W + x) * 4;
+            // Coverage goes in RGB (alphaMap samples the green channel) and in alpha.
+            img.data[i] = a;
+            img.data[i + 1] = a;
+            img.data[i + 2] = a;
+            img.data[i + 3] = 255;
+          }
+        }
+        ctx.putImageData(img, 0, 0);
+        const tex = new THREE.CanvasTexture(c);
+        tex.colorSpace = THREE.NoColorSpace;
+        return tex;
+      }
+
+      function shadowPlane({ scale, softFrac, radiusFrac, opacity, offset }) {
+        // The solid core of the falloff is sized to the body, so the extra plane area
+        // is pure penumbra.
+        const insetFrac = (scale - 1) / (2 * scale);
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(BODY_W * scale, BODY_H * scale),
+          new THREE.MeshBasicMaterial({
+            color: INK,
+            alphaMap: rectFalloffTexture({ insetFrac, softFrac, radiusFrac }),
+            transparent: true,
+            opacity,
+            depthWrite: false,
+            toneMapped: false,
+          }),
+        );
+        mesh.position.set(offset[0], offset[1], offset[2]);
+        mesh.renderOrder = -1;
+        return mesh;
+      }
+
+      // Ambient occlusion: a wide, very soft pool that grounds the whole object.
+      const shadowSoft = shadowPlane({
+        scale: 1.6,
+        softFrac: 0.13,
+        radiusFrac: 0.14,
+        opacity: 0.16,
+        offset: [0.14, -0.2, -0.55],
+      });
+      // Contact shadow: tight and darker, right under the body, so the device reads
+      // as sitting on the paper instead of floating in front of it.
+      const shadowContact = shadowPlane({
+        scale: 1.1,
+        softFrac: 0.03,
+        radiusFrac: 0.07,
+        opacity: 0.4,
+        offset: [0.05, -0.07, -0.25],
+      });
+      const shadowGroup = new THREE.Group();
+      shadowGroup.add(shadowSoft, shadowContact);
+      scene.add(shadowGroup);
+
+      // ----------------------------------------------------------------- device
+      const device = new THREE.Group();
+      // Static base pose (not animation): a dead-on frontal shot hides the body's
+      // side, so no rim light and no glass sheen can read. A few degrees of yaw and
+      // pitch turn the lit right edge toward camera. Task 4 tweens from here.
+      device.rotation.set(0.035, -0.16, 0.012);
+      scene.add(device);
+
+      // Body: deep cool graphite. The paper is warm and light, so a warm off-white
+      // body dissolves into it; graphite separates and lets the teal screen read as
+      // the light source in the frame.
+      const body = new THREE.Mesh(
+        new RoundedBoxGeometry(BODY_W, BODY_H, BODY_D, 6, BODY_R),
+        new THREE.MeshPhysicalMaterial({
+          color: 0x252b2a,
+          roughness: 0.36,
+          metalness: 0.72,
+          clearcoat: 0.55,
+          clearcoatRoughness: 0.18,
+        }),
+      );
+      device.add(body);
+
+      // Screen: the footage. Basic + toneMapped:false so the pond teal keeps its own
+      // luminance and glows against the paper instead of being flattened by ACES.
+      // The screen texture is a 2D-canvas mirror of the <video>, not a VideoTexture.
+      // A WebGL upload straight from the element takes the last frame the compositor
+      // PRESENTED, which in a headless seek-and-shoot lags the seek by one frame (the
+      // t=37 shot came back showing the t=14 beat). drawImage takes the frame the
+      // element has currently DECODED, which is the one the seek just landed on.
+      const frameCanvas = document.createElement("canvas");
+      frameCanvas.width = 720;
+      frameCanvas.height = 1640;
+      const frameCtx = frameCanvas.getContext("2d");
+      const texture = new THREE.CanvasTexture(frameCanvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(SCREEN_W, SCREEN_H),
+        new THREE.MeshBasicMaterial({
+          map: texture,
+          // Rounds the screen's corners into the body's radius, so the glass does not
+          // read as a square sticker on a rounded slab.
+          alphaMap: rectFalloffTexture({ insetFrac: 0.004, softFrac: 0.004, radiusFrac: 0.055 }),
+          transparent: true,
+          toneMapped: false,
+        }),
+      );
+      screen.position.z = BODY_D / 2 + 0.002;
+      device.add(screen);
+
+      // Glass: a single specular sheen plane over the screen. Nearly transparent,
+      // very smooth, so the environment leaves a soft diagonal highlight that moves
+      // when the device turns.
+      const glass = new THREE.Mesh(
+        new THREE.PlaneGeometry(BODY_W, BODY_H),
+        new THREE.MeshPhysicalMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.1,
+          roughness: 0.06,
+          metalness: 0.0,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.04,
+          reflectivity: 0.75,
+          depthWrite: false,
+        }),
+      );
+      glass.position.z = BODY_D / 2 + 0.014;
+      device.add(glass);
+
+      // Specular streak: the soft diagonal window reflection that makes glass read as
+      // glass instead of flat plastic. An additive band, painted once, deterministic.
+      const streakCanvas = document.createElement("canvas");
+      streakCanvas.width = 256;
+      streakCanvas.height = 512;
+      {
+        const ctx = streakCanvas.getContext("2d");
+        const g = ctx.createLinearGradient(0, 0, 256, 512);
+        g.addColorStop(0.0, "rgba(255,255,255,0)");
+        g.addColorStop(0.3, "rgba(255,255,255,0)");
+        g.addColorStop(0.42, "rgba(255,255,255,0.55)");
+        g.addColorStop(0.5, "rgba(255,255,255,0.16)");
+        g.addColorStop(0.56, "rgba(255,255,255,0.42)");
+        g.addColorStop(0.68, "rgba(255,255,255,0)");
+        g.addColorStop(1.0, "rgba(255,255,255,0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 256, 512);
+        // Fade the streak out at the panel edges so it does not spill past the glass.
+        const edge = ctx.createRadialGradient(128, 256, 40, 128, 256, 270);
+        ctx.globalCompositeOperation = "destination-in";
+        edge.addColorStop(0, "rgba(255,255,255,1)");
+        edge.addColorStop(0.75, "rgba(255,255,255,0.75)");
+        edge.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = edge;
+        ctx.fillRect(0, 0, 256, 512);
+      }
+      const streakTex = new THREE.CanvasTexture(streakCanvas);
+      streakTex.colorSpace = THREE.SRGBColorSpace;
+      const streak = new THREE.Mesh(
+        new THREE.PlaneGeometry(SCREEN_W * 1.02, SCREEN_H * 1.01),
+        new THREE.MeshBasicMaterial({
+          map: streakTex,
+          transparent: true,
+          opacity: 0.16,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          toneMapped: false,
+        }),
+      );
+      streak.position.z = BODY_D / 2 + 0.016;
+      device.add(streak);
+
+      // Screen spill: the pond light bleeding onto the paper around the device.
+      // Additive, sage, and wide, so the phone reads as lit from within.
+      const spillCanvas = document.createElement("canvas");
+      spillCanvas.width = 256;
+      spillCanvas.height = 512;
+      {
+        const ctx = spillCanvas.getContext("2d");
+        const g = ctx.createRadialGradient(128, 256, 20, 128, 256, 250);
+        g.addColorStop(0, "rgba(255,255,255,0.85)");
+        g.addColorStop(0.45, "rgba(255,255,255,0.28)");
+        g.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 256, 512);
+      }
+      const spillTex = new THREE.CanvasTexture(spillCanvas);
+      spillTex.colorSpace = THREE.SRGBColorSpace;
+      const spill = new THREE.Mesh(
+        new THREE.PlaneGeometry(BODY_W * 1.9, BODY_H * 1.25),
+        new THREE.MeshBasicMaterial({
+          color: SAGE,
+          map: spillTex,
+          transparent: true,
+          opacity: 0.62,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          toneMapped: false,
+        }),
+      );
+      spill.position.set(0, 0, -0.5);
+      spill.renderOrder = -2;
+      scene.add(spill);
+
+      // --------------------------------------------------------------- lighting
+      // Key: soft, from the upper left, the direction the shadow falls away from.
+      const key = new THREE.DirectionalLight(0xfffaf0, 2.4);
+      key.position.set(-5, 6, 7);
+      scene.add(key);
+
+      // Rim: warm gold, low and from the right and behind, so it catches the body's
+      // right edge and the chamfer, and nothing else.
+      const rim = new THREE.DirectionalLight(GOLD, 5.5);
+      rim.position.set(7, 1.5, -1.2);
+      scene.add(rim);
+
+      // Bounce: the warm paper throwing light back up into the body.
+      const bounce = new THREE.DirectionalLight(PAPER, 0.7);
+      bounce.position.set(0, -5, 4);
+      scene.add(bounce);
+
+      scene.add(new THREE.AmbientLight(PAPER, 0.35));
+
+      // ----------------------------------------------------------------- render
+      let lastTime = 0;
+
+      function renderAt(time) {
+        // Task 4 owns every device and camera move on the GSAP timeline. This hook
+        // stays inert; it exists so motion has one home.
+        lastTime = time;
+
+        // Keep the shadow and the spill glued under the device wherever Task 4 moves
+        // it. Derived from the device transform, not animated here.
+        shadowGroup.position.set(device.position.x, device.position.y, 0);
+        spill.position.set(device.position.x, device.position.y, -0.5);
+
+        if (video.readyState >= 2) {
+          frameCtx.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
+          texture.needsUpdate = true;
+        }
+        renderer.render(scene, camera);
+      }
+
+      // The producer seeks the <video> and dispatches hf-seek without waiting for the
+      // new frame to be decoded, so a render done only on hf-seek uploads the PREVIOUS
+      // frame (verified: the t=37 frame showed the t=14 beat). Re-render whenever the
+      // element actually presents its new frame. Still deterministic: the frame is a
+      // pure function of the seek time, this only decides when it is uploaded.
+      function repaintCurrentFrame() {
+        renderAt(lastTime);
+      }
+      video.addEventListener("seeked", repaintCurrentFrame);
+      video.addEventListener("loadeddata", repaintCurrentFrame);
+      if (typeof video.requestVideoFrameCallback === "function") {
+        const onVideoFrame = () => {
+          repaintCurrentFrame();
+          video.requestVideoFrameCallback(onVideoFrame);
+        };
+        video.requestVideoFrameCallback(onVideoFrame);
+      }
+      // The runtime calls this right after it dispatches hf-seek.
+      window.__hfThreeRender = repaintCurrentFrame;
+
+      // Screen rect in CSS pixels within the 1080x1350 frame, for Task 7's break-out
+      // elements. Projects the four screen corners so it stays correct under any
+      // camera or device transform Task 4 applies.
+      function deviceScreenWorldRect() {
+        device.updateWorldMatrix(true, false);
+        const v = new THREE.Vector3();
+        const pts = [
+          [-SCREEN_W / 2, SCREEN_H / 2],
+          [SCREEN_W / 2, SCREEN_H / 2],
+          [SCREEN_W / 2, -SCREEN_H / 2],
+          [-SCREEN_W / 2, -SCREEN_H / 2],
+        ].map(([x, y]) => {
+          v.set(x, y, BODY_D / 2).applyMatrix4(device.matrixWorld).project(camera);
+          return { x: (v.x * 0.5 + 0.5) * W, y: (-v.y * 0.5 + 0.5) * H };
+        });
+        const xs = pts.map((p) => p.x);
+        const ys = pts.map((p) => p.y);
+        const x = Math.min(...xs);
+        const y = Math.min(...ys);
+        return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+      }
+
+      window.__hfScene = { scene, camera, device, renderer, renderAt, deviceScreenWorldRect };
+
+      window.addEventListener("hf-seek", (e) => renderAt(e.detail.time));
+      renderAt(window.__hfThreeTime || 0);
+    </script>
+
+    <!-- ============================ THE TIMELINE ==========================
+         Task 4 fills this. For now it registers an empty paused timeline so the
+         composition satisfies the HyperFrames contract.
+         =================================================================== -->
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      // Spacer only: gives the empty timeline the composition's full duration so it
+      // advances under seek. Task 4 replaces this with the real choreography.
+      tl.to({}, { duration: 40 }, 0);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -71,8 +71,16 @@ seg 8  52.0 54.2 6.0   # close: level complete (win banner only, before the dict
 
 for i in 0 1 2 3 4 5 6 7 8; do echo "file 'seg_${i}.mp4'" >> "$TMP/list.txt"; done
 
+# Dense keyframes (GOP 10 = one every 1/3 s) are load-bearing for the HyperFrames
+# render, not a quality knob. The default ~5s GOP made every seek decode up to 150
+# frames, which is slower than the producer's settle window: the Three.js video
+# texture uploaded the PREVIOUS seek's frame, and the layout audit reported
+# `sweep_static` because the timeline could not advance under seek. With GOP 10 a
+# seek decodes at most 10 frames and both go away. Costs file size, nothing else:
+# same 1200 frames, same 40.000s, same pixels.
 ffmpeg -y -v error -f concat -safe 0 -i "$TMP/list.txt" \
-  -c:v libx264 -preset slow -crf 16 -pix_fmt yuv420p -r 30 -an "$OUT"
+  -c:v libx264 -preset slow -crf 16 -pix_fmt yuv420p -r 30 -an \
+  -g 10 -keyint_min 10 -sc_threshold 0 "$OUT"
 
 echo "Built $OUT"
 ffprobe -v error -show_entries format=duration -show_entries stream=width,height,nb_frames \
