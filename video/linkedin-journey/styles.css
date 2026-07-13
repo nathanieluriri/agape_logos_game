@@ -426,6 +426,124 @@ body { margin: 0; background: var(--paper); }
   box-shadow: 0 18px 32px rgba(26, 28, 26, 0.22);
 }
 
+/* ============ THE OFFLINE / OPTIMISTIC-SYNC BEAT (Task 8, 19-24s) ============
+   The reserved slot. See the long comment on #sync-seq in index.html for the honesty
+   rules this beat is built under; the short version is that the phone is showing real
+   gameplay and the claim lives entirely in the diagram, so every rule below is about
+   keeping this content in the MARGIN and making it look like the diagram rather than
+   like the device.
+
+   The right margin is the only place it can go, and it is measured, not guessed: at the
+   camera's closest push (z=11.6, 19-24s) the device body's right edge lands at about
+   x=790 in the 1080-wide frame, and the architecture column already owns the left margin
+   out to x=300. So this column is pinned to right:50px and everything in it is at most
+   ~160px wide, which puts it in x:870-1030: ~80px of clear paper between it and the
+   phone, and it never touches the glass at any point in the beat. */
+#sync-seq {
+  position: absolute;
+  inset: 0;
+  opacity: 0;                /* gated on the timeline: nothing leaks outside 19-24s */
+  pointer-events: none;
+}
+
+/* The state chip. Deliberately built from the .arch-plane recipe (1px sage border, sage
+   tint, 2px backdrop blur, 18px radius) so it reads as a box in the diagram, because that
+   is what it is. Titled, right-aligned, on the paper: an OS indicator is a bare icon on
+   the glass and never looks like this. */
+#sync-note {
+  position: absolute;
+  right: 50px;
+  top: 262px;
+  box-sizing: border-box;
+  padding: 13px 20px 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  border: 1px solid rgba(91, 138, 114, 0.4);
+  border-radius: 18px;
+  background: rgba(91, 138, 114, 0.09);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+}
+
+/* The title is what makes the chip an annotation instead of a status light: it names the
+   box in the architecture whose state is being reported. */
+#sync-note-key {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* 0.72, not the 0.55 this started at, and not the 0.6 the .unit labels use. This is 16px
+     uppercase, so it is SMALL text and owes 4.5:1, not the 3:1 the big unit labels owe:
+     0.55 measured 3.57:1 against the paper and `check` caught it. 0.72 clears 4.5:1. */
+  color: rgba(26, 28, 26, 0.72);
+}
+
+#sync-badge {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+/* The queue. Gold, and gold on purpose: it is the one colour in this palette allowed to
+   move fast, and a mutation waiting to be flushed is the one thing in the frame that is
+   about to. Mono, because these are literally the `kind` of the rows in the queue. */
+#sync-queue {
+  position: absolute;
+  right: 50px;
+  top: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.sync-q {
+  padding: 11px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--gold);
+  background: rgba(217, 164, 65, 0.12);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 22px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--ink);
+  opacity: 0;
+}
+
+/* What the queue turns into. Sage, the colour of the server-owned side of this diagram.
+   It sits BELOW the stack (400 + three 48px rows + two 12px gaps = 568, so 604 clears it),
+   and that is a correction, not the first idea: parked in the queue's own slot, which is
+   where it reads most like a replacement, it landed ON the top commitWin row while that row
+   was still fading out, and the render at t=23 showed "flushed" and "commitWin" printed
+   through each other. The drain has to straddle t=23 for the beat to read, so the label
+   cannot have that slot. Underneath the emptying stack it is unambiguous: the chips leave,
+   and this is what they left behind. */
+#sync-flush {
+  position: absolute;
+  right: 50px;
+  top: 604px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+  white-space: nowrap;
+  color: var(--sage);
+  opacity: 0;
+}
+
+/* The queued write riding the real connector rail (see the circle in #arch-lines). */
+#sync-rail-pulse {
+  fill: var(--gold);
+  opacity: 0;
+}
+
 /* Coins: they flip as they arc, so the timeline spins rotationY and the layer's
    perspective takes each one edge-on. A flat radial-gradient disc has no EDGE, so the
    moment the spin squashes it, it stops being a coin and becomes a gold egg: the first

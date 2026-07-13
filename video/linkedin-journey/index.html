@@ -53,6 +53,14 @@
             <path class="arch-line" id="arch-line-3" d="M 110 615 L 110 780" />
             <path class="arch-line" id="arch-line-4" d="M 110 780 L 110 945" />
             <path class="arch-line" id="arch-line-5" d="M 110 945 L 110 1110" />
+            <!-- Task 8 (19-24s only): the queued write riding the rail from Drift down to
+                 the Cloud Function as the queue drains. It lives HERE, inside the rail's own
+                 SVG, rather than as a div in the foreground, because then it cannot drift
+                 away from the line it is supposed to be travelling on: the rail is at x=110,
+                 the Drift node at y=780 and the Cloud Function node at y=1110, and those are
+                 the same numbers the connectors are drawn from. Parked and invisible at every
+                 other moment. -->
+            <circle id="sync-rail-pulse" cx="110" cy="780" r="8" />
           </svg>
         </div>
       </div>
@@ -134,6 +142,50 @@
             <span id="end-dot">&middot;</span>
             <span id="end-handle">@your-handle</span>
           </div>
+        </div>
+
+        <!-- ============ THE OFFLINE / OPTIMISTIC-SYNC BEAT (Task 8, 19-24s) ============
+             The centrepiece, and a RESERVED SLOT (seg 5 in tool/build_screen.sh).
+
+             The airplane-mode footage does not exist yet, so v1 tells this beat in the
+             DIAGRAM layer: the phone keeps showing real, unaltered gameplay while the
+             architecture beside it explains what is happening underneath. That is honest,
+             because it is exactly how the app works (an optimistic write lands in Drift
+             immediately and the queue flushes to the Cloud Function when the network comes
+             back), and it stays honest only for as long as the frame never claims we filmed
+             something we did not.
+
+             So, hard rules, and they are the reason this markup looks the way it does:
+               - NOTHING here is ever drawn on the device. No airplane icon, no "no signal"
+                 glyph, no fabricated chrome, no crossed-out wifi.
+               - The phone's own status bar is never touched, masked or covered. It is on
+                 screen for the whole beat, showing its real (full) signal bars. That is not
+                 a bug in the beat: it is the proof that nothing was faked.
+               - The claim therefore lives in the MARGIN, in the diagram's own visual
+                 language (the same 1px sage border, sage tint and 2px backdrop blur as an
+                 .arch-plane), as a labelled component-state chip. It says SYNC ENGINE /
+                 offline: a box in the diagram, in the state the diagram is illustrating.
+                 It deliberately does NOT say the radio is off, which would be a claim about
+                 the device, and a claim the visible status bar would contradict. A device
+                 indicator is an unlabelled icon on the glass; this is a titled card on the
+                 paper. The two cannot be confused.
+
+             Isolation: every id is prefixed `sync-` and every tween is anchored between the
+             `sync` and `backend` labels, so when the real take is recorded it drops into
+             build_screen.sh as segment 5 with no timeline rework. This block still runs, and
+             the chip simply becomes a caption for something genuinely on screen rather than
+             an illustration of it. Nothing outside 19-24s reads anything from here. -->
+        <div id="sync-seq" aria-hidden="true">
+          <div id="sync-note">
+            <span id="sync-note-key">Sync engine</span>
+            <span id="sync-badge">offline</span>
+          </div>
+          <div id="sync-queue">
+            <div class="sync-q" id="sync-q-1">commitWin</div>
+            <div class="sync-q" id="sync-q-2">commitWin</div>
+            <div class="sync-q" id="sync-q-3">commitWin</div>
+          </div>
+          <div id="sync-flush">flushed</div>
         </div>
 
         <!-- BREAK-OUT ELEMENTS (Task 7). Things that leave the screen and pass the lens:
@@ -981,6 +1033,110 @@
         tl.fromTo(sel, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.out" }, p);
         tl.to(sel, { opacity: 0, duration: 0.7, ease: "power2.in" }, `backend+=${delay + flight - 0.7}`);
       });
+
+      // ============ THE OFFLINE / OPTIMISTIC-SYNC BEAT (Task 8, 19-24s) ============
+      // The centrepiece. See the comment on #sync-seq in the markup for the honesty rules;
+      // in motion terms the beat is one sentence, told in the diagram while the phone shows
+      // real gameplay: the sync engine loses the backend, Drift keeps taking the writes
+      // anyway, three commitWin mutations stack up in the queue, the connection returns, and
+      // the gold runs down the rail into the Cloud Function.
+      //
+      // RESERVED SLOT. Everything is anchored to `sync` and everything is back at rest
+      // before `backend`, so the beat is a removable block: when the real airplane-mode take
+      // lands in seg 5, this runs unchanged and the chip becomes a caption for it.
+
+      // The .arch-plane rest values, copied from styles.css. The beat has to hand the planes
+      // back EXACTLY as it found them: a plane left one alpha step brighter is residue, and
+      // the wall beat at 28s fades these same planes to a 0.12 ghost, which would carry it.
+      const ARCH_BORDER_REST = "rgba(91, 138, 114, 0.4)";
+      const ARCH_FILL_REST = "rgba(91, 138, 114, 0.09)";
+
+      tl.set("#sync-seq", { opacity: 1 }, "sync");
+
+      // The link to the backend drops. In the margin, in the diagram's own card language:
+      // nothing is drawn on the glass and the phone's status bar is not touched.
+      tl.fromTo("#sync-note",
+        { opacity: 0, y: -14 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" },
+        "sync+=0.3");
+
+      // Drift lights gold, and this is the whole point of the architecture: the write does
+      // not wait for the network. It lands locally, and the UI believes it immediately.
+      tl.to("#arch-4",
+        { borderColor: "rgba(217, 164, 65, 0.9)", backgroundColor: "rgba(217, 164, 65, 0.12)",
+          duration: 0.5, ease: "power2.out" },
+        "sync+=0.6");
+
+      // The queue stacks up, one write at a time. Each chip is a word the player just landed
+      // with nowhere to send it.
+      ["#sync-q-1", "#sync-q-2", "#sync-q-3"].forEach((sel, i) => {
+        tl.fromTo(sel,
+          { opacity: 0, x: 26 },
+          { opacity: 1, x: 0, duration: 0.55, ease: "power3.out" },
+          `sync+=${0.8 + i * 0.55}`);
+      });
+
+      // The connection returns: the chip leaves, and the queue drains toward the diagram.
+      tl.to("#sync-note", { opacity: 0, y: -10, duration: 0.4, ease: "power2.in" }, "sync+=2.9");
+      tl.to(["#sync-q-1", "#sync-q-2", "#sync-q-3"],
+        { opacity: 0, x: -36, duration: 0.7, ease: "power2.in", stagger: 0.14 },
+        "sync+=3.4");
+
+      // The gold runs down the REAL rail: #arch-line-4 (Drift -> sync engine) and
+      // #arch-line-5 (sync engine -> Cloud Function), the two connectors the pond beat has
+      // just finished drawing (line-5 lands at 22.2s, so this starts at 22.4s and never
+      // fights it).
+      //
+      // `to`, NOT `fromTo`, and that is load-bearing: GSAP defaults fromTo to
+      // immediateRender, so a fromTo starting at opacity 0.85 would apply 0.85 at creation
+      // and light the rail from frame 0 of the video. A `to` records its start value on
+      // first render (the 0.85 the pond beat drew it to), and yoyo with an EVEN number of
+      // iterations (repeat: 3 => 4) lands it back on exactly that value. repeat is finite:
+      // an infinite repeat would make the render non-deterministic.
+      //
+      // 0.35 per swing, not 0.30, and that is worth a sentence: at 0.30 the four swings put
+      // an iteration boundary at exactly 22.4 + 0.6 = 23.0s, which is one of the frames this
+      // beat is reviewed on, and a yoyo boundary is the one instant in the cycle where the
+      // pulse is back at its rest width. The rendered frame at t=23 showed a rail that was
+      // not pulsing at all. 0.35 moves the boundaries off the sampled frame; the pulse is a
+      // continuous thing and it should not have a null exactly where it is being looked at.
+      tl.to(["#arch-line-4", "#arch-line-5"],
+        { opacity: 1, strokeWidth: 5, duration: 0.35, yoyo: true, repeat: 3, ease: "sine.inOut" },
+        "sync+=3.4");
+
+      // ...and a write rides it, from the Drift node down to the Cloud Function node. Rest
+      // state as a plain set rather than a fromTo's startAt, matching the coins above: the
+      // dot runs two concurrent tweens (y and opacity) and leaning on one to seed the other
+      // is exactly the ordering dependency that survives a snapshot and dies in a render.
+      gsap.set("#sync-rail-pulse", { y: 0, opacity: 0 });
+      tl.to("#sync-rail-pulse", { opacity: 1, duration: 0.25, ease: "power1.out" }, "sync+=3.4");
+      tl.to("#sync-rail-pulse", { y: 330, duration: 0.9, ease: "power2.inOut" }, "sync+=3.4");
+      // It dissolves INTO the Cloud Function as it arrives, rather than stopping on top of it.
+      tl.to("#sync-rail-pulse", { opacity: 0, duration: 0.3, ease: "power2.in" }, "sync+=4.1");
+
+      // The Cloud Function takes the batch. Sage, not gold: gold is the thing in flight, sage
+      // is the server-owned side it lands on.
+      tl.to("#arch-6",
+        { borderColor: "rgba(91, 138, 114, 0.9)", backgroundColor: "rgba(91, 138, 114, 0.2)",
+          duration: 0.5, ease: "power2.out" },
+        "sync+=3.6");
+
+      // "flushed" takes the queue's own slot: the same three rows, resolved.
+      tl.fromTo("#sync-flush",
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" },
+        "sync+=3.9");
+      tl.to("#sync-flush", { opacity: 0, duration: 0.4, ease: "power2.in" }, "sync+=4.5");
+
+      // Hand the diagram back exactly as it was found. Both planes are neutral again by
+      // 24.0s, and the two `set`s below make the beat's own layers unconditionally clean at
+      // the `backend` label: after this, nothing in the frame remembers the beat happened.
+      tl.to(["#arch-4", "#arch-6"],
+        { borderColor: ARCH_BORDER_REST, backgroundColor: ARCH_FILL_REST,
+          duration: 0.55, ease: "power2.inOut" },
+        "sync+=4.45");
+      tl.set("#sync-seq", { opacity: 0 }, "backend");
+      tl.set("#sync-rail-pulse", { y: 0, opacity: 0 }, "backend");
 
       // The measurement seeks above left the scene at the timeline's t=0 pose but never
       // re-drew it, so paint it once: frame 0 must be the frame the timeline describes.
