@@ -24,7 +24,7 @@ abstract final class GlyphPaths {
       _cache.putIfAbsent(glyph, () => switch (glyph) {
             PondGlyph.play => GlyphSpec.fill(_play()),
             PondGlyph.book => GlyphSpec.fill(_book()),
-            PondGlyph.versus => GlyphSpec.stroke(_versus(), 13),
+            PondGlyph.versus => GlyphSpec.fill(_versus()),
             PondGlyph.plus => GlyphSpec.stroke(_plus(), 18),
             PondGlyph.key => GlyphSpec.stroke(_key(), 12),
             PondGlyph.chevronLeft => GlyphSpec.stroke(_chevronLeft(), 16),
@@ -50,14 +50,19 @@ abstract final class GlyphPaths {
     ..quadraticBezierTo(68, 20, 50, 30)
     ..close();
 
-  /// Two facing chevrons with a calm gap: opposition without violence.
+  /// Two play triangles facing off across a calm channel: opposition without
+  /// violence, and a deliberate echo of the Play glyph (same rounded silhouette,
+  /// mirrored). Filled rather than stroked: at pad size (28px) thin strokes with
+  /// round caps close the gap and read as a single X.
   static Path _versus() => Path()
-    ..moveTo(26, 26)
-    ..lineTo(44, 50)
-    ..lineTo(26, 74)
-    ..moveTo(74, 26)
-    ..lineTo(56, 50)
-    ..lineTo(74, 74);
+    ..addPath(_roundedPoly(
+      const [Offset(8, 18), Offset(38, 50), Offset(8, 82)],
+      9,
+    ), Offset.zero)
+    ..addPath(_roundedPoly(
+      const [Offset(92, 18), Offset(62, 50), Offset(92, 82)],
+      9,
+    ), Offset.zero);
 
   static Path _plus() => Path()
     ..moveTo(50, 24)
