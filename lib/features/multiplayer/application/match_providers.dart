@@ -31,9 +31,29 @@ final matchFirestoreProvider = Provider<MatchFirestore>((ref) {
 });
 
 /// Contract 8.8: the live match doc.
-final matchStreamProvider = StreamProvider.family<Match?, String>(
-  (ref, matchId) => ref.watch(matchFirestoreProvider).watchMatch(matchId),
-);
+///
+/// Auth-gated like the two listeners below. The rules deny an unauthenticated
+/// read of the match doc, and a denied listener dies permanently: it never
+/// retries once the user shows up. On web the persisted user is restored
+/// asynchronously, so a page refresh straight onto a match route builds this
+/// provider while `currentUser` is still null; attaching there is a guaranteed
+/// permission-denied. Hold in `loading` until auth resolves, then attach.
+/// Watching auth also means the listener re-attaches across a sign-in.
+final matchStreamProvider =
+    StreamProvider.family<Match?, String>((ref, matchId) {
+  final auth = ref.watch(authStateProvider);
+  // Still restoring the persisted user: not signed out, just not ready.
+  if (auth.isLoading) return const Stream<Match?>.empty();
+  final user = auth.value;
+  if (user == null) {
+    // Genuinely signed out. Surface it rather than spinning forever.
+    return Stream<Match?>.error(
+      StateError('Sign in to view this match.'),
+      StackTrace.current,
+    );
+  }
+  return ref.watch(matchFirestoreProvider).watchMatch(matchId);
+});
 
 /// Contract 8.8: my private rack (answers decrypted). Empty stream when signed
 /// out (multiplayer is auth-gated, so this only happens mid-sign-out).

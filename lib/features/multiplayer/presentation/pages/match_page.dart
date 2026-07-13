@@ -22,6 +22,7 @@ import '../../domain/match_event.dart';
 import '../../domain/match_rack.dart';
 import '../widgets/fog_overlay.dart';
 import '../widgets/frozen_letter_overlay.dart';
+import '../widgets/match_load_error.dart';
 import '../widgets/match_timer.dart';
 import '../widgets/opponent_hud.dart';
 import '../widgets/powerup_bar.dart';
@@ -104,8 +105,14 @@ class _MatchPageState extends ConsumerState<MatchPage> {
       }
     });
 
-    final match = ref.watch(matchStreamProvider(matchId)).value;
-    final rack = ref.watch(myRackStreamProvider(matchId)).value;
+    final matchAsync = ref.watch(matchStreamProvider(matchId));
+    final rackAsync = ref.watch(myRackStreamProvider(matchId));
+    final match = matchAsync.value;
+    final rack = rackAsync.value;
+    // A listener that errored has no value; without this it would read as
+    // "still loading" and spin forever.
+    final failed = (matchAsync.hasError && match == null) ||
+        (rackAsync.hasError && rack == null);
     final effects = ref.watch(activeEffectsProvider(matchId));
     final playState = ref.watch(matchPlayControllerProvider);
 
@@ -121,7 +128,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
       child: Scaffold(
         body: PondBackground(
           child: SafeArea(
-            child: _content(match, rack, effects, playState, myUid),
+            child: _content(match, rack, effects, playState, myUid, failed),
           ),
         ),
       ),
@@ -168,7 +175,16 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     ActiveEffects effects,
     MatchPlayState playState,
     String? myUid,
+    bool failed,
   ) {
+    if (failed) {
+      return MatchLoadError(
+        onRetry: () {
+          ref.invalidate(matchStreamProvider(widget.matchId));
+          ref.invalidate(myRackStreamProvider(widget.matchId));
+        },
+      );
+    }
     if (match == null || rack == null) {
       return const Center(child: CircularProgressIndicator());
     }

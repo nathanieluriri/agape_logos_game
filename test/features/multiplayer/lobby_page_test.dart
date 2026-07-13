@@ -35,4 +35,21 @@ void main() {
     expect(find.text('Ready'), findsOneWidget);
     expect(find.text('Waiting for an opponent to join...'), findsOneWidget);
   });
+
+  testWidgets('a failed match stream surfaces a retry, not an endless spinner',
+      (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchStreamProvider('m1').overrideWith(
+          (ref) => Stream<Match?>.error(Exception('permission-denied')),
+        ),
+      ],
+      child: const MaterialApp(home: LobbyPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Retry'), findsOneWidget);
+  });
 }

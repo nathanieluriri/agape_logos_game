@@ -14,6 +14,7 @@ import '../../../auth/application/auth_providers.dart';
 import '../../application/match_providers.dart';
 import '../../domain/match.dart';
 import '../../domain/match_player.dart';
+import '../widgets/match_load_error.dart';
 
 class LobbyPage extends ConsumerWidget {
   const LobbyPage({super.key, required this.matchId});
@@ -48,10 +49,17 @@ class LobbyPage extends ConsumerWidget {
                 onBack: () => _leaveToHome(context, ref),
               ),
               Expanded(
-                child: match == null
-                    ? const Center(child: CircularProgressIndicator())
-                    : _LobbyBody(
-                        match: match, myUid: myUid, matchId: matchId),
+                // An errored listener has no value, so it must not fall through
+                // to the spinner: that is the "refresh hangs forever" bug.
+                child: matchAsync.hasError && match == null
+                    ? MatchLoadError(
+                        onRetry: () =>
+                            ref.invalidate(matchStreamProvider(matchId)),
+                      )
+                    : match == null
+                        ? const Center(child: CircularProgressIndicator())
+                        : _LobbyBody(
+                            match: match, myUid: myUid, matchId: matchId),
               ),
             ],
           ),
