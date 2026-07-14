@@ -4,6 +4,8 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_failure.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
+import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
+import 'package:agape_logos_game/features/profile/domain/profile.dart';
 import 'package:agape_logos_game/features/settings/application/settings_providers.dart';
 import 'package:agape_logos_game/features/settings/presentation/pages/settings_page.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
@@ -69,6 +71,9 @@ Widget _app(AppDatabase db, AuthRepository auth) {
   return ProviderScope(
     overrides: [
       settingsProvider.overrideWith((ref) => Stream.value(_row)),
+      // Same reason as settingsProvider: the identity card watches the cached
+      // profile, and the live Drift stream behind it would deadlock here.
+      cachedProfileProvider.overrideWith((ref) => Stream<Profile?>.value(null)),
       appDatabaseProvider.overrideWithValue(db),
       authRepositoryProvider.overrideWithValue(auth),
       ambientEnabledProvider.overrideWithValue(false),
