@@ -61,4 +61,34 @@ abstract class Match with _$Match {
 
   bool get bothReady =>
       players.length == 2 && players.values.every((p) => p.ready);
+
+  /// Play is CLOCK-driven, not status-driven. `start` sets `startedAt` a few
+  /// seconds out and parks the doc in `countdown`; the server only flips it to
+  /// `active` inside `settleMatch`, which runs on the next submit/powerup. So
+  /// waiting for `status == active` to open the board deadlocks the match: every
+  /// call that would settle it is gated behind the board it is gating. Both
+  /// clients therefore open the board at `startedAt` (the shared "go" instant the
+  /// countdown exists to agree on), and the first submit settles the doc for
+  /// everyone.
+  bool playableAt(int nowMs) {
+    if (endsAt > 0 && nowMs >= endsAt) return false;
+    // The server has declared it active: trust that, whatever the local clock says.
+    if (status == MatchStatus.active) {
+      return startedAt <= 0 || nowMs >= startedAt;
+    }
+    // Not yet settled: open the board at the shared start instant anyway.
+    return status == MatchStatus.countdown &&
+        startedAt > 0 &&
+        nowMs >= startedAt;
+  }
+
+  /// Still counting down to the shared start instant.
+  bool countingDownAt(int nowMs) =>
+      status == MatchStatus.countdown && startedAt > 0 && nowMs < startedAt;
+
+  /// Whole seconds left on the pre-start countdown (0 once it has started).
+  int countdownSecondsAt(int nowMs) {
+    final remaining = startedAt - nowMs;
+    return remaining <= 0 ? 0 : (remaining / 1000).ceil();
+  }
 }

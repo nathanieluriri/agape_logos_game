@@ -188,11 +188,29 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     if (match == null || rack == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (match.status == MatchStatus.lobby ||
-        match.status == MatchStatus.countdown) {
+    // Pre-start: the lobby, or the shared countdown to startedAt. The board opens
+    // on the clock (see Match.playableAt) rather than on status == active, which
+    // the server cannot reach until someone submits.
+    if (match.status == MatchStatus.lobby || match.countingDownAt(_now)) {
+      final seconds = match.countdownSecondsAt(_now);
+      return Center(
+        child: Text(
+          seconds > 0 ? 'Get ready... $seconds' : 'Get ready...',
+          style: const TextStyle(
+            color: AppColors.wordmark,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      );
+    }
+    // Time is up but the server has not finalized yet (it finalizes on the next
+    // settle). Hold rather than leave a dead board on screen; the finished
+    // listener navigates to the result as soon as the doc lands.
+    if (!match.playableAt(_now) && match.status != MatchStatus.finished) {
       return const Center(
         child: Text(
-          'Get ready...',
+          "Time's up...",
           style: TextStyle(
             color: AppColors.wordmark,
             fontSize: 22,

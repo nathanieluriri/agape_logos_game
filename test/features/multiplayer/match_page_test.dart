@@ -56,4 +56,34 @@ void main() {
     expect(find.text('7'), findsOneWidget); // my score
     expect(find.text('opp'), findsOneWidget); // opponent HUD name
   });
+
+  // Regression: the server parks the doc in `countdown` and only flips it to
+  // `active` on the next submit/powerup (settleMatch). Gating the board on
+  // status == active deadlocked the match: no board -> no submit -> no flip, so
+  // the page sat on "Get ready..." forever. The board opens on startedAt.
+  testWidgets('a countdown match past startedAt opens the board', (tester) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final counting = _active().copyWith(
+      status: MatchStatus.countdown,
+      startedAt: now - 1000, // the go instant already passed
+      endsAt: now + 90000,
+    );
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchStreamProvider('m1').overrideWith((ref) => Stream.value(counting)),
+        myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
+        matchEventsStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(const <MatchEvent>[])),
+        storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+      ],
+      child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining('Get ready'), findsNothing);
+    expect(find.text('I'), findsWidgets); // the rack is on screen: playable
+  });
 }
