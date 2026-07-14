@@ -1,6 +1,12 @@
 import {z} from "zod";
 import {registry} from "./registry";
-import {AnswerKeyResponseSchema, CoinsResponseSchema, ProfileResponseSchema, ProfileUpdateSchema} from "../schemas/profile";
+import {
+  AnswerKeyResponseSchema,
+  CoinsResponseSchema,
+  HandleBodySchema,
+  ProfileResponseSchema,
+  ProfileUpdateSchema,
+} from "../schemas/profile";
 import {DictionaryResponseSchema} from "../schemas/dictionary";
 import {
   CreateMatchBodySchema,
@@ -101,6 +107,25 @@ registry.registerPath({
     },
     400: {description: "Validation failed"},
     401: {description: "Missing or invalid token"},
+  },
+});
+
+registry.registerPath({
+  method: "put",
+  path: "/me/handle",
+  summary: "Claim a new unique @handle",
+  security: bearer,
+  request: {
+    body: {content: {"application/json": {schema: HandleBodySchema}}},
+  },
+  responses: {
+    200: {
+      description: "The claimed handle",
+      content: {"application/json": {schema: z.object({handle: z.string()})}},
+    },
+    400: {description: "Invalid handle"},
+    401: {description: "Missing or invalid token"},
+    409: {description: "Handle already taken"},
   },
 });
 

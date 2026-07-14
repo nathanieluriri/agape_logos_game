@@ -1,7 +1,21 @@
 import {describe, test, expect} from "@jest/globals";
 import * as admin from "firebase-admin";
-import {ensureHandle, slugifyHandle, uidForHandle} from "../src/services/handle_service";
+import {ensureHandle, isValidHandle, setHandle, slugifyHandle, uidForHandle} from "../src/services/handle_service";
 import {getOrCreateProfile} from "../src/services/profile_service";
+
+describe("isValidHandle", () => {
+  test("accepts 3-20 alphanumerics and underscore", () => {
+    expect(isValidHandle("nat_word")).toBe(true);
+    expect(isValidHandle("abc")).toBe(true);
+  });
+
+  test("rejects too short, too long, and bad characters", () => {
+    expect(isValidHandle("ab")).toBe(false);
+    expect(isValidHandle("a".repeat(21))).toBe(false);
+    expect(isValidHandle("has space")).toBe(false);
+    expect(isValidHandle("bad-dash")).toBe(false);
+  });
+});
 
 describe("handle_service", () => {
   test("slugifyHandle keeps letters+digits, lowercases, falls back to player", () => {
@@ -39,5 +53,31 @@ describe("handle_service", () => {
     expect(p.handle.length).toBeGreaterThanOrEqual(3);
     expect(p.public).toBe(false);
     expect(p.isGuest).toBe(false);
+  });
+
+  test("setHandle claims a new handle and releases the previous one", async () => {
+    const {handle: original} = await ensureHandle("h-user-5", "Cypher");
+    const out = await setHandle("h-user-5", "cypher_new_handle");
+    expect(out).toEqual({ok: true, handle: "cypher_new_handle"});
+    expect(await uidForHandle("cypher_new_handle")).toBe("h-user-5");
+    expect(await uidForHandle(original)).toBeNull();
+  });
+
+  test("setHandle rejects an invalid handle", async () => {
+    const out = await setHandle("h-user-6", "no spaces");
+    expect(out).toEqual({ok: false, reason: "invalid"});
+  });
+
+  test("setHandle rejects a handle already held by someone else", async () => {
+    await ensureHandle("h-user-7a", "Trinity2");
+    const {handle: taken} = await ensureHandle("h-user-7b", "Trinity2Rival");
+    const out = await setHandle("h-user-7a", taken);
+    expect(out).toEqual({ok: false, reason: "taken"});
+  });
+
+  test("re-claiming your own current handle is a no-op success", async () => {
+    const {handle} = await ensureHandle("h-user-8", "Neo2");
+    const out = await setHandle("h-user-8", handle);
+    expect(out).toEqual({ok: true, handle});
   });
 });

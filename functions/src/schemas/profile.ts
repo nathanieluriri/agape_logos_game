@@ -24,6 +24,12 @@ export const ProfileUpdateSchema = z
 
 export type ProfilePatch = z.infer<typeof ProfileUpdateSchema>;
 
+// PUT /me/handle body: claim a new unique @handle.
+export const HandleBodySchema = z.object({
+  handle: z.string().regex(/^[A-Za-z0-9_]{3,20}$/),
+}).strict();
+export type HandleBody = z.infer<typeof HandleBodySchema>;
+
 // The full profile as returned to clients (timestamps are epoch millis).
 export const ProfileResponseSchema = z.object({
   uid: z.string(),
