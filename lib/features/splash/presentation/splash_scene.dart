@@ -2,6 +2,7 @@
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../core/design/brand_mark_geometry.dart';
 import '../../../core/design/motion/curves.dart';
@@ -33,7 +34,7 @@ class SplashScene extends StatefulWidget {
 
 class _SplashSceneState extends State<SplashScene>
     with SingleTickerProviderStateMixin {
-  static const AssetImage _icon = AssetImage('assets/branding/app_icon.png');
+  static const String _iconAsset = 'assets/branding/app_icon.svg';
 
   // Per-block choreography (0..3 tiles, 4 bud). Fractions are of the
   // controller's run; the bud lands last as the keystone.
@@ -80,14 +81,14 @@ class _SplashSceneState extends State<SplashScene>
     _reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     _controller.duration =
         _reduce ? AppDurations.splashReduced : AppDurations.splashRun;
-    // Decode the icon before the blocks appear. If it is missing (not yet
-    // added), fall back to the vector mark. Either way, start once resolved so
-    // the first block never renders on an undecoded image.
-    precacheImage(
-      _icon,
-      context,
-      onError: (Object _, StackTrace? __) => _begin(useVector: true),
-    ).then((_) => _begin(useVector: false));
+    // Warm the vector so the first block never renders on an unparsed picture.
+    // The SVG ships with the bundle, so unlike the old PNG it cannot be missing;
+    // a parse failure still falls back to the vector BrandMark rather than
+    // stranding the splash on an empty box.
+    vg
+        .loadPicture(const SvgAssetLoader(_iconAsset), context)
+        .then((_) => _begin(useVector: false))
+        .catchError((Object _) => _begin(useVector: true));
   }
 
   void _begin({required bool useVector}) {
@@ -218,14 +219,16 @@ class _SplashSceneState extends State<SplashScene>
   Widget _fullMark(double markSize) =>
       _useVector ? BrandMark(size: markSize) : _iconImage(markSize);
 
+  /// The mark itself. Vector (`app_icon.svg`), so it stays crisp at any density
+  /// on both web and mobile instead of resampling the PNG.
   Widget _iconImage(double markSize) => SizedBox(
         width: markSize,
         height: markSize,
-        child: const Image(
-          image: _icon,
+        child: SvgPicture.asset(
+          _iconAsset,
+          width: markSize,
+          height: markSize,
           fit: BoxFit.fill,
-          gaplessPlayback: true,
-          filterQuality: FilterQuality.medium,
         ),
       );
 

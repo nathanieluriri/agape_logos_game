@@ -38,7 +38,14 @@
        Task 6 Step 1 to green the in-app splash backdrop too. -->
   <style>
     /* Teal-green loading splash, shown until Flutter paints its first frame so
-       the page never flashes white. The pink lotus floats on the pond green. */
+       the page never flashes white.
+
+       This runs BEFORE Flutter (and therefore before any Dart) is loaded, so it
+       has to be plain HTML/CSS. It shows the REAL app mark (app_icon.svg, the
+       same asset the in-app splash and the match interlude draw) rather than the
+       CSS approximation of it that used to live here: four pink squares and a
+       bud, which never actually looked like the icon. The halo breathes and a
+       light sweeps across the mark, echoing the in-app draw-on animation. */
     html, body { margin: 0; padding: 0; background-color: #0C7F80; }
     #boot-splash {
       position: fixed;
@@ -52,39 +59,69 @@
     }
     #boot-splash.hidden { opacity: 0; pointer-events: none; }
     .mark {
-      display: grid;
-      grid-template-columns: repeat(2, 30px);
-      grid-template-rows: repeat(2, 30px);
-      gap: 5px;
       position: relative;
-      animation: mark-pulse 1600ms ease-in-out infinite;
+      width: 132px;
+      height: 132px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: mark-breathe 2600ms ease-in-out infinite;
     }
-    .mark span {
-      background: radial-gradient(circle at 34% 30%, #F9B4CC, #E87BA6);
-      border: 3px solid #FCF6EA;
-      border-radius: 9px;
-    }
-    .mark .bud {
+    /* Soft mint halo blooming behind the mark. */
+    .mark::before {
+      content: "";
       position: absolute;
-      top: -8px;
-      left: -8px;
-      width: 22px;
-      height: 22px;
-      background: radial-gradient(circle at 34% 30%, #EE6E97, #C01F5F);
-      border: 3px solid #FCF6EA;
-      border-radius: 7px;
+      inset: -34%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(239,255,246,0.42), rgba(239,255,246,0));
+      animation: halo-bloom 2600ms ease-in-out infinite;
     }
-    @keyframes mark-pulse {
+    .mark img {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    /* The light that sweeps across the mark as it "draws". */
+    .mark .sheen {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: linear-gradient(
+        100deg,
+        rgba(255,255,255,0) 38%,
+        rgba(255,255,255,0.38) 50%,
+        rgba(255,255,255,0) 62%
+      );
+      mix-blend-mode: screen;
+      animation: sheen-sweep 2600ms ease-in-out infinite;
+    }
+    @keyframes mark-breathe {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.06); }
+      50%      { transform: scale(1.05); }
+    }
+    @keyframes halo-bloom {
+      0%, 100% { opacity: 0.35; transform: scale(0.92); }
+      50%      { opacity: 0.85; transform: scale(1.06); }
+    }
+    @keyframes sheen-sweep {
+      0%       { transform: translateX(-115%); opacity: 0; }
+      18%      { opacity: 1; }
+      70%      { opacity: 1; }
+      100%     { transform: translateX(115%); opacity: 0; }
+    }
+    /* Respect the OS setting: hold the mark still rather than pulsing at someone. */
+    @media (prefers-reduced-motion: reduce) {
+      .mark, .mark::before, .mark .sheen { animation: none; }
+      .mark .sheen { opacity: 0; }
     }
   </style>
 </head>
 <body>
   <div id="boot-splash" aria-hidden="true">
     <div class="mark">
-      <span></span><span></span><span></span><span></span>
-      <div class="bud"></div>
+      <img src="assets/assets/branding/app_icon.svg" alt="" />
+      <div class="sheen"></div>
     </div>
   </div>
   <script>

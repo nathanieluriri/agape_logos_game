@@ -80,4 +80,8 @@ abstract final class AppDurations {
 
   /// How long the splash overlay takes to fade away, revealing the app.
   static const Duration splashFade = Duration(milliseconds: 380);
+
+  /// One full loop of the animated app mark: the rim traces, the icon wipes in
+  /// behind it, the halo blooms, and it settles back to the start.
+  static const Duration markDraw = Duration(milliseconds: 2600);
 }

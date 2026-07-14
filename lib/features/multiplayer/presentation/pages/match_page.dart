@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../shared/widgets/animated_app_icon.dart';
 import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_dialog.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
@@ -229,32 +230,16 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     // on the clock (see Match.playableAt) rather than on status == active, which
     // the server cannot reach until someone submits.
     if (match.status == MatchStatus.lobby || match.countingDownAt(_now)) {
-      final seconds = match.countdownSecondsAt(_now);
-      return Center(
-        child: Text(
-          seconds > 0 ? 'Get ready... $seconds' : 'Get ready...',
-          style: const TextStyle(
-            color: AppColors.wordmark,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
+      return _MatchInterlude(
+        label: 'Get ready',
+        countdown: match.countdownSecondsAt(_now),
       );
     }
     // Time is up but the server has not finalized yet (it finalizes on the next
     // settle). Hold rather than leave a dead board on screen; the finished
     // listener navigates to the result as soon as the doc lands.
     if (!match.playableAt(_now) && match.status != MatchStatus.finished) {
-      return const Center(
-        child: Text(
-          "Time's up...",
-          style: TextStyle(
-            color: AppColors.wordmark,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      );
+      return const _MatchInterlude(label: "Time's up");
     }
     if (!rack.decrypted) {
       return const Center(
@@ -395,4 +380,51 @@ class _MyScore extends StatelessWidget {
           ),
         ],
       );
+}
+
+/// The pre-play and post-play holding screen: the app mark drawing itself on a
+/// loop, with the label under it and the shared countdown when there is one.
+/// Replaces the bare "Get ready..." text, which sat dead on screen.
+class _MatchInterlude extends StatelessWidget {
+  const _MatchInterlude({required this.label, this.countdown = 0});
+
+  final String label;
+
+  /// Whole seconds until the shared start instant; 0 hides the numeral.
+  final int countdown;
+
+  /// Diameter of the drawing mark.
+  static const double _markSize = 160;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const AnimatedAppIcon(size: _markSize),
+          const SizedBox(height: AppSpacing.xl),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.wordmark,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (countdown > 0) ...<Widget>[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              '$countdown',
+              style: const TextStyle(
+                color: AppColors.wordmark,
+                fontSize: 44,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
