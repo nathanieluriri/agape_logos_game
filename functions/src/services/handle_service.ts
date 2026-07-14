@@ -96,7 +96,30 @@ export async function setHandle(
     return {ok: true as const, handle: desired};
   });
 
+  if (result.ok) await fanOutHandleToFriends(uid, desired);
   return result;
+}
+
+// The handle is denormalized onto each friend edge (users/{friendUid}/friends/{uid})
+// so a friend list renders without an extra read per friend. A claim releases the
+// old handle, so a stale copy does not just look wrong: a stranger can claim that
+// handle, and a friend who copies it from their list would add the wrong person.
+// So after the claim commits we push the new handle onto every friend's edge doc.
+// Runs outside the transaction because a transaction cannot query a collection;
+// a friend list is small and bounded, so a merge-set per friend is cheap.
+async function fanOutHandleToFriends(uid: string, handle: string): Promise<void> {
+  const friends = await db.collection("users").doc(uid).collection("friends").get();
+  if (friends.empty) return;
+  const batch = db.batch();
+  for (const doc of friends.docs) {
+    const friendUid = doc.id;
+    batch.set(
+      db.collection("users").doc(friendUid).collection("friends").doc(uid),
+      {handle},
+      {merge: true},
+    );
+  }
+  await batch.commit();
 }
 
 // Resolves a handle (any casing) to a uid via the usernames index, or null.

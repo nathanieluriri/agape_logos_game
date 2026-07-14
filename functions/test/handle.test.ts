@@ -2,6 +2,7 @@ import {describe, test, expect} from "@jest/globals";
 import * as admin from "firebase-admin";
 import {ensureHandle, isValidHandle, setHandle, slugifyHandle, uidForHandle} from "../src/services/handle_service";
 import {getOrCreateProfile} from "../src/services/profile_service";
+import {respondFriendRequest, sendFriendRequest} from "../src/services/social_service";
 
 describe("isValidHandle", () => {
   test("accepts 3-20 alphanumerics and underscore", () => {
@@ -79,5 +80,29 @@ describe("handle_service", () => {
     const {handle} = await ensureHandle("h-user-8", "Neo2");
     const out = await setHandle("h-user-8", handle);
     expect(out).toEqual({ok: true, handle});
+  });
+
+  test("setHandle pushes the new handle onto every friend's edge doc", async () => {
+    // A and B are friends; the friend edges embed A's handle at write time. When A
+    // renames, B's list must not keep showing the released old handle (a stranger
+    // could claim it, so copying it from the list would add the wrong person).
+    const {handle: oldHandle} = await ensureHandle("h-user-9a", "Switch");
+    await ensureHandle("h-user-9b", "Apoc");
+    await sendFriendRequest("h-user-9a", {toUid: "h-user-9b"});
+    await respondFriendRequest("h-user-9b", "h-user-9a", true); // accept: writes both edges
+
+    const before = await admin.firestore()
+      .doc("users/h-user-9b/friends/h-user-9a").get();
+    expect(before.data()?.handle).toBe(oldHandle);
+
+    const out = await setHandle("h-user-9a", "switch_reloaded");
+    expect(out).toEqual({ok: true, handle: "switch_reloaded"});
+
+    const after = await admin.firestore()
+      .doc("users/h-user-9b/friends/h-user-9a").get();
+    expect(after.data()?.handle).toBe("switch_reloaded");
+    // The rest of the edge doc survives the merge.
+    expect(after.data()?.uid).toBe("h-user-9a");
+    expect(after.data()?.displayName).toBeDefined();
   });
 });
