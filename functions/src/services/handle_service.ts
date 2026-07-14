@@ -96,7 +96,18 @@ export async function setHandle(
     return {ok: true as const, handle: desired};
   });
 
-  if (result.ok) await fanOutHandleToFriends(uid, desired);
+  // The claim is already DURABLE at this point. The fan-out is a best-effort
+  // repair of denormalized copies, so a failure here must not be reported to the
+  // caller as a failed claim: the handle IS theirs, and telling them otherwise
+  // would send them round to claim it again. Log it and move on; the next claim
+  // (or any friend-list write) refreshes the copies.
+  if (result.ok) {
+    try {
+      await fanOutHandleToFriends(uid, desired);
+    } catch (e) {
+      console.error(`handle fan-out failed for ${uid}`, e);
+    }
+  }
   return result;
 }
 

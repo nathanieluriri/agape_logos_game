@@ -67,7 +67,7 @@ profileRouter.put(
     // Provision the user doc first (as PUT /me does): setHandle's merge-set would
     // otherwise create a doc holding only the handle, and a later
     // getOrCreateProfile would see it exists and never fill in the defaults.
-    await getOrCreateProfile(req.uid as string);
+    await getOrCreateProfile(req.uid as string, {isGuest: req.isGuest});
     const out = await setHandle(req.uid as string, handle);
     if (!out.ok) {
       res.status(out.reason === "taken" ? 409 : 400).json({error: out.reason});
