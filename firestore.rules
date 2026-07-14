@@ -27,6 +27,21 @@ service cloud.firestore {
       }
     }
 
+    // A user may LISTEN to their OWN social inbox: incoming friend requests and
+    // their friends list. Read-only - every mutation still goes through a Cloud
+    // Function (send/respond), so the client never writes here. This is the one
+    // window that lets friend requests arrive live instead of being polled.
+    // Deliberately does NOT open users/{uid} itself: the profile doc holds coins
+    // and inventory, which stay server-owned and HTTP-only.
+    match /users/{uid}/friendRequests/{fromUid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /users/{uid}/friends/{friendUid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // Everything else stays server-only. Match codes, user profiles, puzzles,
     // inventory, history: all read/written through Cloud Functions only. The
     // social layer's public-profile reads go through GET /users/:uid/public
