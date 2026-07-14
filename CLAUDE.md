@@ -13,6 +13,15 @@ Zen word game: offline-first, optimistic, **Android + Web only** (no iOS/desktop
 - Enforced via `.claude/settings.json` (`includeCoAuthoredBy: false`, `attribution.commit`/`pr` = `""`).
 - `docs/` is **gitignored** (design specs/plans live there locally).
 
+## 🔑 Push / PR fails with "Repository not found" - switch the gh account first
+
+Two GitHub accounts are logged in. Only **`nathanieluriri`** can see this repo; `nuriri-elo`
+gets `Repository not found` (which reads like the repo is gone, but it is an auth problem).
+
+- Fix: `gh auth switch -u nathanieluriri`, then retry. Verify with `git ls-remote --heads origin`.
+- If `gh auth status` shows other accounts, try each before giving up. Only if **every** account
+  fails is the remote genuinely missing - then stop and report, do not create or re-point a remote.
+
 ## ✍️ Writing style - HARD RULE (never violate)
 
 - **Never use em dashes** (the long dash, Unicode U+2014) anywhere: prose, code comments,
