@@ -124,6 +124,23 @@ Three **call policies** (`core/offline/call_policy.dart`) - pick one per reposit
   shared widget.
 - Audio behind `AudioService` (`flame_audio` impl); SFX keys centralized; respect global mute.
 
+## Web build gotcha: the stale plugin registrant (silently kills Firestore)
+
+`flutter build web` reuses a generated `web_plugin_registrant.dart` under
+`.dart_tool/flutter_build/<hash>/`, and it does **not** always regenerate when a plugin is
+added. A copy that predates `cloud_firestore` omits `FirebaseFirestoreWeb.registerWith`,
+so `FirebaseFirestore.instance` silently falls back to the Android **method-channel**
+implementation. On web that dies inside the Pigeon codec with
+`Unsupported operation: Int64 accessor not supported by dart2js` (JS has no 64-bit ints),
+which `runZonedGuarded` swallows: no listener ever opens, no error reaches the UI, and
+every Firestore-backed screen (all of multiplayer) just spins forever. `flutter run`
+uses a different, correct registrant, so **this reproduces only in a release build**.
+
+- Symptom to recognize: `firebase-firestore*.js` is never fetched and there is zero
+  `firestore.googleapis.com` traffic, while auth and the HTTP API work fine.
+- Fix / prevention: `flutter clean` before `flutter build web --release`. Verify with
+  `grep -ci firestore .dart_tool/flutter_build/*/web_plugin_registrant.dart` (must be > 0).
+
 ## Current state (playable core loop)
 
 The game is live end to end on Android: Play gates on Firebase auth (email, Google, or
