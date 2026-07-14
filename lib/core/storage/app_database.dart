@@ -42,23 +42,27 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
         onUpgrade: (m, from, to) async {
+          // createTable builds the table from its CURRENT definition, so a table
+          // created here already has every column a later step would add. Each
+          // addColumn therefore belongs to the `else` branch: it is only for a
+          // database old enough to have the table but not the column. Running
+          // both (as this used to) throws "duplicate column name", and because
+          // the migration then never completes, the schema version never
+          // advances and the app re-throws on every single open.
           if (from < 2) {
             await m.createTable(cachedPuzzles);
+          } else if (from < 6) {
+            await m.addColumn(cachedPuzzles, cachedPuzzles.encrypted);
           }
           if (from < 3) {
             await m.createTable(gameSettings);
+          } else if (from < 7) {
+            await m.addColumn(gameSettings, gameSettings.tutorialSeen);
           }
           if (from < 4) {
             await m.createTable(cachedProfile);
-          }
-          if (from < 5) {
+          } else if (from < 5) {
             await m.addColumn(cachedProfile, cachedProfile.coins);
-          }
-          if (from < 6) {
-            await m.addColumn(cachedPuzzles, cachedPuzzles.encrypted);
-          }
-          if (from < 7) {
-            await m.addColumn(gameSettings, gameSettings.tutorialSeen);
           }
           if (from < 8) {
             // New puzzle generation (v3): drop puzzles cached by the old
