@@ -13,6 +13,13 @@ Zen word game: offline-first, optimistic, **Android + Web only** (no iOS/desktop
 - Enforced via `.claude/settings.json` (`includeCoAuthoredBy: false`, `attribution.commit`/`pr` = `""`).
 - `docs/` is **gitignored** (design specs/plans live there locally).
 
+## 🚀 `firebase deploy --only functions` fails with "Cannot determine backend specification. Timeout after 10000"
+
+The module tree is heavy enough that Firebase's export-discovery step blows its default 10s budget while
+loading `index.ts` (firebase-admin init + the full router/service graph). It is NOT a code error.
+
+- Fix: raise the discovery timeout for the deploy. PowerShell: `$env:FUNCTIONS_DISCOVERY_TIMEOUT = "60"; firebase deploy --only functions --project agape-logos`. Run firebase from PowerShell, not bash (the space-path breaks the CLI).
+
 ## 🔑 Push / PR fails with "Repository not found" - switch the gh account first
 
 Two GitHub accounts are logged in. Only **`nathanieluriri`** can see this repo; `nuriri-elo`
