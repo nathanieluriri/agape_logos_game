@@ -14,6 +14,7 @@ import '../../../../shared/widgets/pond_stage.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../../auth/domain/auth_failure.dart';
 import '../../application/settings_providers.dart';
+import '../widgets/identity_card.dart';
 import '../widgets/public_profile_switch_row.dart';
 import '../widgets/settings_action_row.dart';
 import '../widgets/settings_header.dart';
@@ -32,6 +33,7 @@ class SettingsPage extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final controller = ref.read(settingsControllerProvider.notifier);
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         child: PondStage(
           child: Column(
@@ -42,16 +44,14 @@ class SettingsPage extends ConsumerWidget {
               settings.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.all(AppSpacing.xl),
-                  child: Center(
-                    child: PondLoader(
-                      label: 'Loading settings',
-                    ),
-                  ),
+                  child: Center(child: PondLoader(label: 'Loading settings')),
                 ),
                 error: (_, __) => const Padding(
                   padding: EdgeInsets.all(AppSpacing.md),
-                  child: Text('Could not load settings.',
-                      style: TextStyle(color: AppColors.padLabelSoft)),
+                  child: Text(
+                    'Could not load settings.',
+                    style: TextStyle(color: AppColors.padLabelSoft),
+                  ),
                 ),
                 data: (s) => Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -94,6 +94,7 @@ class SettingsPage extends ConsumerWidget {
                     SettingsSection(
                       title: 'Social',
                       children: [
+                        const IdentityCard(),
                         const PublicProfileSwitchRow(),
                         SettingsActionRow(
                           label: 'Friends',
@@ -121,11 +122,16 @@ class SettingsPage extends ConsumerWidget {
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md,
-                              vertical: AppSpacing.sm),
-                          child: Text('Version $kAppVersion',
-                              style: TextStyle(
-                                  color: AppColors.padLabelSoft, fontSize: 13)),
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.sm,
+                          ),
+                          child: Text(
+                            'Version $kAppVersion',
+                            style: TextStyle(
+                              color: AppColors.padLabelSoft,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -150,7 +156,8 @@ class _AccountSection extends ConsumerWidget {
     final confirmed = await showPondDialog<bool>(
       context: context,
       title: 'Delete account?',
-      body: 'This permanently deletes your account and local progress. '
+      body:
+          'This permanently deletes your account and local progress. '
           'This cannot be undone.',
       actions: [
         PondPillButton(
@@ -162,8 +169,7 @@ class _AccountSection extends ConsumerWidget {
         PondPillButton(
           label: 'Delete',
           variant: PondPillVariant.danger,
-          onPressed: () =>
-              Navigator.of(context, rootNavigator: true).pop(true),
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(true),
         ),
       ],
     );
@@ -177,11 +183,14 @@ class _AccountSection extends ConsumerWidget {
       final error = state.error;
       if (error == AuthFailure.requiresRecentLogin) {
         showPondSnack(
-            context, 'Please sign in again, then retry deleting your account.');
+          context,
+          'Please sign in again, then retry deleting your account.',
+        );
         context.push('/sign-in');
       } else {
-        final msg =
-            error is AuthFailure ? error.message : 'Could not delete account.';
+        final msg = error is AuthFailure
+            ? error.message
+            : 'Could not delete account.';
         showPondSnack(context, msg);
       }
       return;
@@ -197,15 +206,16 @@ class _AccountSection extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
           child: Text(
             user == null
                 ? 'Not signed in'
                 : (user.displayName ?? user.email ?? 'Signed in'),
-            style: Theme.of(context)
-                .textTheme
-                .bodyLarge
-                ?.copyWith(color: AppColors.padLabel),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: AppColors.padLabel),
           ),
         ),
         if (user == null)
