@@ -27,6 +27,9 @@ class _FakeRemote implements MatchRemote {
   Future<void> submit(String matchId, String word) async {}
   @override
   Future<void> leave(String matchId) async {}
+
+  @override
+  Future<void> settle(String matchId) async {}
 }
 
 class _FakeInventory extends InventoryController {

@@ -22,6 +22,9 @@ class _FakeRemote implements MatchRemote {
   Future<bool> powerup(String matchId, String kind, {required String eventId}) async => true;
   @override
   Future<void> leave(String matchId) async {}
+
+  @override
+  Future<void> settle(String matchId) async {}
 }
 
 void main() {

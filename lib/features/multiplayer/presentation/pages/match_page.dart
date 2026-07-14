@@ -43,6 +43,10 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   Timer? _ticker;
   int _now = DateTime.now().millisecondsSinceEpoch;
   bool _navigated = false;
+  // One settle poke per clock boundary (start, end). Re-armed if the call fails,
+  // so a dropped request retries on the next tick instead of stranding the match.
+  bool _pokedStart = false;
+  bool _pokedEnd = false;
 
   @override
   void initState() {
@@ -60,6 +64,38 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   void dispose() {
     _ticker?.cancel();
     super.dispose();
+  }
+
+  /// The server persists `countdown -> active` and `active -> finished` only
+  /// while serving a request (`settleMatch`). Nothing else does. So if neither
+  /// player writes, the doc never advances: the match never starts, and once the
+  /// round is over it never finalizes, leaving both players stranded until the
+  /// scheduled sweeper eventually cancels it. Poke the settling GET once as each
+  /// boundary passes, and let the listener deliver the new doc.
+  void _settleAtBoundaries(Match m) {
+    final bool startDue = m.status == MatchStatus.countdown &&
+        m.startedAt > 0 &&
+        _now >= m.startedAt;
+    final bool endDue = m.endsAt > 0 &&
+        _now >= m.endsAt &&
+        m.status != MatchStatus.finished &&
+        m.status != MatchStatus.cancelled;
+
+    if (startDue && !_pokedStart) {
+      _pokedStart = true;
+      _poke(() => _pokedStart = false);
+    }
+    if (endDue && !_pokedEnd) {
+      _pokedEnd = true;
+      _poke(() => _pokedEnd = false);
+    }
+  }
+
+  void _poke(VoidCallback rearm) {
+    ref.read(matchServiceProvider).settle(widget.matchId).catchError((_) {
+      // Offline or a transient failure: re-arm so the next tick tries again.
+      if (mounted) rearm();
+    });
   }
 
   Future<void> _submit(String word) async {
@@ -113,6 +149,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     // "still loading" and spin forever.
     final failed = (matchAsync.hasError && match == null) ||
         (rackAsync.hasError && rack == null);
+    if (match != null) _settleAtBoundaries(match);
     final effects = ref.watch(activeEffectsProvider(matchId));
     final playState = ref.watch(matchPlayControllerProvider);
 

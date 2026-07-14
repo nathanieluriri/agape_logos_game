@@ -29,6 +29,14 @@ abstract interface class MatchRemote {
 
   /// POST /matches/:id/leave {}.
   Future<void> leave(String matchId);
+
+  /// GET /matches/:id. Pure read, but the server SETTLES the clock while serving
+  /// it (countdown -> active once startedAt passes, active -> finished once
+  /// endsAt passes). Those transitions are only ever persisted by a request, so
+  /// with no player writing (nobody submits a word) the doc would sit on its old
+  /// status forever and the listener would never see the match start or end.
+  /// The match page pokes this at exactly those two instants.
+  Future<void> settle(String matchId);
 }
 
 class HttpMatchRemote implements MatchRemote {
@@ -109,6 +117,16 @@ class HttpMatchRemote implements MatchRemote {
   @override
   Future<void> leave(String matchId) =>
       _post('/matches/$matchId/leave', const <String, dynamic>{});
+
+  @override
+  Future<void> settle(String matchId) async {
+    // The response is discarded on purpose: the settled doc reaches the UI
+    // through the Firestore listener, exactly like every other match change.
+    await _api.request<Map<String, dynamic>>(
+      '/matches/$matchId',
+      method: 'GET',
+    );
+  }
 
   Future<void> _post(
     String path,

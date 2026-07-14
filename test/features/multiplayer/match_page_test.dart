@@ -1,6 +1,7 @@
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
+import 'package:agape_logos_game/features/multiplayer/data/match_remote.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_event.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_player.dart';
@@ -13,6 +14,31 @@ import 'package:agape_logos_game/features/store/domain/store_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+/// Records the settling GET the page pokes at each clock boundary.
+class _FakeRemote implements MatchRemote {
+  final List<String> settled = <String>[];
+
+  @override
+  Future<void> settle(String matchId) async => settled.add(matchId);
+
+  @override
+  Future<({String matchId, String code})> create(Map<String, dynamic> s) async =>
+      (matchId: 'm1', code: 'ABCD');
+  @override
+  Future<String> join(String code) async => 'm1';
+  @override
+  Future<void> ready(String matchId, {required bool ready}) async {}
+  @override
+  Future<void> start(String matchId) async {}
+  @override
+  Future<void> submit(String matchId, String word) async {}
+  @override
+  Future<bool> powerup(String m, String k, {required String eventId}) async =>
+      true;
+  @override
+  Future<void> leave(String matchId) async {}
+}
 
 MatchPlayer _p(String uid, {int score = 0}) => MatchPlayer(
       uid: uid, displayName: uid, avatarId: 'a', isGuest: false, ready: true,
@@ -38,9 +64,11 @@ MatchRack _rack() => const MatchRack(
 void main() {
   testWidgets('active match renders the board, wheel, timer, and scores',
       (tester) async {
+    final remote = _FakeRemote();
     await tester.pumpWidget(ProviderScope(
       overrides: [
         currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchServiceProvider.overrideWithValue(remote),
         matchStreamProvider('m1').overrideWith((ref) => Stream.value(_active())),
         myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
         matchEventsStreamProvider('m1')
@@ -62,6 +90,7 @@ void main() {
   // status == active deadlocked the match: no board -> no submit -> no flip, so
   // the page sat on "Get ready..." forever. The board opens on startedAt.
   testWidgets('a countdown match past startedAt opens the board', (tester) async {
+    final remote = _FakeRemote();
     final now = DateTime.now().millisecondsSinceEpoch;
     final counting = _active().copyWith(
       status: MatchStatus.countdown,
@@ -72,6 +101,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchServiceProvider.overrideWithValue(remote),
         matchStreamProvider('m1').overrideWith((ref) => Stream.value(counting)),
         myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
         matchEventsStreamProvider('m1')
@@ -85,5 +115,36 @@ void main() {
 
     expect(find.textContaining('Get ready'), findsNothing);
     expect(find.text('I'), findsWidgets); // the rack is on screen: playable
+    // ...and it pokes the settling GET so the doc actually reaches `active`
+    // for BOTH players, rather than relying on someone submitting a word.
+    expect(remote.settled, <String>['m1']);
+  });
+
+  // The other half of the same hole: if neither player ever submits, nothing
+  // calls settleMatch, so the match never finalizes at endsAt either and both
+  // players sit on a dead board until the scheduled sweeper cancels it.
+  testWidgets('an expired match holds and pokes the server to finalize',
+      (tester) async {
+    final remote = _FakeRemote();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final expired = _active().copyWith(startedAt: now - 90000, endsAt: now - 1);
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchServiceProvider.overrideWithValue(remote),
+        matchStreamProvider('m1').overrideWith((ref) => Stream.value(expired)),
+        myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
+        matchEventsStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(const <MatchEvent>[])),
+        storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+      ],
+      child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining("Time's up"), findsOneWidget);
+    expect(remote.settled, <String>['m1']);
   });
 }
