@@ -1,15 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/firebase/firestore_providers.dart';
 import '../../../core/network/network_providers.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../profile/application/profile_providers.dart';
+import '../data/social_firestore.dart';
 import '../data/social_remote.dart';
 import '../data/social_repository.dart';
 import '../data/social_repository_impl.dart';
 import '../domain/friend.dart';
 import '../domain/friend_request.dart';
 import '../domain/friend_request_outcome.dart';
-import '../domain/friends_snapshot.dart';
 import '../domain/match_history_entry.dart';
 import '../domain/public_profile.dart';
 import '../domain/public_profile_detail.dart';
@@ -22,19 +23,50 @@ final socialRepositoryProvider = Provider<SocialRepository>(
   (ref) => SocialRepositoryImpl(ref.watch(socialRemoteProvider)),
 );
 
-/// `GET /friends` (friends + incoming requests). Refresh by invalidating this.
-final friendsSnapshotProvider = FutureProvider<FriendsSnapshot>(
-  (ref) => ref.watch(socialRepositoryProvider).friends(),
+/// The Firestore READ layer for friends + incoming requests. Reads only; the
+/// send / accept / decline writes still go through [socialRepositoryProvider].
+final socialFirestoreProvider = Provider<SocialFirestore>(
+  (ref) => SocialFirestore(ref.watch(firebaseFirestoreProvider)),
+);
+
+/// Incoming friend requests, live over a Firestore listener (no polling).
+///
+/// AUTH-GATED like the match listeners: while auth is still restoring the
+/// persisted user we emit an empty stream rather than attaching a listener. A
+/// listener attached before the user is known is denied by the security rules
+/// and dies permanently (never retries), which on web reads as an empty inbox
+/// forever. Once auth settles the provider rebuilds and attaches for real.
+final liveFriendRequestsProvider = StreamProvider<List<FriendRequest>>((ref) {
+  final auth = ref.watch(authStateProvider);
+  if (auth.isLoading) return const Stream<List<FriendRequest>>.empty();
+  final user = auth.value;
+  if (user == null) return Stream.value(const <FriendRequest>[]);
+  return ref.watch(socialFirestoreProvider).watchRequests(user.uid);
+});
+
+/// Accepted friends, live over a Firestore listener. Auth-gated as above.
+final liveFriendsProvider = StreamProvider<List<Friend>>((ref) {
+  final auth = ref.watch(authStateProvider);
+  if (auth.isLoading) return const Stream<List<Friend>>.empty();
+  final user = auth.value;
+  if (user == null) return Stream.value(const <Friend>[]);
+  return ref.watch(socialFirestoreProvider).watchFriends(user.uid);
+});
+
+/// The pending-request count for the Friends button badge.
+final pendingRequestCountProvider = Provider<int>(
+  (ref) => ref.watch(liveFriendRequestsProvider).value?.length ?? 0,
 );
 
 /// The accepted friends list (empty while loading / on error).
 final friendsProvider = Provider<List<Friend>>(
-  (ref) => ref.watch(friendsSnapshotProvider).value?.friends ?? const <Friend>[],
+  (ref) => ref.watch(liveFriendsProvider).value ?? const <Friend>[],
 );
 
 /// Incoming pending friend requests (empty while loading / on error).
 final friendRequestsProvider = Provider<List<FriendRequest>>(
-  (ref) => ref.watch(friendsSnapshotProvider).value?.requests ?? const <FriendRequest>[],
+  (ref) =>
+      ref.watch(liveFriendRequestsProvider).value ?? const <FriendRequest>[],
 );
 
 /// `GET /me/matches`. Invalidate to refresh.
@@ -47,7 +79,9 @@ final matchHistoryProvider = FutureProvider<List<MatchHistoryEntry>>(
 final userSearchProvider =
     FutureProvider.family<List<PublicProfile>, String>((ref, query) {
   final q = query.trim();
-  if (q.isEmpty) return Future<List<PublicProfile>>.value(const <PublicProfile>[]);
+  if (q.isEmpty) {
+    return Future<List<PublicProfile>>.value(const <PublicProfile>[]);
+  }
   return ref.watch(socialRepositoryProvider).searchUsers(q);
 });
 
@@ -129,15 +163,19 @@ class FriendActionsController extends Notifier<Set<String>> {
     }
   }
 
-  /// Accepts or declines a request, then refreshes the friends snapshot so the
-  /// list and the request badge update at once.
+  /// Accepts or declines a request. The live listeners already reflect the
+  /// server write within a moment; the explicit re-subscribe just gives an
+  /// immediate kick so the list and the request badge update at once.
   Future<bool> respond({required String fromUid, required bool accept}) async {
     state = <String>{...state, fromUid};
     try {
       final ok = await ref
           .read(socialRepositoryProvider)
           .respondToFriendRequest(fromUid: fromUid, accept: accept);
-      if (ok) ref.invalidate(friendsSnapshotProvider);
+      if (ok) {
+        ref.invalidate(liveFriendsProvider);
+        ref.invalidate(liveFriendRequestsProvider);
+      }
       return ok;
     } finally {
       state = <String>{...state}..remove(fromUid);

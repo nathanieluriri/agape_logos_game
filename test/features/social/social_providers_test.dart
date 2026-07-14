@@ -1,3 +1,4 @@
+import 'package:agape_logos_game/core/firebase/firestore_providers.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
@@ -13,6 +14,8 @@ import 'package:agape_logos_game/features/social/domain/friends_snapshot.dart';
 import 'package:agape_logos_game/features/social/domain/match_history_entry.dart';
 import 'package:agape_logos_game/features/social/domain/public_profile.dart';
 import 'package:agape_logos_game/features/social/domain/public_profile_detail.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -74,12 +77,45 @@ void main() {
     expect((await c.read(userSearchProvider('grace').future)).single.handle, 'grace');
   });
 
-  test('friendsProvider + friendRequestsProvider derive from the snapshot', () async {
-    final c = _c();
+  test('friendsProvider + friendRequestsProvider derive from the live listeners',
+      () async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc('u1').collection('friends').doc('u2').set({
+      'uid': 'u2',
+      'handle': 'grace',
+      'displayName': 'Grace',
+      'avatarId': 'avatar_01',
+      'since': Timestamp.fromMillisecondsSinceEpoch(1000),
+    });
+    await db
+        .collection('users')
+        .doc('u1')
+        .collection('friendRequests')
+        .doc('u3')
+        .set({
+      'fromUid': 'u3',
+      'handle': 'neo',
+      'displayName': 'Neo',
+      'avatarId': 'avatar_02',
+      'at': Timestamp.fromMillisecondsSinceEpoch(1000),
+    });
+    final c = ProviderContainer(
+      overrides: [
+        socialRepositoryProvider.overrideWithValue(_FakeRepo()),
+        firebaseFirestoreProvider.overrideWithValue(db),
+        authStateProvider.overrideWith(
+          (ref) => Stream.value(const AuthUser(uid: 'u1')),
+        ),
+      ],
+    );
     addTearDown(c.dispose);
-    await c.read(friendsSnapshotProvider.future);
+    c.listen(liveFriendsProvider, (_, __) {});
+    c.listen(liveFriendRequestsProvider, (_, __) {});
+    await c.pump();
+    await Future<void>.delayed(Duration.zero);
     expect(c.read(friendsProvider).single.uid, 'u2');
     expect(c.read(friendRequestsProvider).single.fromUid, 'u3');
+    expect(c.read(pendingRequestCountProvider), 1);
   });
 
   test('profilePrivacyController reads the server flag then flips optimistically', () async {

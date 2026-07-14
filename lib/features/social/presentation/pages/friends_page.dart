@@ -113,19 +113,19 @@ class _FriendsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final snapshot = ref.watch(friendsSnapshotProvider);
-    return snapshot.when(
+    final friends = ref.watch(liveFriendsProvider);
+    return friends.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const _Empty('Could not load your friends.'),
-      data: (s) => s.friends.isEmpty
+      data: (list) => list.isEmpty
           ? const _Empty('No friends yet. Use Find to add some.')
           : RefreshIndicator(
-              onRefresh: () async => ref.invalidate(friendsSnapshotProvider),
+              onRefresh: () async => ref.invalidate(liveFriendsProvider),
               child: ListView.builder(
-                itemCount: s.friends.length,
+                itemCount: list.length,
                 itemBuilder: (context, i) => FriendTile(
-                  friend: s.friends[i],
-                  onTap: () => context.push(publicProfileRoute(s.friends[i].uid)),
+                  friend: list[i],
+                  onTap: () => context.push(publicProfileRoute(list[i].uid)),
                 ),
               ),
             ),
