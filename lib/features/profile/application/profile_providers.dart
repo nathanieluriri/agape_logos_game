@@ -72,6 +72,16 @@ class ProfileController extends AsyncNotifier<Profile?> {
     });
   }
 
+  /// Refetches the signed-in user's profile (used after a server-authoritative
+  /// write such as a handle claim). [build] returns null and only [load]
+  /// populates this notifier, so `ref.invalidate(profileControllerProvider)`
+  /// would reset the state to null instead of refreshing it.
+  Future<void> reload() async {
+    final String? uid = ref.read(currentUserProvider)?.uid;
+    if (uid == null) return;
+    await load(uid);
+  }
+
   Future<void> clear() async {
     await ref.read(profileRepositoryProvider).clear();
     state = const AsyncData(null);

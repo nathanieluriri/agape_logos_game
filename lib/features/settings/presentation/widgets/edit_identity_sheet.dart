@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -74,7 +76,10 @@ class _EditIdentitySheetState extends ConsumerState<EditIdentitySheet> {
   String? _validateHandle(String? value) {
     if (_handleError != null) return _handleError;
     final handle = (value ?? '').trim();
-    if (handle.isEmpty) return null; // Keeping no handle is allowed.
+    // An empty field means "leave my handle as it is": the server has no way to
+    // clear a handle (it must always be claimable/searchable), so a blank field
+    // is never sent. See _save, which skips setHandle when the field is empty.
+    if (handle.isEmpty) return null;
     if (!kHandlePattern.hasMatch(handle)) return kHandleRuleText;
     return null;
   }
@@ -88,7 +93,8 @@ class _EditIdentitySheetState extends ConsumerState<EditIdentitySheet> {
     final name = _name.text.trim();
     final handle = _handle.text.trim();
     final bool nameChanged = name != _initialName;
-    final bool handleChanged = handle != _initialHandle;
+    // An empty field is "no change to the handle", never a request to clear it.
+    final bool handleChanged = handle.isNotEmpty && handle != _initialHandle;
     if (!nameChanged && !handleChanged) {
       Navigator.of(context).pop();
       return;
@@ -101,7 +107,6 @@ class _EditIdentitySheetState extends ConsumerState<EditIdentitySheet> {
     if (!handleChanged) {
       if (!mounted) return;
       setState(() => _busy = false);
-      ref.invalidate(profileControllerProvider);
       Navigator.of(context).pop();
       return;
     }
@@ -111,7 +116,9 @@ class _EditIdentitySheetState extends ConsumerState<EditIdentitySheet> {
     setState(() => _busy = false);
     switch (outcome) {
       case HandleChanged():
-        ref.invalidate(profileControllerProvider);
+        // Refetch rather than invalidate: the controller's build() returns null,
+        // so invalidating it would blank the identity card it feeds.
+        unawaited(ref.read(profileControllerProvider.notifier).reload());
         Navigator.of(context).pop();
         showPondSnack(context, 'Handle updated');
       case HandleTaken():

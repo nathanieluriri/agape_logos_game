@@ -33,10 +33,14 @@ class IdentityCard extends ConsumerWidget {
         onTap: () => context.push('/sign-in'),
       );
     }
-    final profile = ref.watch(profileControllerProvider).value;
+    // Display name comes from the Drift cache (the optimistic source of truth
+    // the rest of the app renders), so a rename shows at once and never appears
+    // to revert while the queued `PUT /me` is still in flight.
+    final cached = ref.watch(cachedProfileProvider).value;
+    final live = ref.watch(profileControllerProvider).value;
     return _IdentityRow(
-      displayName: profile?.displayName ?? '',
-      handle: profile?.handle ?? '',
+      displayName: cached?.displayName ?? live?.displayName ?? '',
+      handle: live?.handle ?? '',
     );
   }
 }
