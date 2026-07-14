@@ -10,14 +10,19 @@ import '../../../../shared/widgets/petal_icon.dart';
 import '../../../store/application/store_providers.dart';
 import '../../../store/domain/store_item.dart';
 import '../../application/match_providers.dart';
+import '../../domain/powerup_kind.dart';
 
-/// Icon for each offense powerup, keyed by the server effect rule (which equals
-/// the event kind wire string, contract 8.5).
-IconData _iconFor(String rule) {
-  switch (rule) {
-    case 'letter_freeze':
+/// Icon for each offense powerup, keyed by the STORE ITEM ID.
+///
+/// It used to key off `effect.rule`, which is prose, so nothing ever matched and
+/// every powerup fell through to the generic bolt. See [powerupWireKind] for the
+/// id/kind split. Swaps to `assets/powerups/<id>.svg` once the artwork lands
+/// (POWERUPS.md).
+IconData _iconFor(String itemId) {
+  switch (itemId) {
+    case 'freeze_letter':
       return Icons.ac_unit_rounded;
-    case 'fog_bank':
+    case 'fog':
       return Icons.cloud_rounded;
     case 'scramble':
       return Icons.shuffle_rounded;
@@ -30,9 +35,12 @@ IconData _iconFor(String rule) {
 
 /// The owned-powerup bar. Tapping an owned powerup fires it at the opponent
 /// (spends inventory server-side); an unowned one shows its store cost.
-// PLAN: confirm the backend uses these exact `effect.rule` strings
-// (letter_freeze/fog_bank/scramble/word_steal) matching the event kinds. If the
-// store item's rule differs, map it here.
+///
+/// The earlier PLAN note here asked someone to confirm the backend used the
+/// item's `effect.rule` as the wire kind. It does not: `rule` is rules text, so
+/// the server rejected every fire with a 400. The bar now resolves the kind from
+/// the item id via [powerupWireKind], which is also what decides whether an item
+/// is firable at all (defense/utility items have no gameplay hook yet).
 class PowerupBar extends ConsumerWidget {
   const PowerupBar({super.key, required this.matchId});
 
@@ -43,9 +51,10 @@ class PowerupBar extends ConsumerWidget {
     final catalog = ref.watch(storeCatalogProvider).value ?? const <StoreItem>[];
     final inventory =
         ref.watch(inventoryControllerProvider).value ?? const <String, int>{};
+    // Firable == the server implements it. Keying off the id map (rather than
+    // category/kind) also keeps bundles like skirmish_pack out of the bar.
     final offense = catalog
-        .where((i) => i.category == 'powerup' && i.kind == 'offense')
-        .where((i) => i.effect != null)
+        .where((i) => powerupWireKind(i.id) != null)
         .toList();
     if (offense.isEmpty) return const SizedBox.shrink();
     return SizedBox(
@@ -65,7 +74,7 @@ class PowerupBar extends ConsumerWidget {
                 ? () async {
                     final ok = await ref.read(matchServiceProvider).powerup(
                           matchId,
-                          item.effect!.rule,
+                          powerupWireKind(item.id)!,
                           eventId: const Uuid().v4(),
                         );
                     if (!context.mounted) return;
@@ -122,7 +131,7 @@ class _PowerupButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _iconFor(item.effect!.rule),
+                _iconFor(item.id),
                 color: enabled ? AppColors.padLabel : AppColors.padLabelSoft,
                 size: 22,
               ),

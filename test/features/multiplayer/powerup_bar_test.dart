@@ -34,17 +34,47 @@ class _FakeRemote implements MatchRemote {
 
 class _FakeInventory extends InventoryController {
   @override
-  Future<Map<String, int>> build() async => {'pw_fog': 2};
+  Future<Map<String, int>> build() async => {'fog': 2, 'shield': 1};
 }
 
+/// The REAL catalog shape (functions/src/store/catalog.ts): the id is `fog`, and
+/// `effect.rule` is human rules text, NOT the wire kind. The old fixture here
+/// used id `pw_fog` with rule `fog_bank`, which is why this test stayed green
+/// while every powerup in production was rejected with a 400.
 StoreItem _fog() => const StoreItem(
-      id: 'pw_fog', name: 'Fog Bank', description: '', category: 'powerup',
-      kind: 'offense', cost: 50, maxPerPurchase: 5,
-      effect: PowerupEffect(target: 'opponent', durationSec: 8, rule: 'fog_bank'),
+      id: 'fog',
+      name: 'Fog Bank',
+      description: "Blur your opponent's board for 8 seconds.",
+      category: 'powerup',
+      kind: 'offense',
+      cost: 100,
+      maxPerPurchase: 10,
+      effect: PowerupEffect(
+        target: 'opponent',
+        durationSec: 8,
+        rule: "Obscure the opponent's board for 8s.",
+      ),
+    );
+
+/// Defense: purchasable, but the server has no hook for it, so it must not show
+/// up in the match bar as something you can fire.
+StoreItem _shield() => const StoreItem(
+      id: 'shield',
+      name: 'Bubble Shield',
+      description: 'Nullify the next powerup used against you.',
+      category: 'powerup',
+      kind: 'defense',
+      cost: 150,
+      maxPerPurchase: 10,
+      effect: PowerupEffect(
+        target: 'self',
+        durationSec: 0,
+        rule: 'Block the next incoming powerup.',
+      ),
     );
 
 void main() {
-  testWidgets('firing an owned powerup calls the remote with its rule',
+  testWidgets('firing an owned powerup sends the wire KIND, not the rules text',
       (tester) async {
     final fake = _FakeRemote();
     await tester.pumpWidget(ProviderScope(
@@ -59,6 +89,27 @@ void main() {
     expect(find.text('x2'), findsOneWidget);
     await tester.tap(find.byType(GestureDetector).first);
     await tester.pump();
+    // The server validates this against a zod enum. Sending effect.rule (the
+    // prose) is a 400 and the powerup silently never fires.
     expect(fake.firedRule, 'fog_bank');
+  });
+
+  testWidgets('an unimplemented powerup is not offered in the match bar',
+      (tester) async {
+    final fake = _FakeRemote();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        matchServiceProvider.overrideWithValue(fake),
+        storeCatalogProvider.overrideWith((ref) async => [_fog(), _shield()]),
+        inventoryControllerProvider.overrideWith(_FakeInventory.new),
+      ],
+      child: const MaterialApp(home: Scaffold(body: PowerupBar(matchId: 'm1'))),
+    ));
+    await tester.pumpAndSettle();
+
+    // Fog is firable; Bubble Shield has no server implementation, so offering it
+    // would just 400 at the player.
+    expect(find.bySemanticsLabel(RegExp('Fog Bank')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('Bubble Shield')), findsNothing);
   });
 }
