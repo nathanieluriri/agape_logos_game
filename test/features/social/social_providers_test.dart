@@ -2,6 +2,7 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
 import 'package:agape_logos_game/features/profile/data/profile_remote.dart';
+import 'package:agape_logos_game/features/profile/domain/handle_outcome.dart';
 import 'package:agape_logos_game/features/profile/domain/profile.dart';
 import 'package:agape_logos_game/features/social/application/social_providers.dart';
 import 'package:agape_logos_game/features/social/data/social_repository.dart';
@@ -52,6 +53,9 @@ class _FakeProfileRemote implements ProfileRemote {
       );
   @override
   Future<int> coins() async => 0;
+  @override
+  Future<HandleOutcome> setHandle(String handle, {required String idempotencyKey}) async =>
+      HandleChanged(handle);
 }
 
 ProviderContainer _c({bool signedIn = true, bool serverPublic = true}) => ProviderContainer(

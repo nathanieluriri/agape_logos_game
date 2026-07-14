@@ -11,3 +11,9 @@ const int kMaxDisplayNameLength = 30;
 
 /// Mutation kind for the optimistic display-name update; reconcilers key off it.
 const String kProfileDisplayNameKind = 'profile_display_name';
+
+/// Handles are unique and case-insensitive. Must match the server's regex exactly
+/// (functions/src/services/handle_service.ts), so a handle you can claim is always
+/// a handle a friend can search for.
+final RegExp kHandlePattern = RegExp(r'^[A-Za-z0-9_]{3,20}$');
+const int kMaxHandleLength = 20;

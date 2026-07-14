@@ -1,3 +1,4 @@
+import 'handle_outcome.dart';
 import 'profile.dart';
 
 /// Boundary for the user profile. `GET /me` is a `CachedRead` (see
@@ -39,4 +40,10 @@ abstract interface class ProfileRepository {
 
   /// Clears the cached profile (on sign-out).
   Future<void> clear();
+
+  /// Claims/changes the player's @handle via `PUT /me/handle`. This is an
+  /// online, server-authoritative write (the server can reject the claim), so
+  /// unlike [updateDisplayName] it is NOT routed through the offline mutation
+  /// queue: it is a thin pass-through to the remote and does not write Drift.
+  Future<HandleOutcome> setHandle(String handle);
 }

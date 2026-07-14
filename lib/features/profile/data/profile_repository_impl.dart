@@ -7,6 +7,7 @@ import '../../../core/logging/app_logger.dart';
 import '../../../core/offline/mutation.dart';
 import '../../../core/offline/offline_aware_repository.dart';
 import '../../../core/storage/app_database.dart';
+import '../domain/handle_outcome.dart';
 import '../domain/profile.dart';
 import '../domain/profile_repository.dart';
 import '../profile_config.dart';
@@ -93,4 +94,8 @@ class ProfileRepositoryImpl
 
   @override
   Future<void> clear() => db.cachedProfileDao.clear();
+
+  @override
+  Future<HandleOutcome> setHandle(String handle) =>
+      _remote.setHandle(handle, idempotencyKey: _uuid.v4());
 }

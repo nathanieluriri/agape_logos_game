@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:agape_logos_game/core/storage/app_database.dart';
 import 'package:agape_logos_game/features/profile/data/profile_repository_impl.dart';
 import 'package:agape_logos_game/features/profile/data/profile_remote.dart';
+import 'package:agape_logos_game/features/profile/domain/handle_outcome.dart';
 import 'package:agape_logos_game/features/profile/domain/profile.dart';
 import 'package:agape_logos_game/features/profile/profile_config.dart';
 import 'package:dio/dio.dart';
@@ -53,6 +54,10 @@ class _FakeRemote implements ProfileRemote {
     }
     return result?.coins ?? 0;
   }
+
+  @override
+  Future<HandleOutcome> setHandle(String handle, {required String idempotencyKey}) async =>
+      HandleChanged(handle);
 }
 
 void main() {

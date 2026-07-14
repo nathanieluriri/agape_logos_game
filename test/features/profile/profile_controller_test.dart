@@ -1,4 +1,5 @@
 import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
+import 'package:agape_logos_game/features/profile/domain/handle_outcome.dart';
 import 'package:agape_logos_game/features/profile/domain/profile.dart';
 import 'package:agape_logos_game/features/profile/domain/profile_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,6 +56,9 @@ class _FakeRepo implements ProfileRepository {
 
   @override
   Future<void> clear() async => _profile = null;
+
+  @override
+  Future<HandleOutcome> setHandle(String handle) async => HandleChanged(handle);
 }
 
 ProviderContainer _containerWith(_FakeRepo repo) {
