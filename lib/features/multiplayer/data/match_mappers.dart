@@ -17,7 +17,19 @@ MatchPlayer matchPlayerFromWire(Map<String, dynamic> m) => MatchPlayer(
   connected: (m['connected'] as bool?) ?? false,
   score: _asInt(m['score']),
   wordsFound: _asInt(m['wordsFound']),
+  endsAtBonusMs: _asInt(m['endsAtBonusMs']),
+  lastWordAt: _asInt(m['lastWordAt']),
+  finishedAt: _asInt(m['finishedAt']),
 );
+
+MatchActiveEffect matchActiveEffectFromWire(Map<String, dynamic> m) =>
+    MatchActiveEffect(
+      kind: matchEffectKindFromWire(m['kind'] as String?),
+      byUid: (m['byUid'] as String?) ?? '',
+      startedAt: _asInt(m['startedAt']),
+      expiresAt: _asInt(m['expiresAt']),
+      payload: (m['payload'] as Map?)?.cast<String, dynamic>() ?? const {},
+    );
 
 MatchSettings matchSettingsFromWire(Map<String, dynamic> m) => MatchSettings(
   difficulty: matchDifficultyFromWire(m['difficulty'] as String?),
@@ -35,6 +47,15 @@ Match matchFromSnapshot(String id, Map<String, dynamic> m) {
   playersRaw.forEach((uid, v) {
     players[uid] = matchPlayerFromWire((v as Map).cast<String, dynamic>());
   });
+  final effectsRaw =
+      (m['activeEffects'] as Map?)?.cast<String, dynamic>() ??
+      const <String, dynamic>{};
+  final activeEffects = <String, List<MatchActiveEffect>>{};
+  effectsRaw.forEach((uid, v) {
+    activeEffects[uid] = ((v as List?) ?? const [])
+        .map((e) => matchActiveEffectFromWire((e as Map).cast<String, dynamic>()))
+        .toList();
+  });
   return Match(
     matchId: (m['matchId'] as String?) ?? id,
     code: (m['code'] as String?) ?? '',
@@ -50,6 +71,8 @@ Match matchFromSnapshot(String id, Map<String, dynamic> m) {
     ),
     players: players,
     winner: m['winner'] as String?,
+    puzzleId: m['puzzleId'] as String?,
+    activeEffects: activeEffects,
   );
 }
 

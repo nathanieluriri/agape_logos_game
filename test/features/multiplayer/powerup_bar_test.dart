@@ -68,8 +68,8 @@ StoreItem _fog() => const StoreItem(
       ),
     );
 
-/// Defense: purchasable, but the server has no hook for it, so it must not show
-/// up in the match bar as something you can fire.
+/// Defense: now server-implemented (armed shield in activeEffects), so it IS
+/// firable from the bar.
 StoreItem _shield() => const StoreItem(
       id: 'shield',
       name: 'Bubble Shield',
@@ -106,7 +106,7 @@ void main() {
     expect(fake.firedRule, 'fog_bank');
   });
 
-  testWidgets('an unimplemented powerup is not offered in the match bar',
+  testWidgets('server-implemented defense powerups are offered in the match bar',
       (tester) async {
     final fake = _FakeRemote();
     await tester.pumpWidget(ProviderScope(
@@ -119,9 +119,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // Fog is firable; Bubble Shield has no server implementation, so offering it
-    // would just 400 at the player.
+    // Both are firable now: shield arms server-side into activeEffects.
     expect(find.bySemanticsLabel(RegExp('Fog Bank')), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('Bubble Shield')), findsNothing);
+    expect(find.bySemanticsLabel(RegExp('Bubble Shield')), findsOneWidget);
   });
 }

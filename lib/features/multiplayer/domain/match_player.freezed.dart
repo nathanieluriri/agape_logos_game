@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MatchPlayer {
 
- String get uid; String get displayName; String get avatarId; bool get isGuest; bool get ready; bool get connected; int get score; int get wordsFound;
+ String get uid; String get displayName; String get avatarId; bool get isGuest; bool get ready; bool get connected; int get score; int get wordsFound; int get endsAtBonusMs; int get lastWordAt; int get finishedAt;
 /// Create a copy of MatchPlayer
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $MatchPlayerCopyWith<MatchPlayer> get copyWith => _$MatchPlayerCopyWithImpl<Matc
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MatchPlayer&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.avatarId, avatarId) || other.avatarId == avatarId)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.ready, ready) || other.ready == ready)&&(identical(other.connected, connected) || other.connected == connected)&&(identical(other.score, score) || other.score == score)&&(identical(other.wordsFound, wordsFound) || other.wordsFound == wordsFound));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MatchPlayer&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.avatarId, avatarId) || other.avatarId == avatarId)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.ready, ready) || other.ready == ready)&&(identical(other.connected, connected) || other.connected == connected)&&(identical(other.score, score) || other.score == score)&&(identical(other.wordsFound, wordsFound) || other.wordsFound == wordsFound)&&(identical(other.endsAtBonusMs, endsAtBonusMs) || other.endsAtBonusMs == endsAtBonusMs)&&(identical(other.lastWordAt, lastWordAt) || other.lastWordAt == lastWordAt)&&(identical(other.finishedAt, finishedAt) || other.finishedAt == finishedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,uid,displayName,avatarId,isGuest,ready,connected,score,wordsFound);
+int get hashCode => Object.hash(runtimeType,uid,displayName,avatarId,isGuest,ready,connected,score,wordsFound,endsAtBonusMs,lastWordAt,finishedAt);
 
 @override
 String toString() {
-  return 'MatchPlayer(uid: $uid, displayName: $displayName, avatarId: $avatarId, isGuest: $isGuest, ready: $ready, connected: $connected, score: $score, wordsFound: $wordsFound)';
+  return 'MatchPlayer(uid: $uid, displayName: $displayName, avatarId: $avatarId, isGuest: $isGuest, ready: $ready, connected: $connected, score: $score, wordsFound: $wordsFound, endsAtBonusMs: $endsAtBonusMs, lastWordAt: $lastWordAt, finishedAt: $finishedAt)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $MatchPlayerCopyWith<$Res>  {
   factory $MatchPlayerCopyWith(MatchPlayer value, $Res Function(MatchPlayer) _then) = _$MatchPlayerCopyWithImpl;
 @useResult
 $Res call({
- String uid, String displayName, String avatarId, bool isGuest, bool ready, bool connected, int score, int wordsFound
+ String uid, String displayName, String avatarId, bool isGuest, bool ready, bool connected, int score, int wordsFound, int endsAtBonusMs, int lastWordAt, int finishedAt
 });
 
 
@@ -62,7 +62,7 @@ class _$MatchPlayerCopyWithImpl<$Res>
 
 /// Create a copy of MatchPlayer
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? uid = null,Object? displayName = null,Object? avatarId = null,Object? isGuest = null,Object? ready = null,Object? connected = null,Object? score = null,Object? wordsFound = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? uid = null,Object? displayName = null,Object? avatarId = null,Object? isGuest = null,Object? ready = null,Object? connected = null,Object? score = null,Object? wordsFound = null,Object? endsAtBonusMs = null,Object? lastWordAt = null,Object? finishedAt = null,}) {
   return _then(_self.copyWith(
 uid: null == uid ? _self.uid : uid // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -72,6 +72,9 @@ as bool,ready: null == ready ? _self.ready : ready // ignore: cast_nullable_to_n
 as bool,connected: null == connected ? _self.connected : connected // ignore: cast_nullable_to_non_nullable
 as bool,score: null == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
 as int,wordsFound: null == wordsFound ? _self.wordsFound : wordsFound // ignore: cast_nullable_to_non_nullable
+as int,endsAtBonusMs: null == endsAtBonusMs ? _self.endsAtBonusMs : endsAtBonusMs // ignore: cast_nullable_to_non_nullable
+as int,lastWordAt: null == lastWordAt ? _self.lastWordAt : lastWordAt // ignore: cast_nullable_to_non_nullable
+as int,finishedAt: null == finishedAt ? _self.finishedAt : finishedAt // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }
@@ -157,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String uid,  String displayName,  String avatarId,  bool isGuest,  bool ready,  bool connected,  int score,  int wordsFound)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String uid,  String displayName,  String avatarId,  bool isGuest,  bool ready,  bool connected,  int score,  int wordsFound,  int endsAtBonusMs,  int lastWordAt,  int finishedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MatchPlayer() when $default != null:
-return $default(_that.uid,_that.displayName,_that.avatarId,_that.isGuest,_that.ready,_that.connected,_that.score,_that.wordsFound);case _:
+return $default(_that.uid,_that.displayName,_that.avatarId,_that.isGuest,_that.ready,_that.connected,_that.score,_that.wordsFound,_that.endsAtBonusMs,_that.lastWordAt,_that.finishedAt);case _:
   return orElse();
 
 }
@@ -178,10 +181,10 @@ return $default(_that.uid,_that.displayName,_that.avatarId,_that.isGuest,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String uid,  String displayName,  String avatarId,  bool isGuest,  bool ready,  bool connected,  int score,  int wordsFound)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String uid,  String displayName,  String avatarId,  bool isGuest,  bool ready,  bool connected,  int score,  int wordsFound,  int endsAtBonusMs,  int lastWordAt,  int finishedAt)  $default,) {final _that = this;
 switch (_that) {
 case _MatchPlayer():
-return $default(_that.uid,_that.displayName,_that.avatarId,_that.isGuest,_that.ready,_that.connected,_that.score,_that.wordsFound);case _:
+return $default(_that.uid,_that.displayName,_that.avatarId,_that.isGuest,_that.ready,_that.connected,_that.score,_that.wordsFound,_that.endsAtBonusMs,_that.lastWordAt,_that.finishedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +201,10 @@ return $default(_that.uid,_that.displayName,_that.avatarId,_that.isGuest,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String uid,  String displayName,  String avatarId,  bool isGuest,  bool ready,  bool connected,  int score,  int wordsFound)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String uid,  String displayName,  String avatarId,  bool isGuest,  bool ready,  bool connected,  int score,  int wordsFound,  int endsAtBonusMs,  int lastWordAt,  int finishedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _MatchPlayer() when $default != null:
-return $default(_that.uid,_that.displayName,_that.avatarId,_that.isGuest,_that.ready,_that.connected,_that.score,_that.wordsFound);case _:
+return $default(_that.uid,_that.displayName,_that.avatarId,_that.isGuest,_that.ready,_that.connected,_that.score,_that.wordsFound,_that.endsAtBonusMs,_that.lastWordAt,_that.finishedAt);case _:
   return null;
 
 }
@@ -213,7 +216,7 @@ return $default(_that.uid,_that.displayName,_that.avatarId,_that.isGuest,_that.r
 
 
 class _MatchPlayer implements MatchPlayer {
-  const _MatchPlayer({required this.uid, required this.displayName, required this.avatarId, required this.isGuest, required this.ready, required this.connected, required this.score, required this.wordsFound});
+  const _MatchPlayer({required this.uid, required this.displayName, required this.avatarId, required this.isGuest, required this.ready, required this.connected, required this.score, required this.wordsFound, this.endsAtBonusMs = 0, this.lastWordAt = 0, this.finishedAt = 0});
   
 
 @override final  String uid;
@@ -224,6 +227,9 @@ class _MatchPlayer implements MatchPlayer {
 @override final  bool connected;
 @override final  int score;
 @override final  int wordsFound;
+@override@JsonKey() final  int endsAtBonusMs;
+@override@JsonKey() final  int lastWordAt;
+@override@JsonKey() final  int finishedAt;
 
 /// Create a copy of MatchPlayer
 /// with the given fields replaced by the non-null parameter values.
@@ -235,16 +241,16 @@ _$MatchPlayerCopyWith<_MatchPlayer> get copyWith => __$MatchPlayerCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MatchPlayer&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.avatarId, avatarId) || other.avatarId == avatarId)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.ready, ready) || other.ready == ready)&&(identical(other.connected, connected) || other.connected == connected)&&(identical(other.score, score) || other.score == score)&&(identical(other.wordsFound, wordsFound) || other.wordsFound == wordsFound));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MatchPlayer&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.avatarId, avatarId) || other.avatarId == avatarId)&&(identical(other.isGuest, isGuest) || other.isGuest == isGuest)&&(identical(other.ready, ready) || other.ready == ready)&&(identical(other.connected, connected) || other.connected == connected)&&(identical(other.score, score) || other.score == score)&&(identical(other.wordsFound, wordsFound) || other.wordsFound == wordsFound)&&(identical(other.endsAtBonusMs, endsAtBonusMs) || other.endsAtBonusMs == endsAtBonusMs)&&(identical(other.lastWordAt, lastWordAt) || other.lastWordAt == lastWordAt)&&(identical(other.finishedAt, finishedAt) || other.finishedAt == finishedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,uid,displayName,avatarId,isGuest,ready,connected,score,wordsFound);
+int get hashCode => Object.hash(runtimeType,uid,displayName,avatarId,isGuest,ready,connected,score,wordsFound,endsAtBonusMs,lastWordAt,finishedAt);
 
 @override
 String toString() {
-  return 'MatchPlayer(uid: $uid, displayName: $displayName, avatarId: $avatarId, isGuest: $isGuest, ready: $ready, connected: $connected, score: $score, wordsFound: $wordsFound)';
+  return 'MatchPlayer(uid: $uid, displayName: $displayName, avatarId: $avatarId, isGuest: $isGuest, ready: $ready, connected: $connected, score: $score, wordsFound: $wordsFound, endsAtBonusMs: $endsAtBonusMs, lastWordAt: $lastWordAt, finishedAt: $finishedAt)';
 }
 
 
@@ -255,7 +261,7 @@ abstract mixin class _$MatchPlayerCopyWith<$Res> implements $MatchPlayerCopyWith
   factory _$MatchPlayerCopyWith(_MatchPlayer value, $Res Function(_MatchPlayer) _then) = __$MatchPlayerCopyWithImpl;
 @override @useResult
 $Res call({
- String uid, String displayName, String avatarId, bool isGuest, bool ready, bool connected, int score, int wordsFound
+ String uid, String displayName, String avatarId, bool isGuest, bool ready, bool connected, int score, int wordsFound, int endsAtBonusMs, int lastWordAt, int finishedAt
 });
 
 
@@ -272,7 +278,7 @@ class __$MatchPlayerCopyWithImpl<$Res>
 
 /// Create a copy of MatchPlayer
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? uid = null,Object? displayName = null,Object? avatarId = null,Object? isGuest = null,Object? ready = null,Object? connected = null,Object? score = null,Object? wordsFound = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? uid = null,Object? displayName = null,Object? avatarId = null,Object? isGuest = null,Object? ready = null,Object? connected = null,Object? score = null,Object? wordsFound = null,Object? endsAtBonusMs = null,Object? lastWordAt = null,Object? finishedAt = null,}) {
   return _then(_MatchPlayer(
 uid: null == uid ? _self.uid : uid // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -282,6 +288,9 @@ as bool,ready: null == ready ? _self.ready : ready // ignore: cast_nullable_to_n
 as bool,connected: null == connected ? _self.connected : connected // ignore: cast_nullable_to_non_nullable
 as bool,score: null == score ? _self.score : score // ignore: cast_nullable_to_non_nullable
 as int,wordsFound: null == wordsFound ? _self.wordsFound : wordsFound // ignore: cast_nullable_to_non_nullable
+as int,endsAtBonusMs: null == endsAtBonusMs ? _self.endsAtBonusMs : endsAtBonusMs // ignore: cast_nullable_to_non_nullable
+as int,lastWordAt: null == lastWordAt ? _self.lastWordAt : lastWordAt // ignore: cast_nullable_to_non_nullable
+as int,finishedAt: null == finishedAt ? _self.finishedAt : finishedAt // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }

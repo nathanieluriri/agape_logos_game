@@ -9,11 +9,19 @@ import '../data/match_remote.dart';
 import '../domain/match.dart';
 import '../domain/match_event.dart';
 import '../domain/match_rack.dart';
+import 'server_clock.dart';
+
+/// One clock offset per app run: every powerup/settle response feeds it, and
+/// every effect expiry check reads through it (contract update: server clock).
+final serverClockProvider = Provider<ServerClock>((ref) => ServerClock());
 
 /// Contract 8.8: wraps the Cloud Function calls (create/join/ready/start/submit/
 /// powerup/leave).
 final matchServiceProvider = Provider<MatchRemote>(
-  (ref) => HttpMatchRemote(ref.watch(apiClientProvider)),
+  (ref) => HttpMatchRemote(
+    ref.watch(apiClientProvider),
+    clock: ref.watch(serverClockProvider),
+  ),
 );
 
 /// The Firestore read layer, sharing the puzzles' answer-key store so racks
@@ -78,48 +86,128 @@ final matchEventsStreamProvider =
           .watchEventsForMe(matchId, user.uid);
     });
 
-/// Derived live effects currently on me: which rack letter indices are frozen
-/// (with their expiries) and the latest fog expiry. Pure projection: it re-emits
-/// only when events change. The overlays own the wall-clock ticker that visually
-/// expires an effect at its `expiresAt`, so this never has to tick.
-class ActiveEffects {
-  const ActiveEffects({required this.frozenLetters, required this.fogUntil});
+/// How long a `warded` flash stays true after it lands. Events are the
+/// animation feed (no persisted "warded" state exists), so this projection
+/// treats a recent warded event as a short-lived flag rather than ticking a
+/// stateful timer.
+const Duration kWardedFlashWindow = Duration(seconds: 3);
 
-  /// Rack letter index -> expiresAt (epoch millis).
-  final Map<int, int> frozenLetters;
+/// Derived live effects currently on me, sourced from the match doc's
+/// server-persisted `activeEffects` (never from the events feed, which stays
+/// the animation-only channel). Expiry is checked against [ServerClock.now],
+/// so a skewed device clock never mis-times an expiry.
+class MatchActiveEffects {
+  const MatchActiveEffects({
+    this.fog = false,
+    this.frozenLetterCp,
+    this.frozenLetter,
+    this.fogUntil,
+    this.freezeUntil,
+    this.doublePoints = false,
+    this.warded = false,
+    this.shieldArmed = false,
+  });
 
-  /// Latest fog expiry (epoch millis), or null when no fog is live.
-  final int? fogUntil;
+  final bool fog;
 
-  static const empty = ActiveEffects(
-    frozenLetters: <int, int>{},
-    fogUntil: null,
-  );
+  /// Unicode code point of the frozen character, for the wheel painter.
+  final int? frozenLetterCp;
+  final String? frozenLetter;
+  final DateTime? fogUntil;
+  final DateTime? freezeUntil;
+  final bool doublePoints;
+  final bool warded;
+  final bool shieldArmed;
 
-  bool get hasFog => fogUntil != null;
+  static const empty = MatchActiveEffects();
 }
 
-/// Contract 8.8: `activeEffectsProvider(matchId)`.
-final activeEffectsProvider = Provider.family<ActiveEffects, String>((
+/// Contract 8.8: `activeEffectsProvider(matchId)`. Reads MY entries out of the
+/// match doc `activeEffects` map, not the events stream; `warded` is the one
+/// exception since a ward never lands in `activeEffects` (it is a moment, not
+/// a state).
+final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
   ref,
   matchId,
 ) {
+  final uid = ref.watch(currentUserProvider)?.uid;
+  final match = ref.watch(matchStreamProvider(matchId)).value;
+  if (uid == null || match == null) return MatchActiveEffects.empty;
+
+  final clock = ref.watch(serverClockProvider);
+  final now = clock.now();
+  final nowMs = now.millisecondsSinceEpoch;
+
+  var fog = false;
+  DateTime? fogUntil;
+  String? frozenLetter;
+  int? frozenLetterCp;
+  DateTime? freezeUntil;
+  var doublePoints = false;
+  var shieldArmed = false;
+
+  for (final e in match.effectsFor(uid, nowMs: nowMs)) {
+    final expiresAt = e.armedUntilConsumed
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(e.expiresAt);
+    switch (e.kind) {
+      case MatchEffectKind.fogBank:
+        fog = true;
+        if (expiresAt != null &&
+            (fogUntil == null || expiresAt.isAfter(fogUntil))) {
+          fogUntil = expiresAt;
+        }
+        break;
+      case MatchEffectKind.letterFreeze:
+        final letter = e.frozenLetter;
+        if (letter != null && letter.isNotEmpty) {
+          frozenLetter = letter;
+          frozenLetterCp = letter.runes.first;
+          if (expiresAt != null &&
+              (freezeUntil == null || expiresAt.isAfter(freezeUntil))) {
+            freezeUntil = expiresAt;
+          }
+        }
+        break;
+      case MatchEffectKind.doublePoints:
+        doublePoints = true;
+        break;
+      case MatchEffectKind.shield:
+        if (e.armedUntilConsumed) shieldArmed = true;
+        break;
+      case MatchEffectKind.comboLock:
+      case MatchEffectKind.unknown:
+        break;
+    }
+  }
+
   final events =
       ref.watch(matchEventsStreamProvider(matchId)).value ??
       const <MatchEvent>[];
-  final now = DateTime.now().millisecondsSinceEpoch;
-  final frozen = <int, int>{};
-  int? fogUntil;
-  for (final e in events) {
-    if (e.expiresAt <= now) continue; // already lapsed at projection time
-    if (e.kind == MatchEventKind.letterFreeze) {
-      final idx = e.letterIndex;
-      if (idx != null && (frozen[idx] == null || e.expiresAt > frozen[idx]!)) {
-        frozen[idx] = e.expiresAt;
-      }
-    } else if (e.kind == MatchEventKind.fogBank) {
-      if (fogUntil == null || e.expiresAt > fogUntil) fogUntil = e.expiresAt;
-    }
-  }
-  return ActiveEffects(frozenLetters: frozen, fogUntil: fogUntil);
+  final warded = events.any(
+    (e) =>
+        e.kind == MatchEventKind.warded &&
+        !now.isBefore(DateTime.fromMillisecondsSinceEpoch(e.at)) &&
+        now.difference(DateTime.fromMillisecondsSinceEpoch(e.at)) <
+            kWardedFlashWindow,
+  );
+
+  return MatchActiveEffects(
+    fog: fog,
+    frozenLetterCp: frozenLetterCp,
+    frozenLetter: frozenLetter,
+    fogUntil: fogUntil,
+    freezeUntil: freezeUntil,
+    doublePoints: doublePoints,
+    warded: warded,
+    shieldArmed: shieldArmed,
+  );
+});
+
+/// My effective deadline right now: `endsAt` plus my banked time_boost bonus.
+final matchDeadlineProvider = Provider.family<int?, String>((ref, matchId) {
+  final uid = ref.watch(currentUserProvider)?.uid;
+  final match = ref.watch(matchStreamProvider(matchId)).value;
+  if (uid == null || match == null) return null;
+  return match.deadlineFor(uid);
 });

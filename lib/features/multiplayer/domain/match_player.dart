@@ -14,5 +14,8 @@ abstract class MatchPlayer with _$MatchPlayer {
     required bool connected,
     required int score,
     required int wordsFound,
+    @Default(0) int endsAtBonusMs,
+    @Default(0) int lastWordAt,
+    @Default(0) int finishedAt,
   }) = _MatchPlayer;
 }

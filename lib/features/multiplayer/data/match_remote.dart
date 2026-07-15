@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/network/api_client.dart';
+import '../application/server_clock.dart';
 import '../domain/active_match.dart';
 import '../domain/challenge_outcome.dart';
 
@@ -52,12 +53,21 @@ abstract interface class MatchRemote {
 }
 
 class HttpMatchRemote implements MatchRemote {
-  HttpMatchRemote(this._api, {Uuid? uuid}) : _uuid = uuid ?? const Uuid();
+  HttpMatchRemote(this._api, {Uuid? uuid, this._clock}) : _uuid = uuid ?? const Uuid();
 
   final ApiClient _api;
   final Uuid _uuid;
+  final ServerClock? _clock;
 
   String _key() => _uuid.v4();
+
+  /// `serverNow` rides on the powerup and match-read responses (contract
+  /// update: server clock); feed every one we see to keep effect expiries
+  /// comparing correctly against a skewed device clock.
+  void _syncClock(Map<String, dynamic>? data) {
+    final serverNow = (data?['serverNow'] as num?)?.toInt();
+    if (serverNow != null) _clock?.sync(serverNow);
+  }
 
   @override
   Future<({String matchId, String code})> create(
@@ -109,7 +119,7 @@ class HttpMatchRemote implements MatchRemote {
     required String eventId,
   }) async {
     try {
-      await _api.request<Map<String, dynamic>>(
+      final res = await _api.request<Map<String, dynamic>>(
         '/matches/$matchId/powerup',
         method: 'POST',
         data: <String, dynamic>{'kind': kind, 'eventId': eventId},
@@ -117,6 +127,7 @@ class HttpMatchRemote implements MatchRemote {
         // which is also the events/{eventId} doc id the server writes.
         headers: <String, String>{'idempotency-key': eventId},
       );
+      _syncClock(res.data);
       return true;
     } on DioException catch (e) {
       if (e.response?.statusCode == 402) return false; // none owned
@@ -130,12 +141,15 @@ class HttpMatchRemote implements MatchRemote {
 
   @override
   Future<void> settle(String matchId) async {
-    // The response is discarded on purpose: the settled doc reaches the UI
+    // The settled doc itself is discarded on purpose: it reaches the UI
     // through the Firestore listener, exactly like every other match change.
-    await _api.request<Map<String, dynamic>>(
+    // `serverNow` is not in the doc though, so it is the one thing this
+    // response is read for.
+    final res = await _api.request<Map<String, dynamic>>(
       '/matches/$matchId',
       method: 'GET',
     );
+    _syncClock(res.data);
   }
 
   @override

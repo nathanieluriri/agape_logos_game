@@ -309,14 +309,24 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     service.leave(widget.matchId).ignore();
   }
 
-  /// Which SLOTS are frozen at [now] (maps rack letter index -> slot via
-  /// [order]). Cheap, and read live at touch time so a thaw is never stale.
-  Set<int> _frozenSlots(ActiveEffects effects, List<int> order, int now) {
-    if (effects.frozenLetters.isEmpty) return const <int>{};
+  /// Which SLOTS are frozen at [now]: every slot whose letter equals the
+  /// server-frozen character, so a shuffle never desyncs the freeze from the
+  /// letter it targets.
+  Set<int> _frozenSlots(
+    MatchActiveEffects effects,
+    List<String> wheelLetters,
+    int now,
+  ) {
+    final letter = effects.frozenLetter;
+    final until = effects.freezeUntil;
+    if (letter == null || until == null || until.millisecondsSinceEpoch <= now) {
+      return const <int>{};
+    }
     final frozen = <int>{};
-    for (var slot = 0; slot < order.length; slot++) {
-      final exp = effects.frozenLetters[order[slot]];
-      if (exp != null && exp > now) frozen.add(slot);
+    for (var slot = 0; slot < wheelLetters.length; slot++) {
+      if (wheelLetters[slot].toUpperCase() == letter.toUpperCase()) {
+        frozen.add(slot);
+      }
     }
     return frozen;
   }
@@ -373,7 +383,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   Widget _content(
     Match? match,
     MatchRack? rack,
-    ActiveEffects effects,
+    MatchActiveEffects effects,
     MatchPlayState playState,
     String? myUid,
     bool failed,
@@ -452,7 +462,9 @@ class _MatchPageState extends ConsumerState<MatchPage> {
               center: true,
             ),
             builder: (_, now, board) => FogOverlay(
-              active: effects.fogUntil != null && effects.fogUntil! > now,
+              active:
+                  effects.fogUntil != null &&
+                  effects.fogUntil!.millisecondsSinceEpoch > now,
               child: board!,
             ),
           ),
@@ -489,7 +501,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                           slot,
                           frozen: _frozenSlots(
                             effects,
-                            order,
+                            wheelLetters,
                             DateTime.now().millisecondsSinceEpoch,
                           ),
                         ),
@@ -501,7 +513,11 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                       Positioned.fill(
                         child: _Ticking(
                           builder: (_, now, __) => FrozenLetterOverlay(
-                            frozenSlots: _frozenSlots(effects, order, now),
+                            frozenSlots: _frozenSlots(
+                              effects,
+                              wheelLetters,
+                              now,
+                            ),
                             letterCount: wheelLetters.length,
                             size: _wheelSize,
                           ),

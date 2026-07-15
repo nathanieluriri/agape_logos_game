@@ -11,16 +11,34 @@
 /// 400 and no powerup could ever be used. Keep this map as the single crossing
 /// point between the two vocabularies.
 ///
-/// Offense only: those are the four the server implements
-/// (`match_powerup_service.ts`). Defense and utility items are purchasable but
-/// have no gameplay hook yet, so they are deliberately absent - a null here means
-/// "not firable in a match", which is exactly how the bar filters them out.
+/// Offense (letter_freeze, fog_bank, scramble, word_steal) targets the
+/// opponent; the rest are defense/self-target effects the caster applies to
+/// themselves (shield, time_boost, double_points, combo_lock).
 const Map<String, String> kPowerupWireKinds = <String, String>{
   'freeze_letter': 'letter_freeze',
   'fog': 'fog_bank',
   'scramble': 'scramble',
   'word_steal': 'word_steal',
+  'shield': 'shield',
+  'time_boost': 'time_boost',
+  'double_points': 'double_points',
+  'combo_lock': 'combo_lock',
+};
+
+/// The four kinds that target the opponent. Every other firable kind is
+/// defense/self-target (armed on, or applied to, the caster).
+const Set<String> kOffensiveWireKinds = <String>{
+  'letter_freeze',
+  'fog_bank',
+  'scramble',
+  'word_steal',
 };
 
 /// The wire kind for [itemId], or null when the item cannot be fired in a match.
 String? powerupWireKind(String itemId) => kPowerupWireKinds[itemId];
+
+/// True when [itemId] targets the opponent rather than the caster.
+bool isOffensive(String itemId) {
+  final wireKind = kPowerupWireKinds[itemId];
+  return wireKind != null && kOffensiveWireKinds.contains(wireKind);
+}
