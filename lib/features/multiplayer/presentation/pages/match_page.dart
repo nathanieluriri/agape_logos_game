@@ -15,6 +15,7 @@ import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_dialog.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../auth/application/auth_providers.dart';
+import '../../../game/presentation/widgets/dictionary_sheet.dart';
 import '../../../game/presentation/widgets/formed_word_pill.dart';
 import '../../../game/presentation/widgets/letter_wheel.dart';
 import '../../../game/presentation/widgets/wheel_action_button.dart';
@@ -32,9 +33,8 @@ import '../../domain/powerup_kind.dart';
 import '../widgets/active_effect_chips.dart';
 import '../widgets/fog_overlay.dart';
 import '../widgets/frozen_letter_overlay.dart';
+import '../widgets/match_hud.dart';
 import '../widgets/match_load_error.dart';
-import '../widgets/match_timer.dart';
-import '../widgets/opponent_hud.dart';
 import '../widgets/powerup_cast_flyout.dart';
 import '../widgets/powerup_incoming_banner.dart';
 import '../widgets/powerup_info_sheet.dart';
@@ -587,19 +587,33 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _MyScore(score: myScore),
-              _Ticking(
-                builder: (_, now, __) =>
-                    MatchTimer(endsAt: match.endsAt, nowMillis: now),
-              ),
-              OpponentHud(
-                opponent: myUid == null ? null : match.opponentOf(myUid),
-              ),
-            ],
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          child: MatchHud(
+            myScore: myScore,
+            myWords: rack.foundWords.length,
+            opponentName:
+                (myUid == null ? null : match.opponentOf(myUid)?.displayName) ??
+                'Waiting...',
+            opponentWords:
+                myUid == null ? 0 : (match.opponentOf(myUid)?.wordsFound ?? 0),
+            opponentConnected:
+                myUid == null ? false : (match.opponentOf(myUid)?.connected ?? false),
+            endsAt: DateTime.fromMillisecondsSinceEpoch(match.endsAt),
+            onDictionary: () => showDictionarySheet(
+              context,
+              targets: targets,
+              found: found,
+              revealed: const {},
+            ),
+            onForfeit: isAsync
+                ? () async {
+                    final leave = await _confirmForfeit();
+                    if (leave && mounted) _leaveMatch();
+                  }
+                : null,
           ),
         ),
         Padding(
@@ -740,29 +754,6 @@ class _MatchPageState extends ConsumerState<MatchPage> {
       ],
     );
   }
-}
-
-class _MyScore extends StatelessWidget {
-  const _MyScore({required this.score});
-  final int score;
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        'You',
-        style: TextStyle(color: AppColors.padLabelSoft, fontSize: 12),
-      ),
-      Text(
-        '$score',
-        style: const TextStyle(
-          color: AppColors.padLabel,
-          fontSize: 22,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    ],
-  );
 }
 
 /// The pre-play and post-play holding screen: the app mark drawing itself on a

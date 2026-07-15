@@ -41,11 +41,22 @@ void main() {
     expect(find.text('board'), findsOneWidget);
   });
 
-  testWidgets('match timer formats remaining mm:ss', (tester) async {
+  testWidgets('match timer formats remaining m:ss under an hour',
+      (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(body: MatchTimer(endsAt: 95000, nowMillis: 5000)),
     ));
-    expect(find.text('01:30'), findsOneWidget);
+    expect(find.text('1:30'), findsOneWidget);
+  });
+
+  testWidgets('match timer formats remaining h mm at/over an hour',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: MatchTimer(endsAt: 3700000 + 5000, nowMillis: 5000),
+      ),
+    ));
+    expect(find.text('1h 01m'), findsOneWidget);
   });
 
   testWidgets('opponent HUD shows the server score, never a client one',
