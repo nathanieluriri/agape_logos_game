@@ -103,7 +103,7 @@ export async function setHandle(
   // (or any friend-list write) refreshes the copies.
   if (result.ok) {
     try {
-      await fanOutHandleToFriends(uid, desired);
+      await fanOutHandle(uid, desired);
     } catch (e) {
       console.error(`handle fan-out failed for ${uid}`, e);
     }
@@ -111,26 +111,44 @@ export async function setHandle(
   return result;
 }
 
-// The handle is denormalized onto each friend edge (users/{friendUid}/friends/{uid})
-// so a friend list renders without an extra read per friend. A claim releases the
-// old handle, so a stale copy does not just look wrong: a stranger can claim that
-// handle, and a friend who copies it from their list would add the wrong person.
-// So after the claim commits we push the new handle onto every friend's edge doc.
-// Runs outside the transaction because a transaction cannot query a collection;
-// a friend list is small and bounded, so a merge-set per friend is cheap.
-async function fanOutHandleToFriends(uid: string, handle: string): Promise<void> {
-  const friends = await db.collection("users").doc(uid).collection("friends").get();
-  if (friends.empty) return;
+// The handle is denormalized in three places so those surfaces render without an
+// extra read: each friend edge (users/{friendUid}/friends/{uid}), each friend
+// request I have sent (users/{toUid}/friendRequests/{myUid}, keyed off fromUid),
+// and each challenge I have sent (users/{toUid}/challenges/{matchId}, keyed off
+// byUid). A claim RELEASES the old handle, so a stale copy is not just wrong: a
+// stranger could re-claim it, and someone acting on the stale label would reach
+// the wrong person. After the claim commits we push the new handle onto all three.
+// Runs outside the transaction (a transaction cannot run these queries); each set
+// is small and bounded (a user's own friends / outstanding invites), and the
+// whole thing is best-effort per its caller. Accept paths key off uid, so a
+// missed copy is cosmetic, never a misroute.
+async function fanOutHandle(uid: string, handle: string): Promise<void> {
+  const [friends, sentRequests, sentChallenges] = await Promise.all([
+    db.collection("users").doc(uid).collection("friends").get(),
+    db.collectionGroup("friendRequests").where("fromUid", "==", uid).get(),
+    db.collectionGroup("challenges").where("byUid", "==", uid).get(),
+  ]);
+
   const batch = db.batch();
+  let writes = 0;
   for (const doc of friends.docs) {
-    const friendUid = doc.id;
+    // The reciprocal edge: the friend's copy of me.
     batch.set(
-      db.collection("users").doc(friendUid).collection("friends").doc(uid),
+      db.collection("users").doc(doc.id).collection("friends").doc(uid),
       {handle},
       {merge: true},
     );
+    writes++;
   }
-  await batch.commit();
+  for (const doc of sentRequests.docs) {
+    batch.set(doc.ref, {handle}, {merge: true});
+    writes++;
+  }
+  for (const doc of sentChallenges.docs) {
+    batch.set(doc.ref, {handle}, {merge: true});
+    writes++;
+  }
+  if (writes > 0) await batch.commit();
 }
 
 // Resolves a handle (any casing) to a uid via the usernames index, or null.

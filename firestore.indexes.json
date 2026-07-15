@@ -57,5 +57,16 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "friendRequests",
+      "fieldPath": "fromUid",
+      "indexes": [{"order": "ASCENDING", "queryScope": "COLLECTION_GROUP"}]
+    },
+    {
+      "collectionGroup": "challenges",
+      "fieldPath": "byUid",
+      "indexes": [{"order": "ASCENDING", "queryScope": "COLLECTION_GROUP"}]
+    }
+  ]
 }

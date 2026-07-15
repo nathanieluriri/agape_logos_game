@@ -105,4 +105,33 @@ describe("handle_service", () => {
     expect(after.data()?.uid).toBe("h-user-9a");
     expect(after.data()?.displayName).toBeDefined();
   });
+
+  test("setHandle also refreshes outstanding sent requests and challenges", async () => {
+    const {handle: oldHandle} = await ensureHandle("h-user-10a", "Ripley");
+    await ensureHandle("h-user-10b", "Hicks");
+
+    // An outstanding OUTBOUND friend request (unaccepted) embeds A's handle.
+    await sendFriendRequest("h-user-10a", {toUid: "h-user-10b"});
+    const reqBefore = await admin.firestore()
+      .doc("users/h-user-10b/friendRequests/h-user-10a").get();
+    expect(reqBefore.data()?.handle).toBe(oldHandle);
+
+    // An outstanding challenge invite (byUid == A) also embeds A's handle.
+    await admin.firestore().doc("users/h-user-10b/challenges/match-xyz").set({
+      matchId: "match-xyz", byUid: "h-user-10a", handle: oldHandle,
+      displayName: "Ripley", avatarId: "avatar_01", mode: "async", at: Date.now(),
+    });
+
+    const out = await setHandle("h-user-10a", "ripley_prime");
+    expect(out).toEqual({ok: true, handle: "ripley_prime"});
+
+    const reqAfter = await admin.firestore()
+      .doc("users/h-user-10b/friendRequests/h-user-10a").get();
+    expect(reqAfter.data()?.handle).toBe("ripley_prime");
+    const chAfter = await admin.firestore()
+      .doc("users/h-user-10b/challenges/match-xyz").get();
+    expect(chAfter.data()?.handle).toBe("ripley_prime");
+    // displayName (not part of a handle change) is untouched.
+    expect(chAfter.data()?.displayName).toBe("Ripley");
+  });
 });
