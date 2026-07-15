@@ -51,8 +51,14 @@ class ActiveEffectChips extends StatelessWidget {
       );
     }
 
-    if (effects.doublePoints) {
-      chips.add(const _EffectChip(label: '2x points', icon: Icons.stars_rounded));
+    final doublePointsLeft = _secondsLeft(effects.doublePointsUntil, nowMillis);
+    if (effects.doublePoints && doublePointsLeft != null) {
+      chips.add(
+        _EffectChip(
+          label: '2x points ${doublePointsLeft}s',
+          icon: Icons.stars_rounded,
+        ),
+      );
     }
 
     final wardLeft = _secondsLeft(effects.wardUntil, nowMillis);

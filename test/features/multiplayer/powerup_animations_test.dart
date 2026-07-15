@@ -157,7 +157,13 @@ void main() {
       await tester.pump(); // match + rack streams emit
       await tester.pump(); // rack sync + rebuild
 
-      // First emission: the banner appears.
+      // The very first stream emission (an empty snapshot, standing in for
+      // "nothing pending on mount") is seeded, not animated.
+      events.add(const []);
+      await tester.pump();
+      expect(find.byType(PowerupIncomingBanner), findsNothing);
+
+      // A genuinely new event, emitted AFTER the first snapshot: it animates.
       events.add([event]);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400)); // drop-in done
@@ -185,6 +191,67 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.byType(PowerupIncomingBanner), findsNothing);
     });
+
+    testWidgets(
+      'events present in the initial stream emission do not animate '
+      '(async resume replays history without a banner storm)',
+      (tester) async {
+        final events = StreamController<List<MatchEvent>>();
+        addTearDown(events.close);
+        final historical = List.generate(
+          3,
+          (i) => MatchEvent(
+            id: 'old-$i',
+            at: DateTime.now().millisecondsSinceEpoch - 60000,
+            byUid: 'opp',
+            targetUid: 'me',
+            kind: MatchEventKind.fogBank,
+            payload: const {},
+            expiresAt: DateTime.now().millisecondsSinceEpoch - 50000,
+          ),
+        );
+        final fresh = MatchEvent(
+          id: 'new-1',
+          at: DateTime.now().millisecondsSinceEpoch,
+          byUid: 'opp',
+          targetUid: 'me',
+          kind: MatchEventKind.fogBank,
+          payload: const {},
+          expiresAt: DateTime.now().millisecondsSinceEpoch + 8000,
+        );
+
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+            matchServiceProvider.overrideWithValue(_FakeRemote()),
+            matchStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_active())),
+            myRackStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_rack())),
+            matchEventsStreamProvider('m1')
+                .overrideWith((ref) => events.stream),
+            storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+          ],
+          child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+        ));
+        await tester.pump();
+        await tester.pump();
+
+        // Re-entering an async match replays every historical event targeting
+        // me as the first snapshot: none of these must animate a banner.
+        events.add(historical);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.byType(PowerupIncomingBanner), findsNothing);
+
+        // A genuinely new event fired after that first snapshot still
+        // animates normally.
+        events.add([...historical, fresh]);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.byType(PowerupIncomingBanner), findsOneWidget);
+      },
+    );
   });
 
   group('ActiveEffectChips', () {
@@ -195,6 +262,7 @@ void main() {
       frozenLetter: 'A',
       freezeUntil: DateTime.fromMillisecondsSinceEpoch(now + 2500),
       doublePoints: true,
+      doublePointsUntil: DateTime.fromMillisecondsSinceEpoch(now + 6000),
       warded: true,
       wardUntil: DateTime.fromMillisecondsSinceEpoch(now + 9000),
       shieldArmed: true,
@@ -213,7 +281,7 @@ void main() {
 
       expect(find.text('Fog 4s'), findsOneWidget);
       expect(find.text('Frozen 3s'), findsOneWidget); // ceil(2500ms) -> 3s
-      expect(find.text('2x points'), findsOneWidget);
+      expect(find.text('2x points 6s'), findsOneWidget);
       expect(find.text('Warded 9s'), findsOneWidget);
       expect(find.text('Shield'), findsOneWidget);
     });
@@ -240,12 +308,14 @@ void main() {
           ),
         ),
       );
-      // fog (until now+4000) and freeze (until now+2500) have both lapsed;
-      // ward (until now+9000) and the armed-until-consumed shield have not.
+      // fog (until now+4000), freeze (until now+2500) have both lapsed; ward
+      // (until now+9000), double points (until now+6000), and the
+      // armed-until-consumed shield have not.
       expect(find.textContaining('Fog'), findsNothing);
       expect(find.textContaining('Frozen'), findsNothing);
       expect(find.text('Shield'), findsOneWidget);
       expect(find.textContaining('Warded'), findsOneWidget);
+      expect(find.textContaining('2x points'), findsOneWidget);
     });
   });
 }

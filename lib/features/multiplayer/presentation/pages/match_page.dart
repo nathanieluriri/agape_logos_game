@@ -14,6 +14,7 @@ import '../../../../shared/widgets/animated_app_icon.dart';
 import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_dialog.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
+import '../../../../shared/widgets/pond_snack.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../../game/presentation/widgets/dictionary_sheet.dart';
 import '../../../game/presentation/widgets/formed_word_pill.dart';
@@ -50,10 +51,15 @@ const Duration kMatchTick = Duration(milliseconds: 500);
 /// current wall clock. [child] is passed through untouched, so a subtree that
 /// does not depend on the clock (the word board under the fog) is not rebuilt.
 class _Ticking extends StatefulWidget {
-  const _Ticking({required this.builder, this.child});
+  const _Ticking({required this.builder, required this.now, this.child});
 
   final Widget Function(BuildContext context, int nowMillis, Widget? child)
   builder;
+
+  /// Server-adjusted clock reader (`ref.read(serverClockProvider).now`), so a
+  /// device clock that is skewed behind the server still ends a timed effect
+  /// (fog, freeze) on time.
+  final DateTime Function() now;
   final Widget? child;
 
   @override
@@ -62,14 +68,14 @@ class _Ticking extends StatefulWidget {
 
 class _TickingState extends State<_Ticking> {
   Timer? _timer;
-  int _now = DateTime.now().millisecondsSinceEpoch;
+  late int _now = widget.now().millisecondsSinceEpoch;
 
   @override
   void initState() {
     super.initState();
     _timer = Timer.periodic(kMatchTick, (_) {
       if (!mounted) return;
-      setState(() => _now = DateTime.now().millisecondsSinceEpoch);
+      setState(() => _now = widget.now().millisecondsSinceEpoch);
     });
   }
 
@@ -130,6 +136,13 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   final Set<String> _seenEventIds = <String>{};
   final List<IncomingBannerData> _bannerQueue = <IncomingBannerData>[];
   IncomingBannerData? _activeBanner;
+
+  // The events stream replays every historical event targeting me on each
+  // fresh listen (a doc query, not a since-cursor), so re-entering a match
+  // (async resume) would otherwise queue a banner + SFX for every event ever
+  // fired at me. Seed `_seenEventIds` from the FIRST emission without
+  // animating anything; only events that arrive AFTER that snapshot animate.
+  bool _eventsSeeded = false;
 
   @override
   void initState() {
@@ -236,31 +249,30 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     if (!mounted) return;
 
     if (!result.ok && decremented) {
+      // Refund by incrementing whatever count is CURRENT at refund time, not
+      // by restoring the pre-fire snapshot: two overlapping fires would
+      // otherwise let the later refund clobber the newer state and lose or
+      // duplicate inventory counts.
       final current =
           ref.read(inventoryControllerProvider).value ?? const <String, int>{};
+      final refunded = (current[itemId] ?? 0) + 1;
       ref
           .read(inventoryControllerProvider.notifier)
-          .applyServer({...current, itemId: owned});
+          .applyServer({...current, itemId: refunded});
     }
 
     if (result.reason == 'warded') {
       _playSfxQuiet(SfxKeys.powerupBlocked);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Warded!')));
+      showPondSnack(context, 'Warded!');
       return;
     }
     if (!result.ok) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Could not fire that powerup')));
+      showPondSnack(context, 'Could not fire that powerup');
       return;
     }
     if (result.reason == 'blocked') {
       _playSfxQuiet(SfxKeys.powerupBlocked);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Blocked!')));
+      showPondSnack(context, 'Blocked!');
     }
   }
 
@@ -350,8 +362,18 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     // Apply incoming one-shot effects (scramble reshuffles once; word-steal
     // drops the local optimistic word). Deduped by event id in the controller.
     ref.listen(matchEventsStreamProvider(matchId), (_, next) {
+      final events = next.value ?? const <MatchEvent>[];
+      if (!_eventsSeeded) {
+        // First emission of a fresh listen: these are historical events (some
+        // possibly from a prior sitting), not new ones. Mark them seen so a
+        // later duplicate emission never animates them, but do not animate or
+        // apply them now.
+        _eventsSeeded = true;
+        _seenEventIds.addAll(events.map((e) => e.id));
+        return;
+      }
       final ctrl = ref.read(matchPlayControllerProvider.notifier);
-      for (final e in next.value ?? const <MatchEvent>[]) {
+      for (final e in events) {
         if (e.kind == MatchEventKind.scramble) {
           ctrl.applyScramble(e.id);
         } else if (e.kind == MatchEventKind.wordSteal) {
@@ -607,6 +629,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
             endsAt: DateTime.fromMillisecondsSinceEpoch(
               myUid == null ? match.endsAt : match.deadlineFor(myUid),
             ),
+            now: () => ref.read(serverClockProvider).now(),
             onDictionary: () => showDictionarySheet(
               context,
               targets: targets,
@@ -626,6 +649,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
           child: Align(
             alignment: Alignment.centerLeft,
             child: _Ticking(
+              now: () => ref.read(serverClockProvider).now(),
               builder: (_, now, __) =>
                   ActiveEffectChips(effects: effects, nowMillis: now),
             ),
@@ -633,6 +657,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
         ),
         Expanded(
           child: _Ticking(
+            now: () => ref.read(serverClockProvider).now(),
             child: WordBoard(
               targets: targets,
               found: found,
@@ -694,7 +719,10 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                               frozen: _frozenSlots(
                                 effects,
                                 wheelLetters,
-                                DateTime.now().millisecondsSinceEpoch,
+                                ref
+                                    .read(serverClockProvider)
+                                    .now()
+                                    .millisecondsSinceEpoch,
                               ),
                             ),
                             onEnd: () {
@@ -704,6 +732,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                           ),
                           Positioned.fill(
                             child: _Ticking(
+                              now: () => ref.read(serverClockProvider).now(),
                               builder: (_, now, __) => FrozenLetterOverlay(
                                 frozenSlots: _frozenSlots(
                                   effects,
@@ -719,10 +748,12 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                       ),
                     ),
                     const SizedBox(width: AppSpacing.lg),
-                    // Live only: the flag forfeits, so it gates on the same confirm
-                    // as back. Async has no forfeit (leaving is normal), so the
-                    // flag is hidden entirely; the player leaves via the back arrow
-                    // and returns through Resume. The gap keeps the wheel centered.
+                    // Live only: the wheel-row flag forfeits, gating on the same
+                    // confirm as back. Async matches instead surface their forfeit
+                    // affordance in the HUD (MatchHud's sword icon, since leaving
+                    // an async match by itself is normal and must not forfeit);
+                    // this flag is hidden for async so the gap keeps the wheel
+                    // centered.
                     if (isAsync)
                       const SizedBox(width: AppSizing.actionButton)
                     else

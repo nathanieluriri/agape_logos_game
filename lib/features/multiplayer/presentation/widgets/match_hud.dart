@@ -32,6 +32,7 @@ class MatchHud extends StatelessWidget {
     required this.endsAt,
     required this.onDictionary,
     this.onForfeit,
+    this.now,
   });
 
   final int myScore;
@@ -41,6 +42,12 @@ class MatchHud extends StatelessWidget {
   final bool opponentConnected;
   final DateTime endsAt;
   final VoidCallback onDictionary;
+
+  /// Server-adjusted clock reader. Defaults to the raw device clock so
+  /// existing callers that do not care about clock skew keep working; the
+  /// match page passes `() => ref.read(serverClockProvider).now()` so the
+  /// countdown expires on server time even if the device clock is behind.
+  final DateTime Function()? now;
 
   /// Reuses the live match's `_confirmForfeit` + leave flow. Non-null only
   /// for async matches, whose back button pops freely: this is their only
@@ -56,7 +63,7 @@ class MatchHud extends StatelessWidget {
         children: [
           _MyScorePip(score: myScore, words: myWords),
           const SizedBox(width: AppSpacing.sm),
-          _TickingTimer(endsAt: endsAt),
+          _TickingTimer(endsAt: endsAt, now: now ?? DateTime.now),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: _OpponentChip(
@@ -86,9 +93,12 @@ class MatchHud extends StatelessWidget {
 /// Ticks its own clock so the rest of the HUD row never rebuilds on the
 /// match's 500ms tick, only this pill does.
 class _TickingTimer extends StatefulWidget {
-  const _TickingTimer({required this.endsAt});
+  const _TickingTimer({required this.endsAt, required this.now});
 
   final DateTime endsAt;
+
+  /// Server-adjusted clock reader (see [MatchHud.now]).
+  final DateTime Function() now;
 
   @override
   State<_TickingTimer> createState() => _TickingTimerState();
@@ -96,14 +106,14 @@ class _TickingTimer extends StatefulWidget {
 
 class _TickingTimerState extends State<_TickingTimer> {
   Timer? _timer;
-  int _now = DateTime.now().millisecondsSinceEpoch;
+  late int _now = widget.now().millisecondsSinceEpoch;
 
   @override
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (!mounted) return;
-      setState(() => _now = DateTime.now().millisecondsSinceEpoch);
+      setState(() => _now = widget.now().millisecondsSinceEpoch);
     });
   }
 

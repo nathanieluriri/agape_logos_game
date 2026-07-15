@@ -58,7 +58,11 @@ export async function submitWord(
     }
 
     const myEffects = pruneEffects(m.activeEffects?.[uid], now);
-    if (myEffects.some((e) => e.kind === "letter_freeze" && word.includes(String(e.payload.letter ?? "")))) {
+    if (myEffects.some((e) => {
+      if (e.kind !== "letter_freeze") return false;
+      const letter = e.payload.letter;
+      return typeof letter === "string" && letter.length > 0 && word.includes(letter);
+    })) {
       return {accepted: false, score: curScore, wordsFound: curWords, reason: "frozen"};
     }
 

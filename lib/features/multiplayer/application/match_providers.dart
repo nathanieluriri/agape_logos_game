@@ -98,6 +98,7 @@ class MatchActiveEffects {
     this.fogUntil,
     this.freezeUntil,
     this.doublePoints = false,
+    this.doublePointsUntil,
     this.warded = false,
     this.wardUntil,
     this.shieldArmed = false,
@@ -111,6 +112,11 @@ class MatchActiveEffects {
   final DateTime? fogUntil;
   final DateTime? freezeUntil;
   final bool doublePoints;
+
+  /// Expiry of the double_points effect. The chip ticks against this (like
+  /// fog/freeze/ward) instead of persisting until the next Firestore doc
+  /// change re-evaluates the bare [doublePoints] flag.
+  final DateTime? doublePointsUntil;
 
   /// A combo_lock ward is live on me right now (persisted match-doc state, so
   /// a reconnecting player mid-ward still sees it).
@@ -142,6 +148,7 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
   int? frozenLetterCp;
   DateTime? freezeUntil;
   var doublePoints = false;
+  DateTime? doublePointsUntil;
   var warded = false;
   DateTime? wardUntil;
   var shieldArmed = false;
@@ -171,6 +178,11 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
         break;
       case MatchEffectKind.doublePoints:
         doublePoints = true;
+        if (expiresAt != null &&
+            (doublePointsUntil == null ||
+                expiresAt.isAfter(doublePointsUntil))) {
+          doublePointsUntil = expiresAt;
+        }
         break;
       case MatchEffectKind.shield:
         if (e.armedUntilConsumed) shieldArmed = true;
@@ -194,6 +206,7 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
     fogUntil: fogUntil,
     freezeUntil: freezeUntil,
     doublePoints: doublePoints,
+    doublePointsUntil: doublePointsUntil,
     warded: warded,
     wardUntil: wardUntil,
     shieldArmed: shieldArmed,

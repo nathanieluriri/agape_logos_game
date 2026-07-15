@@ -1,8 +1,8 @@
-import 'package:agape_logos_game/features/multiplayer/domain/match_player.dart';
+import 'package:agape_logos_game/features/multiplayer/application/server_clock.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/fog_overlay.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/frozen_letter_overlay.dart';
+import 'package:agape_logos_game/features/multiplayer/presentation/widgets/match_hud.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/match_timer.dart';
-import 'package:agape_logos_game/features/multiplayer/presentation/widgets/opponent_hud.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -59,20 +59,41 @@ void main() {
     expect(find.text('1h 01m'), findsOneWidget);
   });
 
-  testWidgets('opponent HUD shows the server score, never a client one',
-      (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(
-        body: OpponentHud(
-          opponent: MatchPlayer(
-            uid: 'b', displayName: 'Grace', avatarId: 'a', isGuest: false,
-            ready: true, connected: true, score: 42, wordsFound: 5,
+  testWidgets(
+    'MatchHud ticks against the server clock, not the raw device clock',
+    (tester) async {
+      // The device clock is (simulated) 5 minutes behind the server: sync()
+      // records a positive offset, so ServerClock.now() reads ahead of the
+      // real device DateTime.now().
+      final skewedClock = ServerClock()
+        ..sync(DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch);
+
+      // endsAt is 30s in the FUTURE by the raw device clock, but already 4m30s
+      // in the PAST once corrected for the server's skew ahead.
+      final endsAt = DateTime.now().add(const Duration(seconds: 30));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MatchHud(
+              myScore: 0,
+              myWords: 0,
+              opponentName: 'Opponent',
+              opponentWords: 0,
+              opponentConnected: true,
+              endsAt: endsAt,
+              onDictionary: () {},
+              now: skewedClock.now,
+            ),
           ),
         ),
-      ),
-    ));
-    expect(find.text('Grace'), findsOneWidget);
-    expect(find.text('42'), findsOneWidget);
-    expect(find.text('(5 words)'), findsOneWidget);
-  });
+      );
+
+      // A device-clock-only render would still show ~0:30 remaining; the
+      // server-corrected render must already show the countdown clamped at
+      // zero, proving the effect lapsed on server time.
+      expect(find.text('0:00'), findsOneWidget);
+      expect(find.text('0:30'), findsNothing);
+    },
+  );
 }
