@@ -42,6 +42,10 @@ class ChallengeActionsController extends Notifier<Set<String>> {
       await ref
           .read(matchServiceProvider)
           .respondChallenge(matchId, accept: accept);
+      // An accepted challenge becomes an in-progress game, so refresh the
+      // one-shot active-matches list; otherwise the accepted match would not
+      // appear under "Your games" until a manual pull-to-refresh.
+      if (accept) ref.invalidate(activeMatchesProvider);
       return true;
     } catch (_) {
       return false;
