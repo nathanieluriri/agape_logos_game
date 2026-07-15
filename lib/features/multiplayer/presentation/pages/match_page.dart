@@ -39,6 +39,7 @@ import '../widgets/powerup_cast_flyout.dart';
 import '../widgets/powerup_incoming_banner.dart';
 import '../widgets/powerup_info_sheet.dart';
 import '../widgets/powerup_side_buttons.dart';
+import '../widgets/powerup_tutorial_overlay.dart';
 import '../widgets/powerup_wheel.dart';
 
 /// How often anything on the match page consults the wall clock. Not a motion
@@ -584,7 +585,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
       for (final s in playState.selection) wheelLetters[s],
     ].join().toUpperCase();
 
-    return Column(
+    final playColumn = Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(
@@ -754,6 +755,26 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                 onDone: _onBannerDone,
               ),
           ],
+        ),
+      ],
+    );
+
+    // Task 8: the first-time powerup walkthrough, mounted only while the match
+    // is actually playable (all pre-play/holding branches returned above). It
+    // renders nothing once powerupTutorialSeen is set.
+    return Stack(
+      children: [
+        playColumn,
+        Positioned.fill(
+          child: PowerupTutorialOverlay(
+            offenseKey: powerupOffenseButtonKey,
+            defenseKey: powerupDefenseButtonKey,
+            wheelSlotKey: powerupWheelSlotKey,
+            onOpenOffenseWheel: () => setState(
+              () => _openPowerupCategory = PowerupCategory.offense,
+            ),
+            onCloseWheel: () => setState(() => _openPowerupCategory = null),
+          ),
         ),
       ],
     );

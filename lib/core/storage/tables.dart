@@ -92,6 +92,10 @@ class GameSettings extends Table {
   BoolColumn get notifications => boolean().withDefault(const Constant(true))();
   BoolColumn get haptics => boolean().withDefault(const Constant(true))();
   BoolColumn get tutorialSeen => boolean().withDefault(const Constant(false))();
+  // Mirrors [tutorialSeen] for the multiplayer powerup spotlight walkthrough:
+  // defaults OFF so a player who has never fired a powerup sees it once.
+  BoolColumn get powerupTutorialSeen =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

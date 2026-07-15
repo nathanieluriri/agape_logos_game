@@ -85,6 +85,7 @@ const _settingsRow = GameSettingsRow(
   notifications: true,
   haptics: true,
   tutorialSeen: false,
+  powerupTutorialSeen: true,
 );
 
 /// GamePage with the real game session and a static settings stream. Reduced

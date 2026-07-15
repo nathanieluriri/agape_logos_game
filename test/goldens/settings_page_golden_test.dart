@@ -25,6 +25,7 @@ const _row = GameSettingsRow(
   notifications: true,
   haptics: true,
   tutorialSeen: false,
+  powerupTutorialSeen: true,
 );
 
 /// Deterministic, network-free Public profile switch (defaults to private).

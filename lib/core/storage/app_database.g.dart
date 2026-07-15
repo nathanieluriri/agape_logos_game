@@ -1844,6 +1844,20 @@ class $GameSettingsTable extends GameSettings
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _powerupTutorialSeenMeta =
+      const VerificationMeta('powerupTutorialSeen');
+  @override
+  late final GeneratedColumn<bool> powerupTutorialSeen = GeneratedColumn<bool>(
+    'powerup_tutorial_seen',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("powerup_tutorial_seen" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1852,6 +1866,7 @@ class $GameSettingsTable extends GameSettings
     notifications,
     haptics,
     tutorialSeen,
+    powerupTutorialSeen,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1907,6 +1922,15 @@ class $GameSettingsTable extends GameSettings
         ),
       );
     }
+    if (data.containsKey('powerup_tutorial_seen')) {
+      context.handle(
+        _powerupTutorialSeenMeta,
+        powerupTutorialSeen.isAcceptableOrUnknown(
+          data['powerup_tutorial_seen']!,
+          _powerupTutorialSeenMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1940,6 +1964,10 @@ class $GameSettingsTable extends GameSettings
         DriftSqlType.bool,
         data['${effectivePrefix}tutorial_seen'],
       )!,
+      powerupTutorialSeen: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}powerup_tutorial_seen'],
+      )!,
     );
   }
 
@@ -1956,6 +1984,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
   final bool notifications;
   final bool haptics;
   final bool tutorialSeen;
+  final bool powerupTutorialSeen;
   const GameSettingsRow({
     required this.id,
     required this.soundEffects,
@@ -1963,6 +1992,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
     required this.notifications,
     required this.haptics,
     required this.tutorialSeen,
+    required this.powerupTutorialSeen,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1973,6 +2003,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
     map['notifications'] = Variable<bool>(notifications);
     map['haptics'] = Variable<bool>(haptics);
     map['tutorial_seen'] = Variable<bool>(tutorialSeen);
+    map['powerup_tutorial_seen'] = Variable<bool>(powerupTutorialSeen);
     return map;
   }
 
@@ -1984,6 +2015,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
       notifications: Value(notifications),
       haptics: Value(haptics),
       tutorialSeen: Value(tutorialSeen),
+      powerupTutorialSeen: Value(powerupTutorialSeen),
     );
   }
 
@@ -1999,6 +2031,9 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
       notifications: serializer.fromJson<bool>(json['notifications']),
       haptics: serializer.fromJson<bool>(json['haptics']),
       tutorialSeen: serializer.fromJson<bool>(json['tutorialSeen']),
+      powerupTutorialSeen: serializer.fromJson<bool>(
+        json['powerupTutorialSeen'],
+      ),
     );
   }
   @override
@@ -2011,6 +2046,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
       'notifications': serializer.toJson<bool>(notifications),
       'haptics': serializer.toJson<bool>(haptics),
       'tutorialSeen': serializer.toJson<bool>(tutorialSeen),
+      'powerupTutorialSeen': serializer.toJson<bool>(powerupTutorialSeen),
     };
   }
 
@@ -2021,6 +2057,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
     bool? notifications,
     bool? haptics,
     bool? tutorialSeen,
+    bool? powerupTutorialSeen,
   }) => GameSettingsRow(
     id: id ?? this.id,
     soundEffects: soundEffects ?? this.soundEffects,
@@ -2028,6 +2065,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
     notifications: notifications ?? this.notifications,
     haptics: haptics ?? this.haptics,
     tutorialSeen: tutorialSeen ?? this.tutorialSeen,
+    powerupTutorialSeen: powerupTutorialSeen ?? this.powerupTutorialSeen,
   );
   GameSettingsRow copyWithCompanion(GameSettingsCompanion data) {
     return GameSettingsRow(
@@ -2043,6 +2081,9 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
       tutorialSeen: data.tutorialSeen.present
           ? data.tutorialSeen.value
           : this.tutorialSeen,
+      powerupTutorialSeen: data.powerupTutorialSeen.present
+          ? data.powerupTutorialSeen.value
+          : this.powerupTutorialSeen,
     );
   }
 
@@ -2054,7 +2095,8 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
           ..write('music: $music, ')
           ..write('notifications: $notifications, ')
           ..write('haptics: $haptics, ')
-          ..write('tutorialSeen: $tutorialSeen')
+          ..write('tutorialSeen: $tutorialSeen, ')
+          ..write('powerupTutorialSeen: $powerupTutorialSeen')
           ..write(')'))
         .toString();
   }
@@ -2067,6 +2109,7 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
     notifications,
     haptics,
     tutorialSeen,
+    powerupTutorialSeen,
   );
   @override
   bool operator ==(Object other) =>
@@ -2077,7 +2120,8 @@ class GameSettingsRow extends DataClass implements Insertable<GameSettingsRow> {
           other.music == this.music &&
           other.notifications == this.notifications &&
           other.haptics == this.haptics &&
-          other.tutorialSeen == this.tutorialSeen);
+          other.tutorialSeen == this.tutorialSeen &&
+          other.powerupTutorialSeen == this.powerupTutorialSeen);
 }
 
 class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
@@ -2087,6 +2131,7 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
   final Value<bool> notifications;
   final Value<bool> haptics;
   final Value<bool> tutorialSeen;
+  final Value<bool> powerupTutorialSeen;
   const GameSettingsCompanion({
     this.id = const Value.absent(),
     this.soundEffects = const Value.absent(),
@@ -2094,6 +2139,7 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
     this.notifications = const Value.absent(),
     this.haptics = const Value.absent(),
     this.tutorialSeen = const Value.absent(),
+    this.powerupTutorialSeen = const Value.absent(),
   });
   GameSettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -2102,6 +2148,7 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
     this.notifications = const Value.absent(),
     this.haptics = const Value.absent(),
     this.tutorialSeen = const Value.absent(),
+    this.powerupTutorialSeen = const Value.absent(),
   });
   static Insertable<GameSettingsRow> custom({
     Expression<int>? id,
@@ -2110,6 +2157,7 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
     Expression<bool>? notifications,
     Expression<bool>? haptics,
     Expression<bool>? tutorialSeen,
+    Expression<bool>? powerupTutorialSeen,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2118,6 +2166,8 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
       if (notifications != null) 'notifications': notifications,
       if (haptics != null) 'haptics': haptics,
       if (tutorialSeen != null) 'tutorial_seen': tutorialSeen,
+      if (powerupTutorialSeen != null)
+        'powerup_tutorial_seen': powerupTutorialSeen,
     });
   }
 
@@ -2128,6 +2178,7 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
     Value<bool>? notifications,
     Value<bool>? haptics,
     Value<bool>? tutorialSeen,
+    Value<bool>? powerupTutorialSeen,
   }) {
     return GameSettingsCompanion(
       id: id ?? this.id,
@@ -2136,6 +2187,7 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
       notifications: notifications ?? this.notifications,
       haptics: haptics ?? this.haptics,
       tutorialSeen: tutorialSeen ?? this.tutorialSeen,
+      powerupTutorialSeen: powerupTutorialSeen ?? this.powerupTutorialSeen,
     );
   }
 
@@ -2160,6 +2212,9 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
     if (tutorialSeen.present) {
       map['tutorial_seen'] = Variable<bool>(tutorialSeen.value);
     }
+    if (powerupTutorialSeen.present) {
+      map['powerup_tutorial_seen'] = Variable<bool>(powerupTutorialSeen.value);
+    }
     return map;
   }
 
@@ -2171,7 +2226,8 @@ class GameSettingsCompanion extends UpdateCompanion<GameSettingsRow> {
           ..write('music: $music, ')
           ..write('notifications: $notifications, ')
           ..write('haptics: $haptics, ')
-          ..write('tutorialSeen: $tutorialSeen')
+          ..write('tutorialSeen: $tutorialSeen, ')
+          ..write('powerupTutorialSeen: $powerupTutorialSeen')
           ..write(')'))
         .toString();
   }
@@ -4225,6 +4281,7 @@ typedef $$GameSettingsTableCreateCompanionBuilder =
       Value<bool> notifications,
       Value<bool> haptics,
       Value<bool> tutorialSeen,
+      Value<bool> powerupTutorialSeen,
     });
 typedef $$GameSettingsTableUpdateCompanionBuilder =
     GameSettingsCompanion Function({
@@ -4234,6 +4291,7 @@ typedef $$GameSettingsTableUpdateCompanionBuilder =
       Value<bool> notifications,
       Value<bool> haptics,
       Value<bool> tutorialSeen,
+      Value<bool> powerupTutorialSeen,
     });
 
 class $$GameSettingsTableFilterComposer
@@ -4272,6 +4330,11 @@ class $$GameSettingsTableFilterComposer
 
   ColumnFilters<bool> get tutorialSeen => $composableBuilder(
     column: $table.tutorialSeen,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get powerupTutorialSeen => $composableBuilder(
+    column: $table.powerupTutorialSeen,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4314,6 +4377,11 @@ class $$GameSettingsTableOrderingComposer
     column: $table.tutorialSeen,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get powerupTutorialSeen => $composableBuilder(
+    column: $table.powerupTutorialSeen,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$GameSettingsTableAnnotationComposer
@@ -4346,6 +4414,11 @@ class $$GameSettingsTableAnnotationComposer
 
   GeneratedColumn<bool> get tutorialSeen => $composableBuilder(
     column: $table.tutorialSeen,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get powerupTutorialSeen => $composableBuilder(
+    column: $table.powerupTutorialSeen,
     builder: (column) => column,
   );
 }
@@ -4387,6 +4460,7 @@ class $$GameSettingsTableTableManager
                 Value<bool> notifications = const Value.absent(),
                 Value<bool> haptics = const Value.absent(),
                 Value<bool> tutorialSeen = const Value.absent(),
+                Value<bool> powerupTutorialSeen = const Value.absent(),
               }) => GameSettingsCompanion(
                 id: id,
                 soundEffects: soundEffects,
@@ -4394,6 +4468,7 @@ class $$GameSettingsTableTableManager
                 notifications: notifications,
                 haptics: haptics,
                 tutorialSeen: tutorialSeen,
+                powerupTutorialSeen: powerupTutorialSeen,
               ),
           createCompanionCallback:
               ({
@@ -4403,6 +4478,7 @@ class $$GameSettingsTableTableManager
                 Value<bool> notifications = const Value.absent(),
                 Value<bool> haptics = const Value.absent(),
                 Value<bool> tutorialSeen = const Value.absent(),
+                Value<bool> powerupTutorialSeen = const Value.absent(),
               }) => GameSettingsCompanion.insert(
                 id: id,
                 soundEffects: soundEffects,
@@ -4410,6 +4486,7 @@ class $$GameSettingsTableTableManager
                 notifications: notifications,
                 haptics: haptics,
                 tutorialSeen: tutorialSeen,
+                powerupTutorialSeen: powerupTutorialSeen,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

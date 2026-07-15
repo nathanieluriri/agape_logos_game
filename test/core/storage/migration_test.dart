@@ -94,6 +94,9 @@ void main() {
       await db.customSelect('SELECT coins FROM cached_profile').get();
       await db.customSelect('SELECT encrypted FROM cached_puzzles').get();
       await db.customSelect('SELECT tutorial_seen FROM game_settings').get();
+      await db
+          .customSelect('SELECT powerup_tutorial_seen FROM game_settings')
+          .get();
 
       final version = await db
           .customSelect('PRAGMA user_version;')

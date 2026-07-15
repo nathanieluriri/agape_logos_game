@@ -44,6 +44,8 @@ class GameSettingsDao extends DatabaseAccessor<AppDatabase>
       _set(GameSettingsCompanion(haptics: Value(value)));
   Future<void> setTutorialSeen(bool value) =>
       _set(GameSettingsCompanion(tutorialSeen: Value(value)));
+  Future<void> setPowerupTutorialSeen(bool value) =>
+      _set(GameSettingsCompanion(powerupTutorialSeen: Value(value)));
 
   Future<void> _set(GameSettingsCompanion change) async {
     await ensureDefault();

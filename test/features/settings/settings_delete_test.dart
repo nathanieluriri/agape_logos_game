@@ -27,6 +27,7 @@ const _row = GameSettingsRow(
   notifications: true,
   haptics: true,
   tutorialSeen: false,
+  powerupTutorialSeen: true,
 );
 
 class _FakeAuth implements AuthRepository {

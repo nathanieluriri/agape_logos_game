@@ -3,10 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:agape_logos_game/core/storage/app_database.dart';
 
 void main() {
-  // Bumped 8 -> 9 by the dictionary feature (adds the DictionaryEntries table).
-  test('schemaVersion is 9', () {
+  // Bumped 9 -> 10 by the powerup tutorial (adds powerupTutorialSeen).
+  test('schemaVersion is 10', () {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
-    expect(db.schemaVersion, 9);
+    expect(db.schemaVersion, 10);
     addTearDown(db.close);
   });
 

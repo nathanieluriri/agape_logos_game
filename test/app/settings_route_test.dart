@@ -22,6 +22,7 @@ const _row = GameSettingsRow(
   notifications: true,
   haptics: true,
   tutorialSeen: false,
+  powerupTutorialSeen: true,
 );
 
 /// Home embeds the reward pad (which reads `GET /rewards`); stub it to a hidden

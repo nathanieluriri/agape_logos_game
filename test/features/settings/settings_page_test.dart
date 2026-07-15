@@ -22,6 +22,7 @@ const _row = GameSettingsRow(
   notifications: false, // distinct value, to prove the page binds it to its switch
   haptics: true,
   tutorialSeen: false,
+  powerupTutorialSeen: true,
 );
 
 class _FakeAuth implements AuthRepository {

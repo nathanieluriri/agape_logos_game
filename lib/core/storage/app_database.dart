@@ -36,7 +36,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -58,6 +58,9 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(gameSettings);
           } else if (from < 7) {
             await m.addColumn(gameSettings, gameSettings.tutorialSeen);
+            await m.addColumn(gameSettings, gameSettings.powerupTutorialSeen);
+          } else if (from < 10) {
+            await m.addColumn(gameSettings, gameSettings.powerupTutorialSeen);
           }
           if (from < 4) {
             await m.createTable(cachedProfile);
