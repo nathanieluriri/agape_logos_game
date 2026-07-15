@@ -202,9 +202,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     setState(() => _openPowerupCategory = null);
     final inventory =
         ref.read(inventoryControllerProvider).value ?? const <String, int>{};
-    final itemId = kPowerupWireKinds.entries
-        .firstWhere((e) => e.value == kind, orElse: () => const MapEntry('', ''))
-        .key;
+    final itemId = powerupItemId(kind) ?? '';
     final ok = await ref
         .read(matchServiceProvider)
         .powerup(widget.matchId, kind, eventId: const Uuid().v4());

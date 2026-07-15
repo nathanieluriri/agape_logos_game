@@ -16,21 +16,17 @@ import 'powerup_wheel_slot.dart';
 /// for wheel purposes.
 enum PowerupCategory { offense, defense }
 
-/// The four offense item ids, fixed slot order (12, 3, 6, 9 o'clock).
-const List<String> kOffensePowerupIds = [
-  'freeze_letter',
-  'fog',
-  'scramble',
-  'word_steal',
-];
+/// The offense item ids, derived from the domain's [isOffensive] split so the
+/// wheel can never disagree with `powerup_kind.dart` (single source of truth).
+/// Slot order follows the map's declaration order (12, 3, 6, 9 o'clock).
+final List<String> kOffensePowerupIds = List.unmodifiable(
+  kPowerupWireKinds.keys.where(isOffensive),
+);
 
-/// The four defense item ids, fixed slot order.
-const List<String> kDefensePowerupIds = [
-  'shield',
-  'time_boost',
-  'double_points',
-  'combo_lock',
-];
+/// The defense/self-target item ids: everything firable that is not offense.
+final List<String> kDefensePowerupIds = List.unmodifiable(
+  kPowerupWireKinds.keys.where((id) => !isOffensive(id)),
+);
 
 List<String> itemIdsForCategory(PowerupCategory category) =>
     category == PowerupCategory.offense

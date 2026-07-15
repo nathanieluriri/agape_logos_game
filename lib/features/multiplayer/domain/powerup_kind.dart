@@ -34,6 +34,16 @@ const Set<String> kOffensiveWireKinds = <String>{
   'word_steal',
 };
 
+/// The inverse of [kPowerupWireKinds]: wire kind -> store item id. Precomputed
+/// once so callers resolving a fired kind back to its inventory line do not
+/// scan the map per fire.
+final Map<String, String> kPowerupItemIds = Map.unmodifiable(<String, String>{
+  for (final entry in kPowerupWireKinds.entries) entry.value: entry.key,
+});
+
+/// The store item id for a wire [kind], or null for an unknown kind.
+String? powerupItemId(String kind) => kPowerupItemIds[kind];
+
 /// The wire kind for [itemId], or null when the item cannot be fired in a match.
 String? powerupWireKind(String itemId) => kPowerupWireKinds[itemId];
 
