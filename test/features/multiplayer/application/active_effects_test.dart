@@ -3,7 +3,6 @@ import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
 import 'package:agape_logos_game/features/multiplayer/application/server_clock.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match.dart';
-import 'package:agape_logos_game/features/multiplayer/domain/match_event.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_player.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_settings.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -161,35 +160,101 @@ void main() {
     expect(fx.fog, isFalse);
   });
 
-  test('warded flashes true briefly after a warded event lands', () async {
-    final now = DateTime.now().millisecondsSinceEpoch;
+  test('warded reads combo_lock STATE from the match doc (reconnect-safe)', () async {
+    // A reconnecting client has NO events replayed; the ward must come from
+    // the persisted activeEffects alone.
+    final until = DateTime.now().millisecondsSinceEpoch + 45000;
     final container = ProviderContainer(
       overrides: [
         currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
         matchStreamProvider('m1').overrideWith(
-          (ref) => Stream.value(_matchWith(const {})),
-        ),
-        matchEventsStreamProvider('m1').overrideWith(
-          (ref) => Stream.value([
-            MatchEvent(
-              id: 'e1',
-              at: now,
-              byUid: 'me',
-              targetUid: 'me',
-              kind: MatchEventKind.warded,
-              payload: const {},
-              expiresAt: 0,
-            ),
-          ]),
+          (ref) => Stream.value(
+            _matchWith({
+              'me': [
+                MatchActiveEffect(
+                  kind: MatchEffectKind.comboLock,
+                  byUid: 'me',
+                  startedAt: 0,
+                  expiresAt: until,
+                  payload: const {},
+                ),
+              ],
+            }),
+          ),
         ),
       ],
     );
     addTearDown(container.dispose);
     container.listen(matchStreamProvider('m1'), (_, __) {});
-    container.listen(matchEventsStreamProvider('m1'), (_, __) {});
     await container.pump();
 
     final fx = container.read(activeEffectsProvider('m1'));
     expect(fx.warded, isTrue);
+    expect(fx.wardUntil, DateTime.fromMillisecondsSinceEpoch(until));
+  });
+
+  test('ward stays active under a device-ahead clock once ServerClock synced', () async {
+    final clock = ServerClock();
+    // Device is 5 minutes AHEAD of the server.
+    final serverNowMs = DateTime.now().millisecondsSinceEpoch - 300000;
+    clock.sync(serverNowMs);
+    // Lapsed by device time, still live by server time.
+    final until = serverNowMs + 45000;
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        serverClockProvider.overrideWithValue(clock),
+        matchStreamProvider('m1').overrideWith(
+          (ref) => Stream.value(
+            _matchWith({
+              'me': [
+                MatchActiveEffect(
+                  kind: MatchEffectKind.comboLock,
+                  byUid: 'me',
+                  startedAt: 0,
+                  expiresAt: until,
+                  payload: const {},
+                ),
+              ],
+            }),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.listen(matchStreamProvider('m1'), (_, __) {});
+    await container.pump();
+
+    expect(container.read(activeEffectsProvider('m1')).warded, isTrue);
+  });
+
+  test('a lapsed combo_lock leaves warded false', () async {
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchStreamProvider('m1').overrideWith(
+          (ref) => Stream.value(
+            _matchWith({
+              'me': [
+                MatchActiveEffect(
+                  kind: MatchEffectKind.comboLock,
+                  byUid: 'me',
+                  startedAt: 0,
+                  expiresAt: DateTime.now().millisecondsSinceEpoch - 1000,
+                  payload: const {},
+                ),
+              ],
+            }),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.listen(matchStreamProvider('m1'), (_, __) {});
+    await container.pump();
+
+    final fx = container.read(activeEffectsProvider('m1'));
+    expect(fx.warded, isFalse);
+    expect(fx.wardUntil, isNull);
   });
 }

@@ -86,12 +86,6 @@ final matchEventsStreamProvider =
           .watchEventsForMe(matchId, user.uid);
     });
 
-/// How long a `warded` flash stays true after it lands. Events are the
-/// animation feed (no persisted "warded" state exists), so this projection
-/// treats a recent warded event as a short-lived flag rather than ticking a
-/// stateful timer.
-const Duration kWardedFlashWindow = Duration(seconds: 3);
-
 /// Derived live effects currently on me, sourced from the match doc's
 /// server-persisted `activeEffects` (never from the events feed, which stays
 /// the animation-only channel). Expiry is checked against [ServerClock.now],
@@ -105,6 +99,7 @@ class MatchActiveEffects {
     this.freezeUntil,
     this.doublePoints = false,
     this.warded = false,
+    this.wardUntil,
     this.shieldArmed = false,
   });
 
@@ -116,16 +111,20 @@ class MatchActiveEffects {
   final DateTime? fogUntil;
   final DateTime? freezeUntil;
   final bool doublePoints;
+
+  /// A combo_lock ward is live on me right now (persisted match-doc state, so
+  /// a reconnecting player mid-ward still sees it).
   final bool warded;
+  final DateTime? wardUntil;
   final bool shieldArmed;
 
   static const empty = MatchActiveEffects();
 }
 
 /// Contract 8.8: `activeEffectsProvider(matchId)`. Reads MY entries out of the
-/// match doc `activeEffects` map, not the events stream; `warded` is the one
-/// exception since a ward never lands in `activeEffects` (it is a moment, not
-/// a state).
+/// match doc `activeEffects` map, not the events stream (which stays the
+/// animation-only channel). `warded` is the persisted combo_lock ward, so a
+/// reconnecting player mid-ward still sees it.
 final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
   ref,
   matchId,
@@ -135,8 +134,7 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
   if (uid == null || match == null) return MatchActiveEffects.empty;
 
   final clock = ref.watch(serverClockProvider);
-  final now = clock.now();
-  final nowMs = now.millisecondsSinceEpoch;
+  final nowMs = clock.now().millisecondsSinceEpoch;
 
   var fog = false;
   DateTime? fogUntil;
@@ -144,6 +142,8 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
   int? frozenLetterCp;
   DateTime? freezeUntil;
   var doublePoints = false;
+  var warded = false;
+  DateTime? wardUntil;
   var shieldArmed = false;
 
   for (final e in match.effectsFor(uid, nowMs: nowMs)) {
@@ -176,21 +176,16 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
         if (e.armedUntilConsumed) shieldArmed = true;
         break;
       case MatchEffectKind.comboLock:
+        warded = true;
+        if (expiresAt != null &&
+            (wardUntil == null || expiresAt.isAfter(wardUntil))) {
+          wardUntil = expiresAt;
+        }
+        break;
       case MatchEffectKind.unknown:
         break;
     }
   }
-
-  final events =
-      ref.watch(matchEventsStreamProvider(matchId)).value ??
-      const <MatchEvent>[];
-  final warded = events.any(
-    (e) =>
-        e.kind == MatchEventKind.warded &&
-        !now.isBefore(DateTime.fromMillisecondsSinceEpoch(e.at)) &&
-        now.difference(DateTime.fromMillisecondsSinceEpoch(e.at)) <
-            kWardedFlashWindow,
-  );
 
   return MatchActiveEffects(
     fog: fog,
@@ -200,6 +195,7 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
     freezeUntil: freezeUntil,
     doublePoints: doublePoints,
     warded: warded,
+    wardUntil: wardUntil,
     shieldArmed: shieldArmed,
   );
 });
