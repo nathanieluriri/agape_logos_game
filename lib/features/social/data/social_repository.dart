@@ -10,8 +10,14 @@ abstract interface class SocialRepository {
   Future<void> setPrivacy(bool isPublic);
   Future<List<PublicProfile>> searchUsers(String query);
   Future<PublicProfileDetail> publicProfile(String uid);
-  Future<FriendRequestOutcome> sendFriendRequest({String? toUid, String? handle});
-  Future<bool> respondToFriendRequest({required String fromUid, required bool accept});
+  Future<FriendRequestOutcome> sendFriendRequest({
+    String? toUid,
+    String? handle,
+  });
+  Future<bool> respondToFriendRequest({
+    required String fromUid,
+    required bool accept,
+  });
   Future<FriendsSnapshot> friends();
   Future<List<MatchHistoryEntry>> matchHistory({int? limit});
 }

@@ -5,8 +5,9 @@ import '../data/firebase_auth_repository.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_user.dart';
 
-final authRepositoryProvider =
-    Provider<AuthRepository>((ref) => FirebaseAuthRepository());
+final authRepositoryProvider = Provider<AuthRepository>(
+  (ref) => FirebaseAuthRepository(),
+);
 
 /// Reactive auth state; null value means signed out.
 final authStateProvider = StreamProvider<AuthUser?>(
@@ -31,11 +32,13 @@ class AuthController extends AsyncNotifier<void> {
     state = await AsyncValue.guard(action);
   }
 
-  Future<void> signInWithEmail(String email, String password) =>
-      _run(() => ref.read(authRepositoryProvider).signInWithEmail(email, password));
+  Future<void> signInWithEmail(String email, String password) => _run(
+    () => ref.read(authRepositoryProvider).signInWithEmail(email, password),
+  );
 
-  Future<void> registerWithEmail(String email, String password) =>
-      _run(() => ref.read(authRepositoryProvider).registerWithEmail(email, password));
+  Future<void> registerWithEmail(String email, String password) => _run(
+    () => ref.read(authRepositoryProvider).registerWithEmail(email, password),
+  );
 
   Future<void> signInWithGoogle() =>
       _run(() => ref.read(authRepositoryProvider).signInWithGoogle());
@@ -50,10 +53,11 @@ class AuthController extends AsyncNotifier<void> {
       _run(() => ref.read(authRepositoryProvider).signOut());
 
   Future<void> deleteAccount() => _run(() async {
-        await ref.read(authRepositoryProvider).deleteAccount();
-        await ref.read(appDatabaseProvider).clearLocalGameData();
-      });
+    await ref.read(authRepositoryProvider).deleteAccount();
+    await ref.read(appDatabaseProvider).clearLocalGameData();
+  });
 }
 
-final authControllerProvider =
-    AsyncNotifierProvider<AuthController, void>(AuthController.new);
+final authControllerProvider = AsyncNotifierProvider<AuthController, void>(
+  AuthController.new,
+);

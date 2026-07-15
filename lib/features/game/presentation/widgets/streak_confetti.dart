@@ -52,7 +52,8 @@ class _StreakConfettiState extends State<StreakConfetti>
     super.didUpdateWidget(oldWidget);
     final climbed = widget.combo != oldWidget.combo && widget.combo >= 2;
     if (!climbed) return;
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     if (reduceMotion) return;
     _particles = _spawn();
     _controller.forward(from: 0);
@@ -153,7 +154,8 @@ class _ConfettiPainter extends CustomPainter {
 
     for (final p in particles) {
       final distance = p.speed * ease;
-      final pos = origin +
+      final pos =
+          origin +
           Offset(
             math.cos(p.angle) * distance + p.wind * t,
             math.sin(p.angle) * distance + _gravity * t * t,

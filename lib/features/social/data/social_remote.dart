@@ -44,7 +44,10 @@ class HttpSocialRemote implements SocialRemote {
   final ApiClient _api;
 
   @override
-  Future<void> setPrivacy(bool isPublic, {required String idempotencyKey}) async {
+  Future<void> setPrivacy(
+    bool isPublic, {
+    required String idempotencyKey,
+  }) async {
     await _api.request<Map<String, dynamic>>(
       kPrivacyEndpoint,
       method: 'PUT',

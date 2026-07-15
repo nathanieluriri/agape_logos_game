@@ -63,14 +63,18 @@ class _SplashSceneState extends State<SplashScene>
             if (status == AnimationStatus.completed) widget.onComplete();
           });
     _glowFade = CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.55, 0.80, curve: AppCurves.enter));
+      parent: _controller,
+      curve: const Interval(0.55, 0.80, curve: AppCurves.enter),
+    );
     _wordFade = CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.66, 0.90, curve: AppCurves.enter));
+      parent: _controller,
+      curve: const Interval(0.66, 0.90, curve: AppCurves.enter),
+    );
     _glowScale = Tween<double>(begin: 0.6, end: 1.0).animate(_glowFade);
-    _wordSlide = Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero)
-        .animate(_wordFade);
+    _wordSlide = Tween<Offset>(
+      begin: const Offset(0, 0.35),
+      end: Offset.zero,
+    ).animate(_wordFade);
   }
 
   @override
@@ -79,8 +83,9 @@ class _SplashSceneState extends State<SplashScene>
     if (_started) return;
     _started = true;
     _reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    _controller.duration =
-        _reduce ? AppDurations.splashReduced : AppDurations.splashRun;
+    _controller.duration = _reduce
+        ? AppDurations.splashReduced
+        : AppDurations.splashRun;
     // Warm the vector so the first block never renders on an unparsed picture.
     // The SVG ships with the bundle, so unlike the old PNG it cannot be missing;
     // a parse failure still falls back to the vector BrandMark rather than
@@ -146,7 +151,9 @@ class _SplashSceneState extends State<SplashScene>
                 : FadeTransition(
                     opacity: _wordFade,
                     child: SlideTransition(
-                        position: _wordSlide, child: _wordmarkText()),
+                      position: _wordSlide,
+                      child: _wordmarkText(),
+                    ),
                   ),
           ],
         ),
@@ -222,15 +229,15 @@ class _SplashSceneState extends State<SplashScene>
   /// The mark itself. Vector (`app_icon.svg`), so it stays crisp at any density
   /// on both web and mobile instead of resampling the PNG.
   Widget _iconImage(double markSize) => SizedBox(
-        width: markSize,
-        height: markSize,
-        child: SvgPicture.asset(
-          _iconAsset,
-          width: markSize,
-          height: markSize,
-          fit: BoxFit.fill,
-        ),
-      );
+    width: markSize,
+    height: markSize,
+    child: SvgPicture.asset(
+      _iconAsset,
+      width: markSize,
+      height: markSize,
+      fit: BoxFit.fill,
+    ),
+  );
 
   Widget _glowBox(double markSize) {
     final double side = markSize * 1.7;

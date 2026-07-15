@@ -19,6 +19,7 @@ import '../widgets/letter_wheel.dart';
 import '../widgets/streak_confetti.dart';
 import '../widgets/wheel_action_button.dart';
 import '../widgets/word_board.dart';
+import '../../../../core/design/tokens/colors.dart';
 
 class GamePage extends ConsumerStatefulWidget {
   const GamePage({super.key});
@@ -84,67 +85,35 @@ class _GamePageState extends ConsumerState<GamePage> {
       if (justCompleted) _onComplete();
     });
 
-    final session = ref.watch(gameSessionProvider);
+    // Only the session's existence is watched here: every field is watched by
+    // the leaf that consumes it, so a drag (which mutates `selection`) does not
+    // rebuild the whole page.
+    final hasSession = ref.watch(gameSessionProvider.select((s) => s != null));
     final puzzleAsync = ref.watch(currentPuzzleProvider);
-    final coins = ref.watch(coinsProvider);
-    final level = ref.watch(nextLevelProvider);
-    final controller = ref.read(gameSessionProvider.notifier);
 
     // The stream resolved to "no unplayed puzzles" and nothing is loading:
     // show a retry notice instead of spinning forever.
-    final pondEmpty = session == null &&
+    final pondEmpty =
+        !hasSession &&
         !puzzleAsync.isLoading &&
         puzzleAsync.asData?.value == null;
 
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         child: SafeArea(
-          child: session == null
+          child: !hasSession
               ? (pondEmpty
-                  ? EmptyPondNotice(onRetry: _recover)
-                  : const Center(
-                      child: PondLoader(
-                        label: 'Loading puzzle',
-                      ),
-                    ))
+                    ? EmptyPondNotice(onRetry: _recover)
+                    : const Center(child: PondLoader(label: 'Loading puzzle')))
               : Stack(
                   children: [
                     Column(
                       children: [
-                        GameTopBar(
-                          level: level,
-                          coins: coins,
-                          onBack: () => context.pop(),
-                          onDictionary: () => showDictionarySheet(
-                            context,
-                            targets: session.targets,
-                            found: session.found,
-                            revealed: session.revealed,
-                          ),
-                        ),
-                        Expanded(
-                          child: WordBoard(
-                            key: _boardKey,
-                            targets: session.targets,
-                            found: session.found,
-                            revealed: session.revealed,
-                            center: true,
-                          ),
-                        ),
-                        // Confetti bursts from behind the capsule on each new
-                        // streak; the Stack does not clip, so bits fly free.
-                        Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.center,
-                          children: [
-                            Positioned.fill(
-                              child: StreakConfetti(combo: session.combo),
-                            ),
-                            ComboBanner(
-                                praise: session.praise, combo: session.combo),
-                          ],
-                        ),
-                        FormedWordPill(word: session.formedWord),
+                        const _TopBarSlot(),
+                        Expanded(child: _BoardSlot(boardKey: _boardKey)),
+                        const _ComboSlot(),
+                        const _FormedWordSlot(),
                         const SizedBox(height: AppSpacing.md),
                         Padding(
                           padding: const EdgeInsets.symmetric(
@@ -160,28 +129,11 @@ class _GamePageState extends ConsumerState<GamePage> {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                WheelActionButton(
-                                  icon: Icons.shuffle,
-                                  semanticLabel: 'Shuffle',
-                                  onTap: controller.shuffle,
-                                ),
+                                const _ShuffleButton(),
                                 const SizedBox(width: AppSpacing.lg),
-                                LetterWheel(
-                                  key: _wheelKey,
-                                  letters: session.wheelLetters,
-                                  selected: session.selection,
-                                  ids: session.rackOrder,
-                                  onTouch: controller.touchLetter,
-                                  onEnd: controller.endSelection,
-                                ),
+                                _WheelSlot(wheelKey: _wheelKey),
                                 const SizedBox(width: AppSpacing.lg),
-                                WheelActionButton(
-                                  icon: Icons.lightbulb_outline,
-                                  semanticLabel: 'Hint',
-                                  onTap: controller.useHint,
-                                  badge: session.hintsLeft,
-                                  enabled: session.hintsLeft > 0,
-                                ),
+                                const _HintButton(),
                               ],
                             ),
                           ),
@@ -201,6 +153,143 @@ class _GamePageState extends ConsumerState<GamePage> {
                 ),
         ),
       ),
+    );
+  }
+}
+
+/// The session, read without subscribing. Every slot below is already gated on
+/// the one field it watches, so the derived getters (which allocate a fresh
+/// list per call and therefore can never be compared by `select`) are pulled
+/// from here instead of being selected.
+GameSession _session(WidgetRef ref) => ref.read(gameSessionProvider)!;
+
+class _TopBarSlot extends ConsumerWidget {
+  const _TopBarSlot();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coins = ref.watch(coinsProvider);
+    final level = ref.watch(nextLevelProvider);
+    return GameTopBar(
+      level: level,
+      coins: coins,
+      onBack: () => context.pop(),
+      onDictionary: () {
+        final session = _session(ref);
+        showDictionarySheet(
+          context,
+          targets: session.targets,
+          found: session.found,
+          revealed: session.revealed,
+        );
+      },
+    );
+  }
+}
+
+class _BoardSlot extends ConsumerWidget {
+  const _BoardSlot({required this.boardKey});
+
+  final GlobalKey boardKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(gameSessionProvider.select((s) => s?.puzzle));
+    ref.watch(gameSessionProvider.select((s) => s?.found));
+    ref.watch(gameSessionProvider.select((s) => s?.revealed));
+    final session = _session(ref);
+    return WordBoard(
+      key: boardKey,
+      targets: session.targets,
+      found: session.found,
+      revealed: session.revealed,
+      center: true,
+    );
+  }
+}
+
+class _ComboSlot extends ConsumerWidget {
+  const _ComboSlot();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final combo = ref.watch(gameSessionProvider.select((s) => s?.combo ?? 0));
+    // Confetti bursts from behind the capsule on each new streak; the Stack
+    // does not clip, so bits fly free.
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        Positioned.fill(child: StreakConfetti(combo: combo)),
+        ComboBanner(praise: praiseForCombo(combo), combo: combo),
+      ],
+    );
+  }
+}
+
+class _FormedWordSlot extends ConsumerWidget {
+  const _FormedWordSlot();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final word = ref.watch(
+      gameSessionProvider.select((s) => s?.formedWord ?? ''),
+    );
+    return FormedWordPill(word: word);
+  }
+}
+
+class _WheelSlot extends ConsumerWidget {
+  const _WheelSlot({required this.wheelKey});
+
+  final GlobalKey wheelKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(gameSessionProvider.select((s) => s?.puzzle));
+    final rackOrder =
+        ref.watch(gameSessionProvider.select((s) => s?.rackOrder)) ??
+        const <int>[];
+    final selection =
+        ref.watch(gameSessionProvider.select((s) => s?.selection)) ??
+        const <int>[];
+    final controller = ref.read(gameSessionProvider.notifier);
+    return LetterWheel(
+      key: wheelKey,
+      letters: _session(ref).wheelLetters,
+      selected: selection,
+      ids: rackOrder,
+      onTouch: controller.touchLetter,
+      onEnd: controller.endSelection,
+    );
+  }
+}
+
+class _ShuffleButton extends ConsumerWidget {
+  const _ShuffleButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => WheelActionButton(
+    icon: Icons.shuffle,
+    semanticLabel: 'Shuffle',
+    onTap: ref.read(gameSessionProvider.notifier).shuffle,
+  );
+}
+
+class _HintButton extends ConsumerWidget {
+  const _HintButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hintsLeft = ref.watch(
+      gameSessionProvider.select((s) => s?.hintsLeft ?? 0),
+    );
+    return WheelActionButton(
+      icon: Icons.lightbulb_outline,
+      semanticLabel: 'Hint',
+      onTap: ref.read(gameSessionProvider.notifier).useHint,
+      badge: hintsLeft,
+      enabled: hintsLeft > 0,
     );
   }
 }

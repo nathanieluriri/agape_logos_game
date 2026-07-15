@@ -13,7 +13,8 @@ import 'social_repository.dart';
 /// retry is safe; distinct user taps get distinct keys). Pure passthrough for
 /// reads.
 class SocialRepositoryImpl implements SocialRepository {
-  SocialRepositoryImpl(this._remote, {Uuid? uuid}) : _uuid = uuid ?? const Uuid();
+  SocialRepositoryImpl(this._remote, {Uuid? uuid})
+    : _uuid = uuid ?? const Uuid();
 
   final SocialRemote _remote;
   final Uuid _uuid;
@@ -31,23 +32,24 @@ class SocialRepositoryImpl implements SocialRepository {
       _remote.publicProfile(uid);
 
   @override
-  Future<FriendRequestOutcome> sendFriendRequest({String? toUid, String? handle}) =>
-      _remote.sendFriendRequest(
-        toUid: toUid,
-        handle: handle,
-        idempotencyKey: _uuid.v4(),
-      );
+  Future<FriendRequestOutcome> sendFriendRequest({
+    String? toUid,
+    String? handle,
+  }) => _remote.sendFriendRequest(
+    toUid: toUid,
+    handle: handle,
+    idempotencyKey: _uuid.v4(),
+  );
 
   @override
   Future<bool> respondToFriendRequest({
     required String fromUid,
     required bool accept,
-  }) =>
-      _remote.respondToFriendRequest(
-        fromUid: fromUid,
-        accept: accept,
-        idempotencyKey: _uuid.v4(),
-      );
+  }) => _remote.respondToFriendRequest(
+    fromUid: fromUid,
+    accept: accept,
+    idempotencyKey: _uuid.v4(),
+  );
 
   @override
   Future<FriendsSnapshot> friends() => _remote.friends();

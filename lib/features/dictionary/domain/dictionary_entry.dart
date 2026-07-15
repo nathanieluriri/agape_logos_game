@@ -15,7 +15,8 @@ class DictionaryEntry {
   final String tier;
   final int? level;
 
-  factory DictionaryEntry.fromJson(Map<String, dynamic> json) => DictionaryEntry(
+  factory DictionaryEntry.fromJson(Map<String, dynamic> json) =>
+      DictionaryEntry(
         word: json['word'] as String,
         definition: json['definition'] as String?,
         tier: (json['tier'] as String?) ?? 'easy',

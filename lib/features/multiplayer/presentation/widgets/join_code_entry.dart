@@ -18,8 +18,7 @@ class _UpperCaseFormatter extends TextInputFormatter {
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
-  ) =>
-      newValue.copyWith(text: newValue.text.toUpperCase());
+  ) => newValue.copyWith(text: newValue.text.toUpperCase());
 }
 
 /// Join-code entry over the reduced [kMatchCodeAlphabet]. A plain uppercase text
@@ -60,8 +59,7 @@ class _JoinCodeEntryState extends State<JoinCodeEntry> {
 
   void _backspaceWheel() {
     if (_wheelCode.isEmpty) return;
-    setState(() =>
-        _wheelCode = _wheelCode.substring(0, _wheelCode.length - 1));
+    setState(() => _wheelCode = _wheelCode.substring(0, _wheelCode.length - 1));
   }
 
   void _submit() {
@@ -122,8 +120,7 @@ class _JoinCodeEntryState extends State<JoinCodeEntry> {
         filled: true,
         fillColor: AppColors.pillFill,
         hintText: 'ABCD',
-        hintStyle:
-            TextStyle(color: AppColors.padLabelSoft, letterSpacing: 12),
+        hintStyle: TextStyle(color: AppColors.padLabelSoft, letterSpacing: 12),
         border: OutlineInputBorder(
           borderRadius: AppRadii.card,
           borderSide: BorderSide(color: AppColors.settingsBorder),
@@ -179,8 +176,10 @@ class _JoinCodeEntryState extends State<JoinCodeEntry> {
           height: AppSizing.actionButton,
           child: IconButton(
             onPressed: _wheelCode.isEmpty ? null : _backspaceWheel,
-            icon: const Icon(Icons.backspace_outlined,
-                color: AppColors.padLabelSoft),
+            icon: const Icon(
+              Icons.backspace_outlined,
+              color: AppColors.padLabelSoft,
+            ),
             tooltip: 'Delete last letter',
           ),
         ),

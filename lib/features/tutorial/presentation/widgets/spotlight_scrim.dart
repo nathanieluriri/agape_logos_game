@@ -55,10 +55,12 @@ class SpotlightScrimPainter extends CustomPainter {
     Path? wheelHole;
     if (wheelRect != null) {
       wheelHole = Path()
-        ..addOval(Rect.fromCircle(
-          center: wheelRect.center,
-          radius: wheelRect.shortestSide / 2 + AppSizing.tutorialCutoutPad,
-        ));
+        ..addOval(
+          Rect.fromCircle(
+            center: wheelRect.center,
+            radius: wheelRect.shortestSide / 2 + AppSizing.tutorialCutoutPad,
+          ),
+        );
       scrim = Path.combine(PathOperation.difference, scrim, wheelHole);
     }
 
@@ -66,9 +68,9 @@ class SpotlightScrimPainter extends CustomPainter {
     Path? boardHole;
     if (boardRect != null) {
       boardHole = Path()
-        ..addRRect(AppRadii.card.toRRect(
-          boardRect.inflate(AppSizing.tutorialCutoutPad),
-        ));
+        ..addRRect(
+          AppRadii.card.toRRect(boardRect.inflate(AppSizing.tutorialCutoutPad)),
+        );
       scrim = Path.combine(PathOperation.difference, scrim, boardHole);
     }
 
@@ -135,11 +137,8 @@ class RenderSpotlightBarrier extends RenderProxyBox {
   RenderSpotlightBarrier({
     required Offset? wheelCenter,
     required double wheelRadius,
-  })  :
-        // ignore: prefer_initializing_formals
-        _wheelCenter = wheelCenter,
-        // ignore: prefer_initializing_formals
-        _wheelRadius = wheelRadius;
+  })  : _wheelCenter = wheelCenter, // ignore: prefer_initializing_formals
+        _wheelRadius = wheelRadius; // ignore: prefer_initializing_formals
 
   Offset? _wheelCenter;
   set wheelCenter(Offset? value) => _wheelCenter = value;

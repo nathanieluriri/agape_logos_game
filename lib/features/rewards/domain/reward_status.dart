@@ -47,10 +47,10 @@ class CoinReward {
   final int nextClaimInMs;
 
   factory CoinReward.fromJson(Map<String, dynamic> json) => CoinReward(
-        amount: (json['amount'] as num?)?.toInt() ?? 0,
-        claimable: json['claimable'] as bool? ?? false,
-        nextClaimInMs: (json['nextClaimInMs'] as num?)?.toInt() ?? 0,
-      );
+    amount: (json['amount'] as num?)?.toInt() ?? 0,
+    claimable: json['claimable'] as bool? ?? false,
+    nextClaimInMs: (json['nextClaimInMs'] as num?)?.toInt() ?? 0,
+  );
 }
 
 /// The weekly free powerup (a shuffle-bag draw).
@@ -61,7 +61,7 @@ class PowerupReward {
   final int nextClaimInMs;
 
   factory PowerupReward.fromJson(Map<String, dynamic> json) => PowerupReward(
-        claimable: json['claimable'] as bool? ?? false,
-        nextClaimInMs: (json['nextClaimInMs'] as num?)?.toInt() ?? 0,
-      );
+    claimable: json['claimable'] as bool? ?? false,
+    nextClaimInMs: (json['nextClaimInMs'] as num?)?.toInt() ?? 0,
+  );
 }

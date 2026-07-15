@@ -15,6 +15,7 @@ import '../widgets/auth_error_text.dart';
 import '../widgets/auth_page_header.dart';
 import '../widgets/email_password_form.dart';
 import '../widgets/google_sign_in_button.dart';
+import '../../../../core/design/tokens/colors.dart';
 
 /// Optional sign-in / register screen on the pond. Closes itself once a user
 /// is signed in. While a request is in flight the pills disable; no spinner.
@@ -73,8 +74,10 @@ class _SignInPageState extends ConsumerState<SignInPage> {
         ),
         PondPillButton(
           label: 'Send',
-          onPressed: () => Navigator.of(context, rootNavigator: true)
-              .pop(_resetEmail.text.trim()),
+          onPressed: () => Navigator.of(
+            context,
+            rootNavigator: true,
+          ).pop(_resetEmail.text.trim()),
         ),
       ],
     );
@@ -95,6 +98,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     final submitLabel = _isRegister ? 'Create account' : 'Sign in';
 
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         child: PondStage(
           child: Column(
@@ -103,8 +107,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               AuthPageHeader(title: submitLabel),
               const SizedBox(height: AppSpacing.lg),
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -126,8 +129,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                       onPressed: isLoading
                           ? null
                           : () => ref
-                              .read(authControllerProvider.notifier)
-                              .signInWithGoogle(),
+                                .read(authControllerProvider.notifier)
+                                .signInWithGoogle(),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     PondTextLink(

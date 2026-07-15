@@ -49,8 +49,8 @@ class InventoryController extends AsyncNotifier<Map<String, int>> {
 
 final inventoryControllerProvider =
     AsyncNotifierProvider<InventoryController, Map<String, int>>(
-  InventoryController.new,
-);
+      InventoryController.new,
+    );
 
 /// Tracks which item ids have an in-flight purchase, so each card can disable
 /// just its own buy button while its request is out.
@@ -68,15 +68,13 @@ class StorePurchaseController extends Notifier<Set<String>> {
 
     state = <String>{...state, item.id};
     try {
-      final outcome = await ref.read(storeRepositoryProvider).purchase(
-            uid: user.uid,
-            itemId: item.id,
-            quantity: quantity,
-          );
+      final outcome = await ref
+          .read(storeRepositoryProvider)
+          .purchase(uid: user.uid, itemId: item.id, quantity: quantity);
       if (outcome is PurchaseSuccess) {
-        ref.read(inventoryControllerProvider.notifier).applyServer(
-              outcome.inventory,
-            );
+        ref
+            .read(inventoryControllerProvider.notifier)
+            .applyServer(outcome.inventory);
       }
       return outcome;
     } finally {
@@ -87,5 +85,5 @@ class StorePurchaseController extends Notifier<Set<String>> {
 
 final storePurchaseControllerProvider =
     NotifierProvider<StorePurchaseController, Set<String>>(
-  StorePurchaseController.new,
-);
+      StorePurchaseController.new,
+    );

@@ -9,26 +9,27 @@ import '../domain/match_settings.dart';
 int _asInt(Object? v) => (v as num?)?.toInt() ?? 0;
 
 MatchPlayer matchPlayerFromWire(Map<String, dynamic> m) => MatchPlayer(
-      uid: (m['uid'] as String?) ?? '',
-      displayName: (m['displayName'] as String?) ?? 'Player',
-      avatarId: (m['avatarId'] as String?) ?? 'avatar_01',
-      isGuest: (m['isGuest'] as bool?) ?? false,
-      ready: (m['ready'] as bool?) ?? false,
-      connected: (m['connected'] as bool?) ?? false,
-      score: _asInt(m['score']),
-      wordsFound: _asInt(m['wordsFound']),
-    );
+  uid: (m['uid'] as String?) ?? '',
+  displayName: (m['displayName'] as String?) ?? 'Player',
+  avatarId: (m['avatarId'] as String?) ?? 'avatar_01',
+  isGuest: (m['isGuest'] as bool?) ?? false,
+  ready: (m['ready'] as bool?) ?? false,
+  connected: (m['connected'] as bool?) ?? false,
+  score: _asInt(m['score']),
+  wordsFound: _asInt(m['wordsFound']),
+);
 
 MatchSettings matchSettingsFromWire(Map<String, dynamic> m) => MatchSettings(
-      difficulty: matchDifficultyFromWire(m['difficulty'] as String?),
-      durationSec: _asInt(m['durationSec']),
-      rackSize: (m['rackSize'] as num?)?.toInt() ?? 7,
-      theme: m['theme'] as String?,
-    );
+  difficulty: matchDifficultyFromWire(m['difficulty'] as String?),
+  durationSec: _asInt(m['durationSec']),
+  rackSize: (m['rackSize'] as num?)?.toInt() ?? 7,
+  theme: m['theme'] as String?,
+);
 
 Match matchFromSnapshot(String id, Map<String, dynamic> m) {
   final playersRaw =
-      (m['players'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
+      (m['players'] as Map?)?.cast<String, dynamic>() ??
+      const <String, dynamic>{};
   final players = <String, MatchPlayer>{};
   playersRaw.forEach((uid, v) {
     players[uid] = matchPlayerFromWire((v as Map).cast<String, dynamic>());
@@ -73,7 +74,8 @@ MatchRack matchRackFromSnapshot(String id, Map<String, dynamic> m) {
   );
 }
 
-MatchEvent matchEventFromSnapshot(String id, Map<String, dynamic> m) => MatchEvent(
+MatchEvent matchEventFromSnapshot(String id, Map<String, dynamic> m) =>
+    MatchEvent(
       id: (m['id'] as String?) ?? id,
       at: _asInt(m['at']),
       byUid: (m['byUid'] as String?) ?? '',

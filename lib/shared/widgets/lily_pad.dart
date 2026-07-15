@@ -60,6 +60,12 @@ enum PadShape { notched, smooth }
 /// A pad resting on the water: a soft cast shadow, a darker underside, a
 /// radial-sheen fill, subtle vein texture, and a light rim glow along the
 /// top edge, with optional centered [child] content.
+///
+/// The pad is split into two paint layers on purpose: the cast shadow (the only
+/// thing that responds to [lift], and the only expensive op, a blurred mask) and
+/// the pad body (fill, veins, rim), which never changes while the pad bobs. The
+/// body sits behind its own [RepaintBoundary] so a per-frame [lift] change
+/// re-rasterizes the shadow layer alone, not the gradients and vein texture.
 class LilyPad extends StatelessWidget {
   const LilyPad({
     super.key,
@@ -93,133 +99,201 @@ class LilyPad extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: CustomPaint(
-        painter: _LilyPadPainter(
-          palette: palette,
-          shape: shape,
-          rotationDegrees: rotationDegrees,
-          shadow: shadow,
-          lift: lift,
-        ),
-        child: Center(child: child),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (shadow)
+            CustomPaint(
+              painter: _PadShadowPainter(
+                shape: shape,
+                rotationDegrees: rotationDegrees,
+                lift: lift,
+              ),
+            ),
+          RepaintBoundary(
+            child: CustomPaint(
+              painter: _PadBodyPainter(
+                palette: palette,
+                shape: shape,
+                rotationDegrees: rotationDegrees,
+              ),
+              child: Center(child: child),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _LilyPadPainter extends CustomPainter {
-  _LilyPadPainter({
+/// The silhouette (and its veins) rotated in place, memoized per
+/// (shape, rotation). The canvas itself stays unrotated so gradients, shadow
+/// offsets, and the rim glow remain in screen space.
+///
+/// Follows the `static final` path pattern of [PadGeometry]: pads are rebuilt
+/// every animation tick, so nothing here may allocate a Matrix4 or transform a
+/// Path per frame.
+@immutable
+class _PadPaths {
+  const _PadPaths(this.outline, this.veins);
+  final Path outline;
+  final Path veins;
+}
+
+final Map<(PadShape, double), _PadPaths> _pathCache = {};
+
+_PadPaths _pathsFor(PadShape shape, double rotationDegrees) {
+  return _pathCache.putIfAbsent((shape, rotationDegrees), () {
+    final base = shape == PadShape.smooth
+        ? PadGeometry.smoothPad
+        : PadGeometry.notchedPad;
+    if (rotationDegrees == 0) return _PadPaths(base, PadGeometry.veins);
+    final Float64List rotation = (Matrix4.identity()
+          ..translateByDouble(PadGeometry.center.dx, PadGeometry.center.dy, 0, 1)
+          ..rotateZ(rotationDegrees * math.pi / 180)
+          ..translateByDouble(
+              -PadGeometry.center.dx, -PadGeometry.center.dy, 0, 1))
+        .storage;
+    return _PadPaths(
+      base.transform(rotation),
+      PadGeometry.veins.transform(rotation),
+    );
+  });
+}
+
+/// The painter's canvas is scaled to the viewBox, so every gradient is shaded
+/// against this rect whatever the pad's pixel size: the shaders can be built
+/// once per palette rather than once per paint.
+const Rect _viewBoxRect =
+    Rect.fromLTWH(0, 0, PadGeometry.viewBox, PadGeometry.viewBox);
+
+const double _veinStrokeWidth = 1.3;
+const double _rimStrokeWidth = 1.8;
+
+/// How far the darker underside peeks out below the fill (viewBox units).
+const double _undersideDrop = 3.2;
+
+/// Every Paint (and both shaders) a body layer needs, built once per palette.
+class _PadBodyPaints {
+  _PadBodyPaints(LilyPadPalette palette)
+      : underside = (Paint()..color = palette.underside),
+        fill = (Paint()
+          ..shader = palette.fillGradient.createShader(_viewBoxRect)),
+        veins = (palette.veinColor == null || palette.veinOpacity <= 0)
+            ? null
+            : (Paint()
+              ..color =
+                  palette.veinColor!.withValues(alpha: palette.veinOpacity)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = _veinStrokeWidth
+              ..strokeCap = StrokeCap.round),
+        rim = (Paint()
+          ..shader = AppGradients.padRimGlow.createShader(_viewBoxRect)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _rimStrokeWidth);
+
+  final Paint underside;
+  final Paint fill;
+  final Paint? veins;
+  final Paint rim;
+}
+
+final Map<LilyPadPalette, _PadBodyPaints> _bodyPaintCache = {};
+
+_PadBodyPaints _bodyPaintsFor(LilyPadPalette palette) =>
+    _bodyPaintCache.putIfAbsent(palette, () => _PadBodyPaints(palette));
+
+/// The pad body: darker underside, fill sheen, vein texture, rim glow. Nothing
+/// here responds to the bob, so this never repaints while a pad floats.
+class _PadBodyPainter extends CustomPainter {
+  const _PadBodyPainter({
     required this.palette,
     required this.shape,
     required this.rotationDegrees,
-    required this.shadow,
-    required this.lift,
   });
 
   final LilyPadPalette palette;
   final PadShape shape;
   final double rotationDegrees;
-  final bool shadow;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paths = _pathsFor(shape, rotationDegrees);
+    final paints = _bodyPaintsFor(palette);
+
+    canvas
+      ..save()
+      ..scale(size.width / PadGeometry.viewBox);
+
+    // 1. Hard darker underside peeking out below the fill.
+    canvas
+      ..save()
+      ..translate(0, _undersideDrop)
+      ..drawPath(paths.outline, paints.underside)
+      ..restore();
+
+    // 2. Fill sheen (top-left light source).
+    canvas.drawPath(paths.outline, paints.fill);
+
+    // 3. Subtle radial vein texture.
+    final veins = paints.veins;
+    if (veins != null) canvas.drawPath(paths.veins, veins);
+
+    // 4. Light rim glow, brightest along the top edge.
+    canvas
+      ..drawPath(paths.outline, paints.rim)
+      ..restore();
+  }
+
+  @override
+  bool shouldRepaint(_PadBodyPainter old) =>
+      old.palette != palette ||
+      old.shape != shape ||
+      old.rotationDegrees != rotationDegrees;
+}
+
+/// The soft cast shadow on the water. As the pad lifts (0..1) the shadow grows
+/// and softens (blur), drops further from the pad (offset), and fades
+/// (opacity), which reads as the pad floating higher above the surface. At
+/// lift 0 this is byte-identical to the resting recipe.
+class _PadShadowPainter extends CustomPainter {
+  const _PadShadowPainter({
+    required this.shape,
+    required this.rotationDegrees,
+    required this.lift,
+  });
+
+  final PadShape shape;
+  final double rotationDegrees;
   final double lift;
-
-  /// How far the darker underside peeks out below the fill (viewBox units).
-  static const double _undersideDrop = 3.2;
-
-  /// The silhouette rotated in place; the canvas itself stays unrotated so
-  /// gradients, shadow offsets, and the rim glow remain in screen space.
-  late final Float64List _rotation = (Matrix4.identity()
-        ..translateByDouble(PadGeometry.center.dx, PadGeometry.center.dy, 0, 1)
-        ..rotateZ(rotationDegrees * math.pi / 180)
-        ..translateByDouble(
-            -PadGeometry.center.dx, -PadGeometry.center.dy, 0, 1))
-      .storage;
-
-  late final Path _outline =
-      (shape == PadShape.smooth ? PadGeometry.smoothPad : PadGeometry.notchedPad)
-          .transform(_rotation);
-
-  late final Path _veins = PadGeometry.veins.transform(_rotation);
 
   @override
   void paint(Canvas canvas, Size size) {
     final scale = size.width / PadGeometry.viewBox;
-    canvas
-      ..save()
-      ..scale(scale);
-
-    const rect = Rect.fromLTWH(0, 0, PadGeometry.viewBox, PadGeometry.viewBox);
-
-    // 1. Soft cast shadow on the water. As the pad lifts (0..1) the shadow
-    //    grows and softens (blur), drops further from the pad (offset), and
-    //    fades (opacity), which reads as the pad floating higher above the
-    //    surface. At lift 0 this is byte-identical to the resting recipe.
-    // PLAN: `cast.color.a` uses the Flutter 3.27+ component accessor (0..1
-    // double), same wide-gamut Color API this file already uses via
-    // withValues. If the SDK rejects `.a`, read the base alpha via
-    // `(cast.color.value >> 24 & 0xFF) / 255.0` and keep the same fade math.
-    if (shadow) {
-      final cast = AppShadows.pad.first;
-      final t = lift.clamp(0.0, 1.0);
-      final blur = cast.blurRadius * (1 + t * PadElevation.shadowBlurGain);
-      final dropY = cast.offset.dy + t * PadElevation.shadowDrop;
-      final shadowPaint = Paint()
-        ..color = cast.color.withValues(
-          alpha: cast.color.a * (1 - t * PadElevation.shadowFade),
-        )
-        ..maskFilter = MaskFilter.blur(
-          BlurStyle.normal,
-          Shadow.convertRadiusToSigma(blur) / scale,
-        );
-      canvas
-        ..save()
-        ..translate(0, dropY / scale)
-        ..drawPath(_outline, shadowPaint)
-        ..restore();
-    }
-
-    // 2. Hard darker underside peeking out below the fill.
-    canvas
-      ..save()
-      ..translate(0, _undersideDrop)
-      ..drawPath(_outline, Paint()..color = palette.underside)
-      ..restore();
-
-    // 3. Fill sheen (top-left light source).
-    canvas.drawPath(
-      _outline,
-      Paint()..shader = palette.fillGradient.createShader(rect),
-    );
-
-    // 4. Subtle radial vein texture.
-    final veinColor = palette.veinColor;
-    if (veinColor != null && palette.veinOpacity > 0) {
-      canvas.drawPath(
-        _veins,
-        Paint()
-          ..color = veinColor.withValues(alpha: palette.veinOpacity)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.3
-          ..strokeCap = StrokeCap.round,
+    final cast = AppShadows.pad.first;
+    final t = lift.clamp(0.0, 1.0);
+    final blur = cast.blurRadius * (1 + t * PadElevation.shadowBlurGain);
+    final dropY = cast.offset.dy + t * PadElevation.shadowDrop;
+    final shadowPaint = Paint()
+      ..color = cast.color.withValues(
+        alpha: cast.color.a * (1 - t * PadElevation.shadowFade),
+      )
+      ..maskFilter = MaskFilter.blur(
+        BlurStyle.normal,
+        Shadow.convertRadiusToSigma(blur) / scale,
       );
-    }
 
-    // 5. Light rim glow, brightest along the top edge.
-    canvas.drawPath(
-      _outline,
-      Paint()
-        ..shader = AppGradients.padRimGlow.createShader(rect)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8,
-    );
-
-    canvas.restore();
+    canvas
+      ..save()
+      ..scale(scale)
+      ..translate(0, dropY / scale)
+      ..drawPath(_pathsFor(shape, rotationDegrees).outline, shadowPaint)
+      ..restore();
   }
 
   @override
-  bool shouldRepaint(_LilyPadPainter old) =>
-      old.palette != palette ||
+  bool shouldRepaint(_PadShadowPainter old) =>
+      old.lift != lift ||
       old.shape != shape ||
-      old.rotationDegrees != rotationDegrees ||
-      old.shadow != shadow ||
-      old.lift != lift;
+      old.rotationDegrees != rotationDegrees;
 }

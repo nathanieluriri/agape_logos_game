@@ -47,12 +47,11 @@ class TutorialState {
     List<String>? targetWords,
     int? stepIndex,
     TutorialPhase? phase,
-  }) =>
-      TutorialState(
-        targetWords: targetWords ?? this.targetWords,
-        stepIndex: stepIndex ?? this.stepIndex,
-        phase: phase ?? this.phase,
-      );
+  }) => TutorialState(
+    targetWords: targetWords ?? this.targetWords,
+    stepIndex: stepIndex ?? this.stepIndex,
+    phase: phase ?? this.phase,
+  );
 
   @override
   bool operator ==(Object other) =>

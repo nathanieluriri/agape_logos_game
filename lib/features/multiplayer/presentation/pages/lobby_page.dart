@@ -39,6 +39,7 @@ class LobbyPage extends ConsumerWidget {
     final match = matchAsync.value;
 
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         child: PondStage(
           child: Column(
@@ -57,9 +58,8 @@ class LobbyPage extends ConsumerWidget {
                             ref.invalidate(matchStreamProvider(matchId)),
                       )
                     : match == null
-                        ? const Center(child: CircularProgressIndicator())
-                        : _LobbyBody(
-                            match: match, myUid: myUid, matchId: matchId),
+                    ? const Center(child: CircularProgressIndicator())
+                    : _LobbyBody(match: match, myUid: myUid, matchId: matchId),
               ),
             ],
           ),
@@ -182,8 +182,10 @@ class _CodeCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            const Text('Share this code',
-                style: TextStyle(color: AppColors.padLabelSoft, fontSize: 12)),
+            const Text(
+              'Share this code',
+              style: TextStyle(color: AppColors.padLabelSoft, fontSize: 12),
+            ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               code,
@@ -208,8 +210,9 @@ class _PlayerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = player;
-    final name =
-        p == null ? 'Empty seat' : '${p.displayName}${isMe ? ' (you)' : ''}';
+    final name = p == null
+        ? 'Empty seat'
+        : '${p.displayName}${isMe ? ' (you)' : ''}';
     final ready = p?.ready ?? false;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
@@ -220,8 +223,10 @@ class _PlayerRow extends StatelessWidget {
             color: ready ? AppColors.lilyGreenLight : AppColors.padLabelSoft,
           ),
           const SizedBox(width: AppSpacing.sm),
-          Text(name,
-              style: const TextStyle(color: AppColors.padLabel, fontSize: 16)),
+          Text(
+            name,
+            style: const TextStyle(color: AppColors.padLabel, fontSize: 16),
+          ),
         ],
       ),
     );

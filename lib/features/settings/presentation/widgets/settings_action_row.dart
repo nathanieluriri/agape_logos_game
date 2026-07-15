@@ -37,8 +37,9 @@ class _SettingsActionRowState extends State<SettingsActionRow> {
 
   @override
   Widget build(BuildContext context) {
-    final Color color =
-        widget.danger ? AppColors.dangerOnPond : AppColors.padLabel;
+    final Color color = widget.danger
+        ? AppColors.dangerOnPond
+        : AppColors.padLabel;
     return Semantics(
       button: true,
       label: widget.label,

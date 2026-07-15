@@ -5,6 +5,7 @@
 // The PNGs land next to this file. Settings are injected via a fixed-row
 // `settingsProvider` override (the live Drift stream would deadlock under
 // fake-async; that path is covered by the DAO/controller unit tests).
+import 'package:agape_logos_game/app/pond_shell.dart';
 import 'package:agape_logos_game/core/storage/app_database.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
@@ -73,9 +74,13 @@ Widget _app(AuthUser? user) => ProviderScope(
         // golden is deterministic and the test stays network-free.
         profilePrivacyControllerProvider.overrideWith(_StubPrivacy.new),
       ],
-      child: const MaterialApp(
+      child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: SettingsPage(),
+        // The page is transparent: the pond lives in the app shell, so the
+        // golden must mount the shell layer the same way `AgapeApp` does.
+        builder: (context, child) =>
+            PondShell(child: child ?? const SizedBox.shrink()),
+        home: const SettingsPage(),
       ),
     );
 

@@ -42,8 +42,7 @@ class MultiplayerSheetContent extends StatelessWidget {
         PondActionButton(
           glyph: PondGlyph.plus,
           label: 'Create a match',
-          onPressed: () =>
-              Navigator.of(context).pop(MultiplayerChoice.create),
+          onPressed: () => Navigator.of(context).pop(MultiplayerChoice.create),
         ),
         const SizedBox(height: AppSpacing.md),
         PondActionButton(

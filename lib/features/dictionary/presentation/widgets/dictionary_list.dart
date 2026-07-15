@@ -33,9 +33,11 @@ class _DictionaryListState extends State<DictionaryList> {
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return widget.entries;
     return widget.entries
-        .where((e) =>
-            e.word.toLowerCase().contains(q) ||
-            (e.definition?.toLowerCase().contains(q) ?? false))
+        .where(
+          (e) =>
+              e.word.toLowerCase().contains(q) ||
+              (e.definition?.toLowerCase().contains(q) ?? false),
+        )
         .toList();
   }
 
@@ -47,9 +49,7 @@ class _DictionaryListState extends State<DictionaryList> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: _SearchField(
-            onChanged: (v) => setState(() => _query = v),
-          ),
+          child: _SearchField(onChanged: (v) => setState(() => _query = v)),
         ),
         const SizedBox(height: AppSpacing.md),
         if (entries.isEmpty)

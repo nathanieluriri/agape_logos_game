@@ -70,5 +70,5 @@ class RewardStatusController extends AsyncNotifier<RewardStatus?> {
 
 final rewardStatusControllerProvider =
     AsyncNotifierProvider<RewardStatusController, RewardStatus?>(
-  RewardStatusController.new,
-);
+      RewardStatusController.new,
+    );

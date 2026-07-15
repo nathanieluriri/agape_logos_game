@@ -31,8 +31,9 @@ class _RewardTimerPadState extends ConsumerState<RewardTimerPad> {
   Future<void> _claimCoins() async {
     if (_claiming) return;
     setState(() => _claiming = true);
-    final ClaimResult result =
-        await ref.read(rewardStatusControllerProvider.notifier).claimCoins();
+    final ClaimResult result = await ref
+        .read(rewardStatusControllerProvider.notifier)
+        .claimCoins();
     if (!mounted) return;
     setState(() => _claiming = false);
     _announce(result);
@@ -41,8 +42,9 @@ class _RewardTimerPadState extends ConsumerState<RewardTimerPad> {
   Future<void> _claimPowerup() async {
     if (_claiming) return;
     setState(() => _claiming = true);
-    final ClaimResult result =
-        await ref.read(rewardStatusControllerProvider.notifier).claimPowerup();
+    final ClaimResult result = await ref
+        .read(rewardStatusControllerProvider.notifier)
+        .claimPowerup();
     if (!mounted) return;
     setState(() => _claiming = false);
     _announce(result);
@@ -110,16 +112,15 @@ class _RewardTimerPadState extends ConsumerState<RewardTimerPad> {
       highlighted: false,
       // Offer the weekly powerup inline when it happens to be ready.
       footer: data.powerup.claimable
-          ? _PowerupClaimRow(
-              claiming: _claiming,
-              onClaim: _claimPowerup,
-            )
+          ? _PowerupClaimRow(claiming: _claiming, onClaim: _claimPowerup)
           : null,
     );
   }
 
-  static String _pretty(String id) =>
-      id.split('_').map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
+  static String _pretty(String id) => id
+      .split('_')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
 }
 
 /// The gift pad body: a gold gift glyph, a title, a subtitle (text or a live
@@ -292,7 +293,11 @@ class _PowerupClaimRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(Icons.bolt_rounded, color: AppColors.progressFillMid, size: 20),
+        const Icon(
+          Icons.bolt_rounded,
+          color: AppColors.progressFillMid,
+          size: 20,
+        ),
         const SizedBox(width: AppSpacing.sm),
         const Expanded(
           child: Text(
@@ -404,7 +409,11 @@ class _CooldownTextState extends State<_CooldownText> {
     final remaining = _deadline.difference(DateTime.now());
     return Row(
       children: [
-        const Icon(Icons.timer_outlined, color: AppColors.padLabelSoft, size: 15),
+        const Icon(
+          Icons.timer_outlined,
+          color: AppColors.padLabelSoft,
+          size: 15,
+        ),
         const SizedBox(width: AppSpacing.xs),
         Text(
           'Next gift in ${formatCooldown(remaining)}',

@@ -60,8 +60,7 @@ class PuzzleController {
     int score,
     int completedAt, {
     int? level,
-  }) =>
-      _repo.recordPuzzleResult(puzzleId, score, completedAt, level: level);
+  }) => _repo.recordPuzzleResult(puzzleId, score, completedAt, level: level);
 }
 
 final puzzleControllerProvider = Provider<PuzzleController>(

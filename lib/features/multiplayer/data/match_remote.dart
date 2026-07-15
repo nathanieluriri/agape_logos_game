@@ -85,11 +85,9 @@ class HttpMatchRemote implements MatchRemote {
     final normalized = word.toUpperCase();
     // Idempotent per (uid, word): the uid is implicit in the Bearer token, so
     // keying on the word means a double-tap never double-scores (contract 8.7).
-    return _post(
-      '/matches/$matchId/submit',
-      <String, dynamic>{'word': normalized},
-      idempotencyKey: 'submit:$matchId:$normalized',
-    );
+    return _post('/matches/$matchId/submit', <String, dynamic>{
+      'word': normalized,
+    }, idempotencyKey: 'submit:$matchId:$normalized');
   }
 
   @override

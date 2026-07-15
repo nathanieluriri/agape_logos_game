@@ -16,7 +16,8 @@ const String kLevelResultKind = 'level_result';
 class LevelResultRepositoryImpl
     with OfflineAwareRepository
     implements LevelResultRepository {
-  LevelResultRepositoryImpl(this.db, {Uuid? uuid}) : _uuid = uuid ?? const Uuid();
+  LevelResultRepositoryImpl(this.db, {Uuid? uuid})
+    : _uuid = uuid ?? const Uuid();
 
   @override
   final AppDatabase db;
@@ -50,17 +51,17 @@ class LevelResultRepositoryImpl
   @override
   Stream<List<LevelResult>> watchAll() {
     return db.levelResultsDao.watchAll().map(
-          (rows) => rows
-              .map(
-                (r) => LevelResult(
-                  id: r.id,
-                  levelId: r.levelId,
-                  score: r.score,
-                  completedAt: r.completedAt,
-                  synced: r.synced,
-                ),
-              )
-              .toList(),
-        );
+      (rows) => rows
+          .map(
+            (r) => LevelResult(
+              id: r.id,
+              levelId: r.levelId,
+              score: r.score,
+              completedAt: r.completedAt,
+              synced: r.synced,
+            ),
+          )
+          .toList(),
+    );
   }
 }

@@ -11,11 +11,7 @@ import '../../../../core/design/tokens/spacing.dart';
 /// scrim, with every occurrence of [highlight] inside [message] picked out
 /// in the accent gold so the target word pops.
 class TutorialMessagePill extends StatelessWidget {
-  const TutorialMessagePill({
-    super.key,
-    required this.message,
-    this.highlight,
-  });
+  const TutorialMessagePill({super.key, required this.message, this.highlight});
 
   final String message;
 
@@ -65,8 +61,9 @@ class TutorialMessagePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints:
-          const BoxConstraints(maxWidth: AppSizing.tutorialPillMaxWidth),
+      constraints: const BoxConstraints(
+        maxWidth: AppSizing.tutorialPillMaxWidth,
+      ),
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,

@@ -40,8 +40,7 @@ class GameController extends Notifier<GameSession?> {
     final s = state;
     if (s == null || s.selection.isEmpty) return;
     final word = s.formedWord;
-    final isAnswer =
-        s.puzzle.answers.any((a) => a.word.toUpperCase() == word);
+    final isAnswer = s.puzzle.answers.any((a) => a.word.toUpperCase() == word);
     if (isAnswer && !s.found.contains(word)) {
       final combo = s.combo + 1;
       state = s.copyWith(
@@ -132,7 +131,9 @@ class GameController extends Notifier<GameSession?> {
       }
     }
 
-    ref.read(levelCompletionProvider.notifier).recordCompletion(
+    ref
+        .read(levelCompletionProvider.notifier)
+        .recordCompletion(
           completedLevel: completedLevel,
           wordsFound: wordsFound,
           totalWords: totalWords,
@@ -141,5 +142,6 @@ class GameController extends Notifier<GameSession?> {
   }
 }
 
-final gameSessionProvider =
-    NotifierProvider<GameController, GameSession?>(GameController.new);
+final gameSessionProvider = NotifierProvider<GameController, GameSession?>(
+  GameController.new,
+);

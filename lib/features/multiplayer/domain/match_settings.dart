@@ -29,18 +29,18 @@ abstract class MatchSettings with _$MatchSettings {
   const MatchSettings._();
 
   factory MatchSettings.defaults() => const MatchSettings(
-        difficulty: MatchDifficulty.medium,
-        durationSec: 120,
-        rackSize: 7,
-        theme: null,
-      );
+    difficulty: MatchDifficulty.medium,
+    durationSec: 120,
+    rackSize: 7,
+    theme: null,
+  );
 
   /// Wire form for the `POST /matches` body (contract 8.7). `difficulty` is the
   /// enum name (`easy|medium|hard`, contract 8.2).
   Map<String, dynamic> toWire() => <String, dynamic>{
-        'difficulty': difficulty.name,
-        'durationSec': durationSec,
-        'rackSize': rackSize,
-        'theme': theme,
-      };
+    'difficulty': difficulty.name,
+    'durationSec': durationSec,
+    'rackSize': rackSize,
+    'theme': theme,
+  };
 }

@@ -72,6 +72,7 @@ class _LevelCompleteBody extends ConsumerWidget {
     final nextLabel = 'Lv.${ref.watch(nextLevelProvider)}';
     final words = summary.words;
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         child: PondStage(
           child: Column(

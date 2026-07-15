@@ -28,6 +28,48 @@ import '../widgets/match_timer.dart';
 import '../widgets/opponent_hud.dart';
 import '../widgets/powerup_bar.dart';
 
+/// How often anything on the match page consults the wall clock. Not a motion
+/// token: this is a polling interval, not an animation.
+const Duration kMatchTick = Duration(milliseconds: 500);
+
+/// Rebuilds only its own subtree on the match tick, handing the builder the
+/// current wall clock. [child] is passed through untouched, so a subtree that
+/// does not depend on the clock (the word board under the fog) is not rebuilt.
+class _Ticking extends StatefulWidget {
+  const _Ticking({required this.builder, this.child});
+
+  final Widget Function(BuildContext context, int nowMillis, Widget? child)
+  builder;
+  final Widget? child;
+
+  @override
+  State<_Ticking> createState() => _TickingState();
+}
+
+class _TickingState extends State<_Ticking> {
+  Timer? _timer;
+  int _now = DateTime.now().millisecondsSinceEpoch;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(kMatchTick, (_) {
+      if (!mounted) return;
+      setState(() => _now = DateTime.now().millisecondsSinceEpoch);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      widget.builder(context, _now, widget.child);
+}
+
 class MatchPage extends ConsumerStatefulWidget {
   const MatchPage({super.key, required this.matchId});
 
@@ -44,6 +86,17 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   Timer? _ticker;
   int _now = DateTime.now().millisecondsSinceEpoch;
   bool _navigated = false;
+  // Memo keys: the derived board/wheel data is rebuilt only when the rack or the
+  // play state that feeds it actually changes, never on a clock tick.
+  MatchRack? _targetsKey;
+  List<PuzzleAnswer>? _targets;
+  MatchRack? _foundRackKey;
+  Set<String>? _foundPendingKey;
+  Set<String>? _found;
+  MatchRack? _wheelRackKey;
+  List<int>? _wheelOrderKey;
+  List<int>? _order;
+  List<String>? _wheelLetters;
   // One settle poke per clock boundary (start, end). Re-armed if the call fails,
   // so a dropped request retries on the next tick instead of stranding the match.
   bool _pokedStart = false;
@@ -55,10 +108,35 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(matchPlayControllerProvider.notifier).reset();
     });
-    // One clock for the timer, freeze expiry, and fog expiry.
-    _ticker = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      if (mounted) setState(() => _now = DateTime.now().millisecondsSinceEpoch);
-    });
+    // The page clock only drives the settle pokes and the phase gate (lobby /
+    // countdown / play / time's up). The leaf widgets that show a live time (the
+    // match timer, the fog and freeze expiries) carry their own tick, so a
+    // second of clock never rebuilds the board, the wheel, or the powerup bar.
+    _ticker = Timer.periodic(kMatchTick, (_) => _onTick());
+  }
+
+  void _onTick() {
+    if (!mounted) return;
+    final int now = DateTime.now().millisecondsSinceEpoch;
+    final Match? match = ref.read(matchStreamProvider(widget.matchId)).value;
+    if (match == null) {
+      _now = now;
+      return;
+    }
+    _settleAtBoundaries(match, now);
+    final bool gateMoved = _gate(match, _now) != _gate(match, now);
+    _now = now;
+    if (gateMoved) setState(() {});
+  }
+
+  /// What the page shows at [now]: the phase, plus the countdown numeral while
+  /// there is one. The page rebuilds only when this changes.
+  (int, int) _gate(Match m, int now) {
+    if (m.status == MatchStatus.lobby || m.countingDownAt(now)) {
+      return (0, m.countdownSecondsAt(now));
+    }
+    if (!m.playableAt(now) && m.status != MatchStatus.finished) return (1, 0);
+    return (2, 0);
   }
 
   @override
@@ -73,12 +151,14 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   /// round is over it never finalizes, leaving both players stranded until the
   /// scheduled sweeper eventually cancels it. Poke the settling GET once as each
   /// boundary passes, and let the listener deliver the new doc.
-  void _settleAtBoundaries(Match m) {
-    final bool startDue = m.status == MatchStatus.countdown &&
+  void _settleAtBoundaries(Match m, int now) {
+    final bool startDue =
+        m.status == MatchStatus.countdown &&
         m.startedAt > 0 &&
-        _now >= m.startedAt;
-    final bool endDue = m.endsAt > 0 &&
-        _now >= m.endsAt &&
+        now >= m.startedAt;
+    final bool endDue =
+        m.endsAt > 0 &&
+        now >= m.endsAt &&
         m.status != MatchStatus.finished &&
         m.status != MatchStatus.cancelled;
 
@@ -148,9 +228,10 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     final rack = rackAsync.value;
     // A listener that errored has no value; without this it would read as
     // "still loading" and spin forever.
-    final failed = (matchAsync.hasError && match == null) ||
+    final failed =
+        (matchAsync.hasError && match == null) ||
         (rackAsync.hasError && rack == null);
-    if (match != null) _settleAtBoundaries(match);
+    if (match != null) _settleAtBoundaries(match, _now);
     final effects = ref.watch(activeEffectsProvider(matchId));
     final playState = ref.watch(matchPlayControllerProvider);
 
@@ -164,6 +245,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
         if (leave && mounted) _leaveMatch();
       },
       child: Scaffold(
+        backgroundColor: AppColors.transparent,
         body: PondBackground(
           child: SafeArea(
             child: _content(match, rack, effects, playState, myUid, failed),
@@ -189,8 +271,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
         ),
         PondPillButton(
           label: 'Forfeit',
-          onPressed: () =>
-              Navigator.of(context, rootNavigator: true).pop(true),
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(true),
         ),
       ],
     );
@@ -205,6 +286,67 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     final service = ref.read(matchServiceProvider);
     context.go('/');
     service.leave(widget.matchId).ignore();
+  }
+
+  /// Which SLOTS are frozen at [now] (maps rack letter index -> slot via
+  /// [order]). Cheap, and read live at touch time so a thaw is never stale.
+  Set<int> _frozenSlots(ActiveEffects effects, List<int> order, int now) {
+    if (effects.frozenLetters.isEmpty) return const <int>{};
+    final frozen = <int>{};
+    for (var slot = 0; slot < order.length; slot++) {
+      final exp = effects.frozenLetters[order[slot]];
+      if (exp != null && exp > now) frozen.add(slot);
+    }
+    return frozen;
+  }
+
+  List<int> _orderOf(MatchRack rack, MatchPlayState playState) {
+    _refreshWheel(rack, playState);
+    return _order!;
+  }
+
+  List<String> _wheelLettersOf(MatchRack rack, MatchPlayState playState) {
+    _refreshWheel(rack, playState);
+    return _wheelLetters!;
+  }
+
+  void _refreshWheel(MatchRack rack, MatchPlayState playState) {
+    if (identical(rack, _wheelRackKey) &&
+        identical(playState.rackOrder, _wheelOrderKey) &&
+        _order != null) {
+      return;
+    }
+    _wheelRackKey = rack;
+    _wheelOrderKey = playState.rackOrder;
+    _order = playState.rackOrder.length == rack.letters.length
+        ? playState.rackOrder
+        : List<int>.generate(rack.letters.length, (i) => i);
+    _wheelLetters = [for (final i in _order!) rack.letters[i]];
+  }
+
+  Set<String> _foundOf(MatchRack rack, MatchPlayState playState) {
+    if (identical(rack, _foundRackKey) &&
+        identical(playState.pendingFound, _foundPendingKey) &&
+        _found != null) {
+      return _found!;
+    }
+    _foundRackKey = rack;
+    _foundPendingKey = playState.pendingFound;
+    return _found = <String>{
+      ...rack.foundWords.map((w) => w.toUpperCase()),
+      ...playState.pendingFound,
+    };
+  }
+
+  /// `rack.targets` sorts on every read, so hold the board's copy until the rack
+  /// itself changes.
+  List<PuzzleAnswer> _targetsOf(MatchRack rack) {
+    if (identical(rack, _targetsKey) && _targets != null) return _targets!;
+    _targetsKey = rack;
+    return _targets = [
+      for (final a in rack.targets)
+        PuzzleAnswer(word: a.word, length: a.length, definition: null),
+    ];
   }
 
   Widget _content(
@@ -243,36 +385,23 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     }
     if (!rack.decrypted) {
       return const Center(
-        child: Text('Preparing your rack...',
-            style: TextStyle(color: AppColors.padLabelSoft)),
+        child: Text(
+          'Preparing your rack...',
+          style: TextStyle(color: AppColors.padLabelSoft),
+        ),
       );
     }
 
     final controller = ref.read(matchPlayControllerProvider.notifier);
-    final order = playState.rackOrder.length == rack.letters.length
-        ? playState.rackOrder
-        : List<int>.generate(rack.letters.length, (i) => i);
-    final wheelLetters = [for (final i in order) rack.letters[i]];
-
-    // Which SLOTS are frozen right now (map rack letter index -> slot via order).
-    final frozenSlots = <int>{};
-    for (var slot = 0; slot < order.length; slot++) {
-      final exp = effects.frozenLetters[order[slot]];
-      if (exp != null && exp > _now) frozenSlots.add(slot);
-    }
-    final fogActive = effects.fogUntil != null && effects.fogUntil! > _now;
+    final order = _orderOf(rack, playState);
+    final wheelLetters = _wheelLettersOf(rack, playState);
+    final found = _foundOf(rack, playState);
+    final targets = _targetsOf(rack);
 
     final myScore = myUid == null ? 0 : (match.playerFor(myUid)?.score ?? 0);
-    final found = <String>{
-      ...rack.foundWords.map((w) => w.toUpperCase()),
-      ...playState.pendingFound,
-    };
-    final targets = [
-      for (final a in rack.targets)
-        PuzzleAnswer(word: a.word, length: a.length, definition: null),
-    ];
-    final formed =
-        [for (final s in playState.selection) wheelLetters[s]].join().toUpperCase();
+    final formed = [
+      for (final s in playState.selection) wheelLetters[s],
+    ].join().toUpperCase();
 
     return Column(
       children: [
@@ -282,19 +411,27 @@ class _MatchPageState extends ConsumerState<MatchPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _MyScore(score: myScore),
-              MatchTimer(endsAt: match.endsAt, nowMillis: _now),
-              OpponentHud(opponent: myUid == null ? null : match.opponentOf(myUid)),
+              _Ticking(
+                builder: (_, now, __) =>
+                    MatchTimer(endsAt: match.endsAt, nowMillis: now),
+              ),
+              OpponentHud(
+                opponent: myUid == null ? null : match.opponentOf(myUid),
+              ),
             ],
           ),
         ),
         Expanded(
-          child: FogOverlay(
-            active: fogActive,
+          child: _Ticking(
             child: WordBoard(
               targets: targets,
               found: found,
               revealed: const {},
               center: true,
+            ),
+            builder: (_, now, board) => FogOverlay(
+              active: effects.fogUntil != null && effects.fogUntil! > now,
+              child: board!,
             ),
           ),
         ),
@@ -326,18 +463,26 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                         letters: wheelLetters,
                         selected: playState.selection,
                         ids: order,
-                        onTouch: (slot) =>
-                            controller.touchLetter(slot, frozen: frozenSlots),
+                        onTouch: (slot) => controller.touchLetter(
+                          slot,
+                          frozen: _frozenSlots(
+                            effects,
+                            order,
+                            DateTime.now().millisecondsSinceEpoch,
+                          ),
+                        ),
                         onEnd: () {
                           final word = controller.endSelection(rack, found);
                           if (word != null) _submit(word);
                         },
                       ),
                       Positioned.fill(
-                        child: FrozenLetterOverlay(
-                          frozenSlots: frozenSlots,
-                          letterCount: wheelLetters.length,
-                          size: _wheelSize,
+                        child: _Ticking(
+                          builder: (_, now, __) => FrozenLetterOverlay(
+                            frozenSlots: _frozenSlots(effects, order, now),
+                            letterCount: wheelLetters.length,
+                            size: _wheelSize,
+                          ),
                         ),
                       ),
                     ],
@@ -366,20 +511,22 @@ class _MyScore extends StatelessWidget {
   final int score;
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('You',
-              style: TextStyle(color: AppColors.padLabelSoft, fontSize: 12)),
-          Text(
-            '$score',
-            style: const TextStyle(
-              color: AppColors.padLabel,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        'You',
+        style: TextStyle(color: AppColors.padLabelSoft, fontSize: 12),
+      ),
+      Text(
+        '$score',
+        style: const TextStyle(
+          color: AppColors.padLabel,
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ],
+  );
 }
 
 /// The pre-play and post-play holding screen: the app mark drawing itself on a

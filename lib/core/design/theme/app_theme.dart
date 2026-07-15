@@ -11,17 +11,19 @@ import '../tokens/typography.dart';
 abstract final class AppTheme {
   const AppTheme._();
 
-  static final ThemeData light = _build(Brightness.light, AppColors.paper);
-  static final ThemeData dark = _build(Brightness.dark, AppColors.paperDark);
+  static final ThemeData light = _build(Brightness.light);
+  static final ThemeData dark = _build(Brightness.dark);
 
-  static ThemeData _build(Brightness brightness, Color surface) {
+  static ThemeData _build(Brightness brightness) {
     final ColorScheme scheme = ColorScheme.fromSeed(
       seedColor: AppColors.pond2,
       brightness: brightness,
     );
     return ThemeData(
       colorScheme: scheme,
-      scaffoldBackgroundColor: surface,
+      // Scaffolds must not paint: the app-level `PondShell` sits below the
+      // Navigator and every page floats transparently over it.
+      scaffoldBackgroundColor: AppColors.transparent,
       textTheme: AppTypography.textTheme(brightness),
     );
   }

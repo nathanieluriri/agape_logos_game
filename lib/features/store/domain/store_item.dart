@@ -81,9 +81,9 @@ class PowerupEffect {
   final double? magnitude;
 
   factory PowerupEffect.fromJson(Map<String, dynamic> json) => PowerupEffect(
-        target: json['target'] as String? ?? 'self',
-        durationSec: (json['durationSec'] as num?)?.toInt() ?? 0,
-        rule: json['rule'] as String? ?? '',
-        magnitude: (json['magnitude'] as num?)?.toDouble(),
-      );
+    target: json['target'] as String? ?? 'self',
+    durationSec: (json['durationSec'] as num?)?.toInt() ?? 0,
+    rule: json['rule'] as String? ?? '',
+    magnitude: (json['magnitude'] as num?)?.toDouble(),
+  );
 }

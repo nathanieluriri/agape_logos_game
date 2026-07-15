@@ -12,7 +12,7 @@ import 'store_remote.dart';
 /// extra `GET /me`. Inventory is returned to the caller for the store UI to hold.
 class StoreRepositoryImpl implements StoreRepository {
   StoreRepositoryImpl(this._db, this._remote, {Uuid? uuid})
-      : _uuid = uuid ?? const Uuid();
+    : _uuid = uuid ?? const Uuid();
 
   final AppDatabase _db;
   final StoreRemote _remote;

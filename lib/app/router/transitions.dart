@@ -118,11 +118,17 @@ class _PondReveal extends StatefulWidget {
 class _PondRevealState extends State<_PondReveal> {
   late CurvedAnimation _curve;
 
+  // The mask shader depends only on (bounds, t). ShaderMask can ask for it more
+  // than once per frame; without this each ask allocates a new native gradient.
+  Rect? _shaderBounds;
+  double? _shaderT;
+  ui.Shader? _shader;
+
   CurvedAnimation _newCurve() => CurvedAnimation(
-        parent: widget.animation,
-        curve: AppCurves.enter,
-        reverseCurve: AppCurves.exit,
-      );
+    parent: widget.animation,
+    curve: AppCurves.enter,
+    reverseCurve: AppCurves.exit,
+  );
 
   @override
   void initState() {
@@ -162,7 +168,9 @@ class _PondRevealState extends State<_PondReveal> {
             child: Transform.scale(
               scale: 1 + _PondReveal._settleOverscan * (1 - t),
               alignment: _dropletOrigin,
-              child: child,
+              // The incoming page's raster is reused across the reveal frames
+              // instead of being re-rasterized into the mask layer every tick.
+              child: RepaintBoundary(child: child),
             ),
           ),
         );
@@ -175,6 +183,15 @@ class _PondRevealState extends State<_PondReveal> {
   /// [_PondReveal._materialiseWindow] so the first frames well up instead of
   /// blinking in.
   ui.Shader _revealShader(Rect bounds, double t) {
+    if (_shader != null && _shaderT == t && _shaderBounds == bounds) {
+      return _shader!;
+    }
+    _shaderBounds = bounds;
+    _shaderT = t;
+    return _shader = _buildRevealShader(bounds, t);
+  }
+
+  ui.Shader _buildRevealShader(Rect bounds, double t) {
     final size = bounds.size;
     final origin = _dropletOrigin.alongSize(size);
     final edge = _coverRadius(origin, size) * t;
@@ -182,8 +199,9 @@ class _PondRevealState extends State<_PondReveal> {
         .clamp(_PondReveal._featherMin, _PondReveal._featherMax)
         .toDouble();
     final outer = math.max(edge + feather, 1.0);
-    final ramp =
-        (t / _PondReveal._materialiseWindow).clamp(0.0, 1.0).toDouble();
+    final ramp = (t / _PondReveal._materialiseWindow)
+        .clamp(0.0, 1.0)
+        .toDouble();
     final solid = AppColors.maskSolid.withValues(alpha: ramp);
     return ui.Gradient.radial(
       origin,
@@ -269,8 +287,9 @@ class _PondSinkState extends State<_PondSink> {
                 Positioned.fill(
                   child: IgnorePointer(
                     child: ColoredBox(
-                      color: AppColors.pondDeep
-                          .withValues(alpha: _PondSink._tintOpacity * s),
+                      color: AppColors.pondDeep.withValues(
+                        alpha: _PondSink._tintOpacity * s,
+                      ),
                     ),
                   ),
                 ),

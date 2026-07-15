@@ -26,8 +26,11 @@ class MatchLoadError extends StatelessWidget {
             size: _padSize,
             palette: LilyPadPalette.teal,
             shape: PadShape.smooth,
-            child: Icon(Icons.wifi_off_rounded,
-                size: 22, color: AppColors.padLabel),
+            child: Icon(
+              Icons.wifi_off_rounded,
+              size: 22,
+              color: AppColors.padLabel,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           const Text(

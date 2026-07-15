@@ -31,11 +31,11 @@ class PuzzleRepositoryImpl
     AnswerCipher? cipher,
     Future<List<int>?> Function()? answerKey,
     Future<void> Function()? keyRefresh,
-  })  : _uuid = uuid ?? const Uuid(),
-        _seed = seed ?? const BundledPuzzleSeedSource(),
-        _cipher = cipher ?? AnswerCipher(),
-        _answerKey = answerKey ?? _noKey,
-        _keyRefresh = keyRefresh ?? _noRefresh;
+  }) : _uuid = uuid ?? const Uuid(),
+       _seed = seed ?? const BundledPuzzleSeedSource(),
+       _cipher = cipher ?? AnswerCipher(),
+       _answerKey = answerKey ?? _noKey,
+       _keyRefresh = keyRefresh ?? _noRefresh;
 
   @override
   final AppDatabase db;
@@ -113,9 +113,9 @@ class PuzzleRepositoryImpl
     // read seam once decrypted.
     final vetted = encrypted
         ? puzzles
-        : [for (final p in puzzles) guardDefinedAnswers(p)]
-            .whereType<Puzzle>()
-            .toList();
+        : [
+            for (final p in puzzles) guardDefinedAnswers(p),
+          ].whereType<Puzzle>().toList();
     if (vetted.isEmpty) return;
     var idx = await db.cachedPuzzlesDao.nextOrderIndex();
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -132,38 +132,40 @@ class PuzzleRepositoryImpl
   }
 
   @override
-  Stream<Puzzle?> watchCurrentPuzzle() =>
-      db.cachedPuzzlesDao.watchCurrentPuzzle().asyncMap((row) async {
-        if (row == null) return null;
-        if (!row.encrypted) {
-          // Starter pack is vetted at insert; re-guard defensively so a stale
-          // cache from an older build can never surface an undefined word.
-          final guarded = guardDefinedAnswers(puzzleFromRow(row));
-          if (guarded != null) return guarded;
-          // Too few defined words: skip it so play advances (the watch
-          // re-emits with the next front puzzle immediately after).
-          await db.cachedPuzzlesDao.markCompleted(row.puzzleId);
-          return null;
-        }
-        final decrypted = await _decryptAnswers(puzzleFromRow(row));
-        if (decrypted == null) {
-          // The front puzzle is encrypted but not yet decryptable (the per-user
-          // answer key has not reached this device). Don't strand the player on
-          // an empty pond: serve the first playable plaintext puzzle (the
-          // bundled starter pack). Hold, don't consume: once the key arrives the
-          // encrypted puzzles sort ahead again and play resumes automatically.
-          final fallback = await db.cachedPuzzlesDao.firstUnplayedPlaintext();
-          return fallback == null
-              ? null
-              : guardDefinedAnswers(puzzleFromRow(fallback));
-        }
-        final guarded = guardDefinedAnswers(decrypted);
-        if (guarded != null) return guarded;
-        // Decrypted cleanly but too few words survived the definition rule.
-        // Skip the puzzle (consume it) so play advances to the next one.
-        await db.cachedPuzzlesDao.markCompleted(row.puzzleId);
-        return null;
-      });
+  Stream<Puzzle?>
+  watchCurrentPuzzle() => db.cachedPuzzlesDao.watchCurrentPuzzle().asyncMap((
+    row,
+  ) async {
+    if (row == null) return null;
+    if (!row.encrypted) {
+      // Starter pack is vetted at insert; re-guard defensively so a stale
+      // cache from an older build can never surface an undefined word.
+      final guarded = guardDefinedAnswers(puzzleFromRow(row));
+      if (guarded != null) return guarded;
+      // Too few defined words: skip it so play advances (the watch
+      // re-emits with the next front puzzle immediately after).
+      await db.cachedPuzzlesDao.markCompleted(row.puzzleId);
+      return null;
+    }
+    final decrypted = await _decryptAnswers(puzzleFromRow(row));
+    if (decrypted == null) {
+      // The front puzzle is encrypted but not yet decryptable (the per-user
+      // answer key has not reached this device). Don't strand the player on
+      // an empty pond: serve the first playable plaintext puzzle (the
+      // bundled starter pack). Hold, don't consume: once the key arrives the
+      // encrypted puzzles sort ahead again and play resumes automatically.
+      final fallback = await db.cachedPuzzlesDao.firstUnplayedPlaintext();
+      return fallback == null
+          ? null
+          : guardDefinedAnswers(puzzleFromRow(fallback));
+    }
+    final guarded = guardDefinedAnswers(decrypted);
+    if (guarded != null) return guarded;
+    // Decrypted cleanly but too few words survived the definition rule.
+    // Skip the puzzle (consume it) so play advances to the next one.
+    await db.cachedPuzzlesDao.markCompleted(row.puzzleId);
+    return null;
+  });
 
   /// Decrypts an encrypted puzzle's answers in memory using the current user's
   /// key. Returns null (puzzle not playable) when the key is unavailable or a
@@ -179,7 +181,11 @@ class PuzzleRepositoryImpl
       for (final a in puzzle.answers) {
         final r = await _cipher.decryptAnswer(key, a.word);
         decrypted.add(
-          PuzzleAnswer(word: r.word, length: a.length, definition: r.definition),
+          PuzzleAnswer(
+            word: r.word,
+            length: a.length,
+            definition: r.definition,
+          ),
         );
       }
       return puzzle.copyWith(answers: decrypted);

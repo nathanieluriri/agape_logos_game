@@ -38,8 +38,9 @@ class _MatchmakingPageState extends ConsumerState<MatchmakingPage> {
       _error = null;
     });
     try {
-      final out =
-          await ref.read(matchServiceProvider).create(settings.toWire());
+      final out = await ref
+          .read(matchServiceProvider)
+          .create(settings.toWire());
       if (!mounted) return;
       context.pushReplacement('/multiplayer/lobby/${out.matchId}');
     } catch (_) {
@@ -75,6 +76,7 @@ class _MatchmakingPageState extends ConsumerState<MatchmakingPage> {
   Widget build(BuildContext context) {
     final isCreate = widget.mode == MatchmakingMode.create;
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         child: PondStage(
           child: Column(
@@ -86,8 +88,9 @@ class _MatchmakingPageState extends ConsumerState<MatchmakingPage> {
               const SizedBox(height: AppSpacing.lg),
               Expanded(
                 child: SingleChildScrollView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
                   child: Column(
                     children: [
                       if (isCreate)
@@ -112,11 +115,11 @@ class _ErrorText extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: AppSpacing.md),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.dangerOnPond, fontSize: 13),
-        ),
-      );
+    padding: const EdgeInsets.only(top: AppSpacing.md),
+    child: Text(
+      text,
+      textAlign: TextAlign.center,
+      style: const TextStyle(color: AppColors.dangerOnPond, fontSize: 13),
+    ),
+  );
 }

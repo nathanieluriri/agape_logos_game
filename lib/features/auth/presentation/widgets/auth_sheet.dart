@@ -122,73 +122,77 @@ class _AuthSheetContentState extends ConsumerState<AuthSheetContent> {
           // instead of overflowing the fixed column.
           child: SingleChildScrollView(
             child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Center(
-                child: SizedBox(
-                  width: _dragBarWidth,
-                  height: _dragBarHeight,
-                  child: DecoratedBox(decoration: _dragBarDecoration),
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Center(
+                  child: SizedBox(
+                    width: _dragBarWidth,
+                    height: _dragBarHeight,
+                    child: DecoratedBox(decoration: _dragBarDecoration),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Center(
-                child: SvgPicture.asset(
-                  'assets/branding/auth_icon.svg',
-                  height: _authIconSize,
-                  semanticsLabel: 'Agape Logos',
+                const SizedBox(height: AppSpacing.md),
+                Center(
+                  child: SvgPicture.asset(
+                    'assets/branding/auth_icon.svg',
+                    height: _authIconSize,
+                    semanticsLabel: 'Agape Logos',
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const Text(
-                'Sign in to save your progress',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.padLabel,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
+                const SizedBox(height: AppSpacing.md),
+                const Text(
+                  'Sign in to save your progress',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.padLabel,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              GoogleSignInButton(
-                onPressed: isLoading ? null : () => notifier.signInWithGoogle(),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              PondPillButton(
-                label: 'Continue as guest',
-                icon: Icons.person_outline,
-                variant: PondPillVariant.quiet,
-                enabled: !isLoading,
-                onPressed: () => notifier.signInWithGuest(),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              PondTextLink(
-                label: _showEmail ? 'Hide email sign-in' : 'Use email instead',
-                onTap: () => setState(() => _showEmail = !_showEmail),
-              ),
-              AnimatedCrossFade(
-                firstChild: const SizedBox(width: double.infinity),
-                secondChild: _EmailSection(
-                  formKey: _formKey,
-                  email: _email,
-                  password: _password,
-                  isRegister: _isRegister,
-                  isLoading: isLoading,
-                  onSubmit: _submitEmail,
-                  onToggleRegister: () =>
-                      setState(() => _isRegister = !_isRegister),
+                const SizedBox(height: AppSpacing.lg),
+                GoogleSignInButton(
+                  onPressed: isLoading
+                      ? null
+                      : () => notifier.signInWithGoogle(),
                 ),
-                crossFadeState: _showEmail
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
-                duration: AppDurations.normal,
-              ),
-              if (state.hasError) ...[
                 const SizedBox(height: AppSpacing.sm),
-                AuthErrorText(error: state.error!),
+                PondPillButton(
+                  label: 'Continue as guest',
+                  icon: Icons.person_outline,
+                  variant: PondPillVariant.quiet,
+                  enabled: !isLoading,
+                  onPressed: () => notifier.signInWithGuest(),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                PondTextLink(
+                  label: _showEmail
+                      ? 'Hide email sign-in'
+                      : 'Use email instead',
+                  onTap: () => setState(() => _showEmail = !_showEmail),
+                ),
+                AnimatedCrossFade(
+                  firstChild: const SizedBox(width: double.infinity),
+                  secondChild: _EmailSection(
+                    formKey: _formKey,
+                    email: _email,
+                    password: _password,
+                    isRegister: _isRegister,
+                    isLoading: isLoading,
+                    onSubmit: _submitEmail,
+                    onToggleRegister: () =>
+                        setState(() => _isRegister = !_isRegister),
+                  ),
+                  crossFadeState: _showEmail
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  duration: AppDurations.normal,
+                ),
+                if (state.hasError) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  AuthErrorText(error: state.error!),
+                ],
               ],
-            ],
             ),
           ),
         ),
@@ -230,11 +234,7 @@ class _EmailSection extends StatelessWidget {
           passwordController: password,
         ),
         const SizedBox(height: AppSpacing.sm),
-        PondPillButton(
-          label: label,
-          enabled: !isLoading,
-          onPressed: onSubmit,
-        ),
+        PondPillButton(label: label, enabled: !isLoading, onPressed: onSubmit),
         PondTextLink(
           label: isRegister
               ? 'Have an account? Sign in'

@@ -30,21 +30,21 @@ abstract class GameSession with _$GameSession {
   factory GameSession.initial({
     required Puzzle puzzle,
     required int hintsLeft,
-  }) =>
-      GameSession(
-        puzzle: puzzle,
-        rackOrder: List<int>.generate(puzzle.letters.length, (i) => i),
-        selection: const [],
-        found: const {},
-        revealed: const {},
-        score: 0,
-        combo: 0,
-        hintsLeft: hintsLeft,
-      );
+  }) => GameSession(
+    puzzle: puzzle,
+    rackOrder: List<int>.generate(puzzle.letters.length, (i) => i),
+    selection: const [],
+    found: const {},
+    revealed: const {},
+    score: 0,
+    combo: 0,
+    hintsLeft: hintsLeft,
+  );
 
   /// Wheel letters in display order (shuffle permutes rackOrder).
-  List<String> get wheelLetters =>
-      [for (final i in rackOrder) puzzle.letters[i]];
+  List<String> get wheelLetters => [
+    for (final i in rackOrder) puzzle.letters[i],
+  ];
 
   /// The in-progress word from the selected wheel slots.
   String get formedWord =>

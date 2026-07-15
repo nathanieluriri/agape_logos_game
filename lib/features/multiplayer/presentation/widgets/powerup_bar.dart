@@ -48,7 +48,8 @@ class PowerupBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final catalog = ref.watch(storeCatalogProvider).value ?? const <StoreItem>[];
+    final catalog =
+        ref.watch(storeCatalogProvider).value ?? const <StoreItem>[];
     final inventory =
         ref.watch(inventoryControllerProvider).value ?? const <String, int>{};
     // Firable == the server implements it. Keying off the id map (rather than
@@ -72,7 +73,9 @@ class PowerupBar extends ConsumerWidget {
             owned: owned,
             onFire: owned > 0
                 ? () async {
-                    final ok = await ref.read(matchServiceProvider).powerup(
+                    final ok = await ref
+                        .read(matchServiceProvider)
+                        .powerup(
                           matchId,
                           powerupWireKind(item.id)!,
                           eventId: const Uuid().v4(),
@@ -124,7 +127,9 @@ class _PowerupButton extends StatelessWidget {
             color: enabled ? AppColors.plusButtonDeep : AppColors.pillFill,
             borderRadius: AppRadii.card,
             border: Border.all(
-              color: enabled ? AppColors.plusButtonBorder : AppColors.pillBorder,
+              color: enabled
+                  ? AppColors.plusButtonBorder
+                  : AppColors.pillBorder,
             ),
           ),
           child: Column(

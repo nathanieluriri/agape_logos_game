@@ -21,7 +21,7 @@ class ProfileRepositoryImpl
     with OfflineAwareRepository
     implements ProfileRepository {
   ProfileRepositoryImpl(this.db, this._remote, {Uuid? uuid})
-      : _uuid = uuid ?? const Uuid();
+    : _uuid = uuid ?? const Uuid();
 
   @override
   final AppDatabase db;

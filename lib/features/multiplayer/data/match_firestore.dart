@@ -14,11 +14,8 @@ import 'match_mappers.dart';
 /// MatchRemote. Rack answers are decrypted in memory with the per-user key,
 /// exactly like single-player puzzles (never at rest in plaintext).
 class MatchFirestore {
-  MatchFirestore(
-    this._db, {
-    required this._answerKey,
-    AnswerCipher? cipher,
-  })  : _cipher = cipher ?? AnswerCipher();
+  MatchFirestore(this._db, {required this._answerKey, AnswerCipher? cipher})
+    : _cipher = cipher ?? AnswerCipher();
 
   final FirebaseFirestore _db;
   final Future<List<int>?> Function() _answerKey;
@@ -30,17 +27,14 @@ class MatchFirestore {
   /// Live match doc (contract 8.1/8.2); emits null when the doc is absent.
   Stream<Match?> watchMatch(String matchId) =>
       _matchDoc(matchId).snapshots().map(
-            (snap) => snap.exists
-                ? matchFromSnapshot(snap.id, snap.data()!)
-                : null,
-          );
+        (snap) => snap.exists ? matchFromSnapshot(snap.id, snap.data()!) : null,
+      );
 
   /// My private rack (contract 8.3), answers decrypted in memory.
-  Stream<MatchRack?> watchMyRack(String matchId, String uid) => _matchDoc(matchId)
-      .collection('racks')
-      .doc(uid)
-      .snapshots()
-      .asyncMap((snap) async {
+  Stream<MatchRack?> watchMyRack(String matchId, String uid) =>
+      _matchDoc(matchId).collection('racks').doc(uid).snapshots().asyncMap((
+        snap,
+      ) async {
         if (!snap.exists) return null;
         return _decryptRack(matchRackFromSnapshot(snap.id, snap.data()!));
       });
@@ -53,8 +47,11 @@ class MatchFirestore {
           .where('targetUid', isEqualTo: uid)
           .orderBy('at')
           .snapshots()
-          .map((q) =>
-              q.docs.map((d) => matchEventFromSnapshot(d.id, d.data())).toList());
+          .map(
+            (q) => q.docs
+                .map((d) => matchEventFromSnapshot(d.id, d.data()))
+                .toList(),
+          );
 
   /// Decrypts the rack's answer tokens with the current user's key. On no key
   /// (a corner case in a live, online match) the rack is returned with the
@@ -73,7 +70,11 @@ class MatchFirestore {
       for (final a in rack.answers) {
         final r = await _cipher.decryptAnswer(key, a.word);
         decrypted.add(
-          PuzzleAnswer(word: r.word, length: a.length, definition: r.definition),
+          PuzzleAnswer(
+            word: r.word,
+            length: a.length,
+            definition: r.definition,
+          ),
         );
       }
       return rack.copyWith(answers: decrypted);

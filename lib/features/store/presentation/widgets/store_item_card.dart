@@ -30,15 +30,14 @@ class StoreItemCard extends ConsumerWidget {
   static const _cardDecoration = BoxDecoration(
     gradient: AppGradients.pondCard,
     borderRadius: AppRadii.card,
-    border: Border.fromBorderSide(
-      BorderSide(color: AppColors.settingsBorder),
-    ),
+    border: Border.fromBorderSide(BorderSide(color: AppColors.settingsBorder)),
   );
 
   Future<void> _buy(BuildContext context, WidgetRef ref) async {
     final haptics = ref.read(hapticServiceProvider);
-    final outcome =
-        await ref.read(storePurchaseControllerProvider.notifier).buy(item);
+    final outcome = await ref
+        .read(storePurchaseControllerProvider.notifier)
+        .buy(item);
     if (!context.mounted) return;
     switch (outcome) {
       case PurchaseSuccess(:final replay):
@@ -143,7 +142,8 @@ class StoreItemCard extends ConsumerWidget {
                         )
                       : PondPillButton(
                           label: 'Buy',
-                          semanticLabel: 'Buy ${item.name} for ${item.cost} petals',
+                          semanticLabel:
+                              'Buy ${item.name} for ${item.cost} petals',
                           onPressed: () => _buy(context, ref),
                         ),
                 ],

@@ -27,16 +27,17 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/sign-in',
-      pageBuilder: (context, state) => pondRevealPage(const SignInPage(), state),
+      pageBuilder: (context, state) =>
+          pondRevealPage(const SignInPage(), state),
     ),
     GoRoute(
       path: '/account',
-      pageBuilder: (context, state) => pondRevealPage(const AccountPage(), state),
+      pageBuilder: (context, state) =>
+          pondRevealPage(const AccountPage(), state),
     ),
     GoRoute(
       path: '/game',
-      pageBuilder: (context, state) =>
-          pondRevealPage(const GamePage(), state),
+      pageBuilder: (context, state) => pondRevealPage(const GamePage(), state),
     ),
     GoRoute(
       path: '/level-complete',
@@ -50,8 +51,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/store',
-      pageBuilder: (context, state) =>
-          pondRevealPage(const StorePage(), state),
+      pageBuilder: (context, state) => pondRevealPage(const StorePage(), state),
     ),
     GoRoute(
       path: '/dictionary',
@@ -99,10 +99,8 @@ final GoRouter appRouter = GoRouter(
     // /friends) to match this router's flat style.
     GoRoute(
       path: '/friends/search',
-      pageBuilder: (context, state) => pondRevealPage(
-        const FriendsPage(initialTab: FriendsTab.find),
-        state,
-      ),
+      pageBuilder: (context, state) =>
+          pondRevealPage(const FriendsPage(initialTab: FriendsTab.find), state),
     ),
     GoRoute(
       path: '/history',

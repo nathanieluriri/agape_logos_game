@@ -30,14 +30,13 @@ class MatchPlayState {
     List<int>? selection,
     Set<String>? pendingFound,
     Set<String>? appliedEventIds,
-  }) =>
-      MatchPlayState(
-        rackLength: rackLength ?? this.rackLength,
-        rackOrder: rackOrder ?? this.rackOrder,
-        selection: selection ?? this.selection,
-        pendingFound: pendingFound ?? this.pendingFound,
-        appliedEventIds: appliedEventIds ?? this.appliedEventIds,
-      );
+  }) => MatchPlayState(
+    rackLength: rackLength ?? this.rackLength,
+    rackOrder: rackOrder ?? this.rackOrder,
+    selection: selection ?? this.selection,
+    pendingFound: pendingFound ?? this.pendingFound,
+    appliedEventIds: appliedEventIds ?? this.appliedEventIds,
+  );
 }
 
 class MatchPlayController extends Notifier<MatchPlayState> {
@@ -71,9 +70,9 @@ class MatchPlayController extends Notifier<MatchPlayState> {
 
   /// Wheel letters in display order for [rack] under the current shuffle order.
   List<String> wheelLetters(MatchRack rack) => [
-        for (final i in state.rackOrder)
-          if (i >= 0 && i < rack.letters.length) rack.letters[i],
-      ];
+    for (final i in state.rackOrder)
+      if (i >= 0 && i < rack.letters.length) rack.letters[i],
+  ];
 
   void touchLetter(int slot, {Set<int> frozen = const <int>{}}) {
     if (slot < 0 || slot >= state.rackLength) return;
@@ -136,5 +135,5 @@ class MatchPlayController extends Notifier<MatchPlayState> {
 
 final matchPlayControllerProvider =
     NotifierProvider<MatchPlayController, MatchPlayState>(
-  MatchPlayController.new,
-);
+      MatchPlayController.new,
+    );

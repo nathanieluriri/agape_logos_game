@@ -27,6 +27,7 @@ class MatchResultPage extends ConsumerWidget {
         : MatchResult.fromFinishedMatch(match, myUid);
 
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         child: PondStage(
           child: Column(
@@ -101,18 +102,24 @@ class _ScoreLine extends StatelessWidget {
   final int score;
   @override
   Widget build(BuildContext context) => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: const TextStyle(
-                  color: AppColors.padLabel,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700)),
-          Text('$score',
-              style: const TextStyle(
-                  color: AppColors.padLabel,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900)),
-        ],
-      );
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.padLabel,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      Text(
+        '$score',
+        style: const TextStyle(
+          color: AppColors.padLabel,
+          fontSize: 22,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    ],
+  );
 }

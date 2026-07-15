@@ -36,14 +36,16 @@ class WordBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final column = Column(
-      mainAxisAlignment:
-          center ? MainAxisAlignment.center : MainAxisAlignment.start,
+      mainAxisAlignment: center
+          ? MainAxisAlignment.center
+          : MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         for (final answer in targets)
           Padding(
-            padding:
-                const EdgeInsets.symmetric(vertical: AppSizing.boardTileGap / 2),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSizing.boardTileGap / 2,
+            ),
             child: _WordRow(
               word: answer.word.toUpperCase(),
               found: found.contains(answer.word.toUpperCase()),
@@ -59,8 +61,9 @@ class WordBoard extends StatelessWidget {
       builder: (context, constraints) => SingleChildScrollView(
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            minHeight:
-                constraints.maxHeight.isFinite ? constraints.maxHeight : 0,
+            minHeight: constraints.maxHeight.isFinite
+                ? constraints.maxHeight
+                : 0,
           ),
           child: column,
         ),
@@ -115,8 +118,9 @@ class _WordRowState extends State<_WordRow> {
               child: _AnimatedTile(
                 letter: widget.word[i],
                 filled: widget.found || i < widget.revealed,
-                revealDelay:
-                    _cascading ? AppDurations.tileStagger * i : Duration.zero,
+                revealDelay: _cascading
+                    ? AppDurations.tileStagger * i
+                    : Duration.zero,
               ),
             ),
         ],
@@ -158,9 +162,9 @@ class _AnimatedTileState extends State<_AnimatedTile>
   AnimationController? _c;
 
   AnimationController get _controller => _c ??= AnimationController(
-        vsync: this,
-        duration: AppDurations.tileReveal,
-      );
+    vsync: this,
+    duration: AppDurations.tileReveal,
+  );
 
   /// Fraction of the (delay + reveal) window spent waiting before the reveal
   /// begins; 0 when there is no stagger delay.
@@ -192,9 +196,7 @@ class _AnimatedTileState extends State<_AnimatedTile>
   static const _emptyDecoration = BoxDecoration(
     color: AppColors.boardSlotFill,
     borderRadius: AppRadii.card,
-    border: Border.fromBorderSide(
-      BorderSide(color: AppColors.boardSlotBorder),
-    ),
+    border: Border.fromBorderSide(BorderSide(color: AppColors.boardSlotBorder)),
   );
 
   @override
@@ -310,8 +312,9 @@ class _AnimatedTileState extends State<_AnimatedTile>
                         scale: glyphT,
                         child: Text(
                           widget.letter,
-                          style: AppTypography.tileLetter
-                              .copyWith(color: AppColors.padLabel),
+                          style: AppTypography.tileLetter.copyWith(
+                            color: AppColors.padLabel,
+                          ),
                         ),
                       ),
                     ),

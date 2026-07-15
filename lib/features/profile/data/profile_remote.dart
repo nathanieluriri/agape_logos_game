@@ -17,7 +17,10 @@ abstract class ProfileRemote {
   /// `PUT /me/handle` {handle} -> {handle}. Online, server-authoritative: the
   /// server can reject the claim (409 taken, 400 invalid), so the result is a
   /// [HandleOutcome] rather than a thrown exception.
-  Future<HandleOutcome> setHandle(String handle, {required String idempotencyKey});
+  Future<HandleOutcome> setHandle(
+    String handle, {
+    required String idempotencyKey,
+  });
 }
 
 class HttpProfileRemote implements ProfileRemote {
@@ -27,10 +30,7 @@ class HttpProfileRemote implements ProfileRemote {
 
   @override
   Future<Profile> me() async {
-    final res = await _api.request<Map<String, dynamic>>(
-      '/me',
-      method: 'GET',
-    );
+    final res = await _api.request<Map<String, dynamic>>('/me', method: 'GET');
     return Profile.fromJson(res.data ?? const {});
   }
 

@@ -23,6 +23,7 @@ class DictionaryPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         child: SafeArea(
           child: Column(
@@ -54,7 +55,9 @@ class _DictionaryBody extends ConsumerWidget {
 
     if (entries.isEmpty) {
       if (refresh.isLoading) {
-        return const Center(child: PondLoader(label: 'Opening your dictionary'));
+        return const Center(
+          child: PondLoader(label: 'Opening your dictionary'),
+        );
       }
       if (refresh.hasError) {
         return _DictionaryError(

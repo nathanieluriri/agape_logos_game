@@ -70,9 +70,9 @@ class _LetterWheelState extends State<LetterWheel> {
   /// Internally the wheel always renders at its fixed diameter, so the node
   /// scale inside [LetterWheel.centersIn] is exactly 1.
   List<Offset> get _centers => LetterWheel.centersIn(
-        const Size(AppSizing.wheelDiameter, AppSizing.wheelDiameter),
-        widget.letters.length,
-      );
+    const Size(AppSizing.wheelDiameter, AppSizing.wheelDiameter),
+    widget.letters.length,
+  );
 
   void _hit(Offset local) {
     final centers = _centers;
@@ -108,7 +108,8 @@ class _LetterWheelState extends State<LetterWheel> {
         slotOfId[ids[slot]] = slot;
       }
     }
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final moveDuration = reduceMotion ? Duration.zero : AppDurations.shuffle;
     return SizedBox(
       width: AppSizing.wheelDiameter,
@@ -182,7 +183,8 @@ class _Node extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return Center(
       child: AnimatedScale(
         scale: selected ? _selectedScale : 1,
@@ -269,8 +271,10 @@ class _WheelBasePainter extends CustomPainter {
     // 4. Gold lotus watermark: a faint rosette bloom in the middle, reusing the
     // brand mark's lotus geometry so the wheel carries the logo's flower motif,
     // ringed by a thin gold line. Both sit inside the letter nodes.
-    final rosette =
-        Rect.fromCircle(center: center, radius: radius * _rosetteRadius);
+    final rosette = Rect.fromCircle(
+      center: center,
+      radius: radius * _rosetteRadius,
+    );
     canvas.drawPath(
       BrandMarkGeometry.petalRosette(rosette),
       Paint()..color = AppColors.accent.withValues(alpha: _watermarkAlpha),
@@ -323,13 +327,34 @@ class _WheelPainter extends CustomPainter {
   /// The bright core trail width.
   static const double _coreWidth = 10;
 
-  /// The soft glow underlay: wider, blurred, and translucent so the trail reads
-  /// as luminous rather than a flat marker line.
-  // PLAN: _glowSigma / _glowWidth / _glowAlpha shape the trail glow; nudge
-  // on-device so it reads luminous but not muddy.
-  static const double _glowWidth = 18;
-  static const double _glowAlpha = 0.35;
-  static const double _glowSigma = 6;
+  /// The soft glow underlay: three progressively narrower, progressively less
+  /// transparent stroke passes that stack into a falloff around the core. A
+  /// MaskFilter.blur would be re-rasterized on every pointer-move frame (the
+  /// trail follows the finger), which is the jank; layered strokes are the same
+  /// look at stroke cost.
+  // PLAN: the _glow* ladders shape the trail glow; nudge on-device so it reads
+  // luminous but not muddy.
+  static const List<double> _glowWidths = [18, 14.5, 12];
+  static const List<double> _glowAlphas = [0.10, 0.13, 0.17];
+
+  /// Stroke passes are geometry-independent, so they are built once for the
+  /// whole app rather than per paint (jank rule: no per-frame allocations).
+  static final List<Paint> _glowPaints = [
+    for (var i = 0; i < _glowWidths.length; i++)
+      Paint()
+        ..color = AppColors.wheelConnect.withValues(alpha: _glowAlphas[i])
+        ..strokeWidth = _glowWidths[i]
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke,
+  ];
+
+  static final Paint _corePaint = Paint()
+    ..color = AppColors.wheelConnect
+    ..strokeWidth = _coreWidth
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..style = PaintingStyle.stroke;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -341,28 +366,10 @@ class _WheelPainter extends CustomPainter {
     }
     if (finger != null) path.lineTo(finger!.dx, finger!.dy);
 
-    // Soft glow underlay.
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = AppColors.wheelConnect.withValues(alpha: _glowAlpha)
-        ..strokeWidth = _glowWidth
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke
-        ..maskFilter =
-            const MaskFilter.blur(BlurStyle.normal, _glowSigma),
-    );
-    // Crisp core stroke over the glow.
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = AppColors.wheelConnect
-        ..strokeWidth = _coreWidth
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke,
-    );
+    for (final glow in _glowPaints) {
+      canvas.drawPath(path, glow);
+    }
+    canvas.drawPath(path, _corePaint);
   }
 
   @override

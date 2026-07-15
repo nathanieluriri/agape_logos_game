@@ -10,7 +10,11 @@ import '../../domain/multiplayer_config.dart';
 /// Creator-only match settings: difficulty, base time, and (gated) a theme
 /// picker. Emits the chosen [MatchSettings] via [onCreate].
 class MatchSettingsForm extends StatefulWidget {
-  const MatchSettingsForm({super.key, required this.onCreate, this.busy = false});
+  const MatchSettingsForm({
+    super.key,
+    required this.onCreate,
+    this.busy = false,
+  });
 
   final void Function(MatchSettings settings) onCreate;
   final bool busy;
@@ -86,13 +90,13 @@ class _FieldLabel extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Text(
-        text,
-        style: const TextStyle(
-          color: AppColors.wordmark,
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-        ),
-      );
+    text,
+    style: const TextStyle(
+      color: AppColors.wordmark,
+      fontSize: 15,
+      fontWeight: FontWeight.w700,
+    ),
+  );
 }
 
 class _ChoiceRow<T> extends StatelessWidget {
@@ -150,7 +154,9 @@ class _ChoiceChip extends StatelessWidget {
             color: selected ? AppColors.plusButtonDeep : AppColors.pillFill,
             borderRadius: AppRadii.pill,
             border: Border.all(
-              color: selected ? AppColors.plusButtonBorder : AppColors.pillBorder,
+              color: selected
+                  ? AppColors.plusButtonBorder
+                  : AppColors.pillBorder,
             ),
           ),
           child: Text(

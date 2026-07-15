@@ -24,12 +24,12 @@ final dictionaryRepositoryProvider = Provider<DictionaryRepository>(
 /// writes through.
 final dictionaryEntriesProvider =
     StreamProvider.autoDispose<List<DictionaryEntry>>((ref) {
-  final user = ref.watch(currentUserProvider);
-  if (user == null) {
-    return Stream<List<DictionaryEntry>>.value(const []);
-  }
-  return ref.watch(dictionaryRepositoryProvider).watch(user.uid);
-});
+      final user = ref.watch(currentUserProvider);
+      if (user == null) {
+        return Stream<List<DictionaryEntry>>.value(const []);
+      }
+      return ref.watch(dictionaryRepositoryProvider).watch(user.uid);
+    });
 
 /// Fires the network fetch (write-through). The dictionary page watches this
 /// only to show a first-load spinner / error while the cache is still empty;

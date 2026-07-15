@@ -65,8 +65,7 @@ final friendsProvider = Provider<List<Friend>>(
 
 /// Incoming pending friend requests (empty while loading / on error).
 final friendRequestsProvider = Provider<List<FriendRequest>>(
-  (ref) =>
-      ref.watch(liveFriendRequestsProvider).value ?? const <FriendRequest>[],
+  (ref) => ref.watch(liveFriendRequestsProvider).value ?? const <FriendRequest>[],
 );
 
 /// `GET /me/matches`. Invalidate to refresh.
@@ -76,8 +75,10 @@ final matchHistoryProvider = FutureProvider<List<MatchHistoryEntry>>(
 
 /// OnlineOnly friend search over a trimmed query. An empty query short-circuits
 /// to an empty list (no network call), so the field can watch it live.
-final userSearchProvider =
-    FutureProvider.family<List<PublicProfile>, String>((ref, query) {
+final userSearchProvider = FutureProvider.family<List<PublicProfile>, String>((
+  ref,
+  query,
+) {
   final q = query.trim();
   if (q.isEmpty) {
     return Future<List<PublicProfile>>.value(const <PublicProfile>[]);
@@ -87,8 +88,7 @@ final userSearchProvider =
 
 /// `GET /users/:uid/public`. Throws `ProfileNotVisible` for a private target,
 /// which the page surfaces as a "private profile" state.
-final publicProfileProvider =
-    FutureProvider.family<PublicProfileDetail, String>(
+final publicProfileProvider = FutureProvider.family<PublicProfileDetail, String>(
   (ref, uid) => ref.watch(socialRepositoryProvider).publicProfile(uid),
   // Riverpod 3 retries failed providers by default, and a retrying provider
   // reports `AsyncLoading` (carrying the previous error), never `AsyncError`.
@@ -135,7 +135,9 @@ class ProfilePrivacyController extends AsyncNotifier<bool> {
 }
 
 final profilePrivacyControllerProvider =
-    AsyncNotifierProvider<ProfilePrivacyController, bool>(ProfilePrivacyController.new);
+    AsyncNotifierProvider<ProfilePrivacyController, bool>(
+      ProfilePrivacyController.new,
+    );
 
 /// Tracks in-flight friend actions by a target id (uid / handle / fromUid) so
 /// each tile disables only its own button while its request is out.
@@ -147,17 +149,19 @@ class FriendActionsController extends Notifier<Set<String>> {
 
   /// Sends a friend request; returns the typed outcome for a snack. Signed-out
   /// callers get [FriendRequestUnavailable] without a network call.
-  Future<FriendRequestOutcome> sendRequest({String? toUid, String? handle}) async {
+  Future<FriendRequestOutcome> sendRequest({
+    String? toUid,
+    String? handle,
+  }) async {
     final String id = toUid ?? handle ?? '';
     if (ref.read(currentUserProvider) == null) {
       return const FriendRequestUnavailable();
     }
     state = <String>{...state, id};
     try {
-      return await ref.read(socialRepositoryProvider).sendFriendRequest(
-            toUid: toUid,
-            handle: handle,
-          );
+      return await ref
+          .read(socialRepositoryProvider)
+          .sendFriendRequest(toUid: toUid, handle: handle);
     } finally {
       state = <String>{...state}..remove(id);
     }
@@ -184,4 +188,6 @@ class FriendActionsController extends Notifier<Set<String>> {
 }
 
 final friendActionsControllerProvider =
-    NotifierProvider<FriendActionsController, Set<String>>(FriendActionsController.new);
+    NotifierProvider<FriendActionsController, Set<String>>(
+      FriendActionsController.new,
+    );

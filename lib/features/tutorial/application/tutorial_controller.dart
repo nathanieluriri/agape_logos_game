@@ -68,8 +68,9 @@ class TutorialController extends Notifier<TutorialState?> {
     if (tutorial == null || tutorial.phase != TutorialPhase.trace) return;
     final session = ref.read(gameSessionProvider);
     if (session == null) return;
-    final next =
-        tutorial.targetWords.indexWhere((w) => !session.found.contains(w));
+    final next = tutorial.targetWords.indexWhere(
+      (w) => !session.found.contains(w),
+    );
     if (next == -1) {
       _finish();
     } else if (next != tutorial.stepIndex) {

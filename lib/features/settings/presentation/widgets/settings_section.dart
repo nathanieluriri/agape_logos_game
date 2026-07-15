@@ -39,11 +39,11 @@ class SettingsSection extends StatelessWidget {
   );
 
   List<Widget> _dividedChildren() => [
-        for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) _divider,
-          children[i],
-        ],
-      ];
+    for (var i = 0; i < children.length; i++) ...[
+      if (i > 0) _divider,
+      children[i],
+    ],
+  ];
 
   @override
   Widget build(BuildContext context) {

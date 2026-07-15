@@ -13,8 +13,9 @@ class SocialAvatarDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String initial =
-        name.trim().isEmpty ? '?' : name.trim().characters.first.toUpperCase();
+    final String initial = name.trim().isEmpty
+        ? '?'
+        : name.trim().characters.first.toUpperCase();
     return Container(
       width: size,
       height: size,

@@ -39,8 +39,10 @@ final matchFirestoreProvider = Provider<MatchFirestore>((ref) {
 /// provider while `currentUser` is still null; attaching there is a guaranteed
 /// permission-denied. Hold in `loading` until auth resolves, then attach.
 /// Watching auth also means the listener re-attaches across a sign-in.
-final matchStreamProvider =
-    StreamProvider.family<Match?, String>((ref, matchId) {
+final matchStreamProvider = StreamProvider.family<Match?, String>((
+  ref,
+  matchId,
+) {
   final auth = ref.watch(authStateProvider);
   // Still restoring the persisted user: not signed out, just not ready.
   if (auth.isLoading) return const Stream<Match?>.empty();
@@ -57,8 +59,10 @@ final matchStreamProvider =
 
 /// Contract 8.8: my private rack (answers decrypted). Empty stream when signed
 /// out (multiplayer is auth-gated, so this only happens mid-sign-out).
-final myRackStreamProvider =
-    StreamProvider.family<MatchRack?, String>((ref, matchId) {
+final myRackStreamProvider = StreamProvider.family<MatchRack?, String>((
+  ref,
+  matchId,
+) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return const Stream<MatchRack?>.empty();
   return ref.watch(matchFirestoreProvider).watchMyRack(matchId, user.uid);
@@ -67,10 +71,12 @@ final myRackStreamProvider =
 /// Contract 8.8: events targeting me (the raw incoming powerup stream).
 final matchEventsStreamProvider =
     StreamProvider.family<List<MatchEvent>, String>((ref, matchId) {
-  final user = ref.watch(currentUserProvider);
-  if (user == null) return Stream.value(const <MatchEvent>[]);
-  return ref.watch(matchFirestoreProvider).watchEventsForMe(matchId, user.uid);
-});
+      final user = ref.watch(currentUserProvider);
+      if (user == null) return Stream.value(const <MatchEvent>[]);
+      return ref
+          .watch(matchFirestoreProvider)
+          .watchEventsForMe(matchId, user.uid);
+    });
 
 /// Derived live effects currently on me: which rack letter indices are frozen
 /// (with their expiries) and the latest fog expiry. Pure projection: it re-emits
@@ -85,17 +91,22 @@ class ActiveEffects {
   /// Latest fog expiry (epoch millis), or null when no fog is live.
   final int? fogUntil;
 
-  static const empty =
-      ActiveEffects(frozenLetters: <int, int>{}, fogUntil: null);
+  static const empty = ActiveEffects(
+    frozenLetters: <int, int>{},
+    fogUntil: null,
+  );
 
   bool get hasFog => fogUntil != null;
 }
 
 /// Contract 8.8: `activeEffectsProvider(matchId)`.
-final activeEffectsProvider =
-    Provider.family<ActiveEffects, String>((ref, matchId) {
+final activeEffectsProvider = Provider.family<ActiveEffects, String>((
+  ref,
+  matchId,
+) {
   final events =
-      ref.watch(matchEventsStreamProvider(matchId)).value ?? const <MatchEvent>[];
+      ref.watch(matchEventsStreamProvider(matchId)).value ??
+      const <MatchEvent>[];
   final now = DateTime.now().millisecondsSinceEpoch;
   final frozen = <int, int>{};
   int? fogUntil;

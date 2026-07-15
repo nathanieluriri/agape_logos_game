@@ -12,16 +12,16 @@ class MatchHistoryRow extends StatelessWidget {
   final MatchHistoryEntry entry;
 
   Color get _chipColor => switch (entry.result) {
-        'win' => AppColors.lilyGreenDeep,
-        'loss' => AppColors.dangerFill,
-        _ => AppColors.pillFill,
-      };
+    'win' => AppColors.lilyGreenDeep,
+    'loss' => AppColors.dangerFill,
+    _ => AppColors.pillFill,
+  };
 
   String get _chipLabel => switch (entry.result) {
-        'win' => 'WON',
-        'loss' => 'LOST',
-        _ => 'DRAW',
-      };
+    'win' => 'WON',
+    'loss' => 'LOST',
+    _ => 'DRAW',
+  };
 
   @override
   Widget build(BuildContext context) {

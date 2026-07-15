@@ -17,6 +17,7 @@ class MatchHistoryPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final history = ref.watch(matchHistoryProvider);
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         child: PondStage(
           child: Column(
@@ -27,9 +28,12 @@ class MatchHistoryPage extends ConsumerWidget {
               Expanded(
                 child: history.when(
                   loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const _Message('Could not load your history.'),
+                  error: (_, __) =>
+                      const _Message('Could not load your history.'),
                   data: (entries) => entries.isEmpty
-                      ? const _Message('No matches yet. Play a multiplayer game!')
+                      ? const _Message(
+                          'No matches yet. Play a multiplayer game!',
+                        )
                       : RefreshIndicator(
                           onRefresh: () async =>
                               ref.invalidate(matchHistoryProvider),
@@ -56,13 +60,13 @@ class _Message extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.padLabelSoft, fontSize: 14),
-          ),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: AppColors.padLabelSoft, fontSize: 14),
+      ),
+    ),
+  );
 }

@@ -41,16 +41,16 @@ class _SplashGateState extends State<SplashGate> {
       children: <Widget>[
         widget.child,
         Positioned.fill(
-            child: AbsorbPointer(
-              child: AnimatedOpacity(
-                opacity: _fading ? 0.0 : 1.0,
-                duration: AppDurations.splashFade,
-                curve: AppCurves.exit,
-                onEnd: _onFaded,
-                child: SplashScene(onComplete: _onComplete),
-              ),
+          child: AbsorbPointer(
+            child: AnimatedOpacity(
+              opacity: _fading ? 0.0 : 1.0,
+              duration: AppDurations.splashFade,
+              curve: AppCurves.exit,
+              onEnd: _onFaded,
+              child: SplashScene(onComplete: _onComplete),
             ),
           ),
+        ),
       ],
     );
   }

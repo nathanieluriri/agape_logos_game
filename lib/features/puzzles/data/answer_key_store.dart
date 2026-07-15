@@ -15,7 +15,7 @@ import '../../../core/network/api_client.dart';
 /// decryption is cheap and works offline.
 class AnswerKeyStore {
   AnswerKeyStore(this._api, {FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   final ApiClient _api;
   final FlutterSecureStorage _storage;
@@ -37,8 +37,10 @@ class AnswerKeyStore {
     }
 
     try {
-      final res =
-          await _api.request<Map<String, dynamic>>('/me/answer-key', method: 'GET');
+      final res = await _api.request<Map<String, dynamic>>(
+        '/me/answer-key',
+        method: 'GET',
+      );
       final b64 = res.data?['key'] as String?;
       if (b64 == null) return null;
       await _storage.write(key: _slot(uid), value: b64);

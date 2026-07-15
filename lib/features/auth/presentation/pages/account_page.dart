@@ -21,6 +21,7 @@ class AccountPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authStateProvider);
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         child: PondStage(
           child: Column(
@@ -31,11 +32,8 @@ class AccountPage extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 child: auth.when(
-                  loading: () => const Center(
-                    child: PondLoader(
-                      label: 'Loading account',
-                    ),
-                  ),
+                  loading: () =>
+                      const Center(child: PondLoader(label: 'Loading account')),
                   error: (_, __) => const Text(
                     'Could not load account.',
                     textAlign: TextAlign.center,

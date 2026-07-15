@@ -60,7 +60,8 @@ class _ComboBannerState extends State<ComboBanner> {
     if (label == null || dismissed) {
       return const SizedBox(height: AppSizing.comboBannerHeight);
     }
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final capsule = Transform.rotate(
       angle: _tiltRadians,
       child: Container(
@@ -72,7 +73,10 @@ class _ComboBannerState extends State<ComboBanner> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: AppTypography.banner.copyWith(color: AppColors.ink)),
+            Text(
+              label,
+              style: AppTypography.banner.copyWith(color: AppColors.ink),
+            ),
             Text(
               'Combo Streak x${widget.combo}',
               style: AppTypography.bannerSub.copyWith(color: AppColors.ink),

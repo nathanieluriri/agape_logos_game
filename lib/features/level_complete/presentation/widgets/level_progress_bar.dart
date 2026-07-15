@@ -32,10 +32,14 @@ class LevelProgressBar extends StatefulWidget {
 
 class _LevelProgressBarState extends State<LevelProgressBar>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _fill =
-      AnimationController(vsync: this, duration: AppDurations.slow);
-  late final Animation<double> _curve =
-      CurvedAnimation(parent: _fill, curve: AppCurves.emphasized);
+  late final AnimationController _fill = AnimationController(
+    vsync: this,
+    duration: AppDurations.slow,
+  );
+  late final Animation<double> _curve = CurvedAnimation(
+    parent: _fill,
+    curve: AppCurves.emphasized,
+  );
 
   bool _reduceMotion = false;
 
@@ -101,13 +105,16 @@ class _LevelProgressBarState extends State<LevelProgressBar>
                   if (showBloom)
                     Positioned(
                       // Centre the bloom on the fill's leading edge.
-                      left: (filled * AppSizing.progressTrackWidth -
-                              AppSizing.loaderBloom / 2)
-                          .clamp(
-                        -AppSizing.loaderBloom / 2,
-                        AppSizing.progressTrackWidth - AppSizing.loaderBloom / 2,
-                      ),
-                      top: (AppSizing.progressTrackHeight -
+                      left:
+                          (filled * AppSizing.progressTrackWidth -
+                                  AppSizing.loaderBloom / 2)
+                              .clamp(
+                                -AppSizing.loaderBloom / 2,
+                                AppSizing.progressTrackWidth -
+                                    AppSizing.loaderBloom / 2,
+                              ),
+                      top:
+                          (AppSizing.progressTrackHeight -
                               AppSizing.loaderBloom) /
                           2,
                       child: const LotusBloom(),
@@ -124,8 +131,9 @@ class _LevelProgressBarState extends State<LevelProgressBar>
             final shown = (_curve.value * widget.wordsFound).round();
             return Text(
               '$shown/${widget.totalWords}',
-              style: AppTypography.numeral
-                  .copyWith(color: AppColors.progressFraction),
+              style: AppTypography.numeral.copyWith(
+                color: AppColors.progressFraction,
+              ),
             );
           },
         ),

@@ -54,8 +54,9 @@ class _RewardGiftButtonState extends ConsumerState<RewardGiftButton> {
   Future<void> _claimCoins() async {
     if (_claiming) return;
     setState(() => _claiming = true);
-    final ClaimResult result =
-        await ref.read(rewardStatusControllerProvider.notifier).claimCoins();
+    final ClaimResult result = await ref
+        .read(rewardStatusControllerProvider.notifier)
+        .claimCoins();
     if (!mounted) return;
     setState(() => _claiming = false);
     showPondSnack(context, _messageFor(result));
@@ -89,13 +90,13 @@ class _RewardGiftButtonState extends ConsumerState<RewardGiftButton> {
   }
 
   static String _messageFor(ClaimResult result) => switch (result) {
-        ClaimCoinsSuccess(:final claimed) => 'Claimed $claimed petals!',
-        ClaimPowerupSuccess(:final granted) =>
-          'Claimed a free ${_pretty(granted)}!',
-        ClaimOnCooldown() => 'Already claimed. Check back soon.',
-        ClaimLocked(:final minLevel) => 'Reach Lv.$minLevel to unlock gifts.',
-        ClaimUnavailable() => 'Could not reach the server. Try again.',
-      };
+    ClaimCoinsSuccess(:final claimed) => 'Claimed $claimed petals!',
+    ClaimPowerupSuccess(:final granted) =>
+      'Claimed a free ${_pretty(granted)}!',
+    ClaimOnCooldown() => 'Already claimed. Check back soon.',
+    ClaimLocked(:final minLevel) => 'Reach Lv.$minLevel to unlock gifts.',
+    ClaimUnavailable() => 'Could not reach the server. Try again.',
+  };
 
   static String _pretty(String id) => id
       .split('_')

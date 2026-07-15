@@ -71,10 +71,13 @@ class _UserSearchViewState extends ConsumerState<UserSearchView> {
         Expanded(
           child: results.when(
             loading: () => const SizedBox.shrink(),
-            error: (_, __) => const _SearchMessage('Could not search right now.'),
+            error: (_, __) =>
+                const _SearchMessage('Could not search right now.'),
             data: (users) {
               if (_query.trim().isEmpty) {
-                return const _SearchMessage('Find friends by their name or @handle.');
+                return const _SearchMessage(
+                  'Find friends by their name or @handle.',
+                );
               }
               if (users.isEmpty) {
                 return const _SearchMessage('No public players match that.');
@@ -126,11 +129,11 @@ class _SearchMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.padLabelSoft, fontSize: 14),
-        ),
-      );
+    padding: const EdgeInsets.all(AppSpacing.xl),
+    child: Text(
+      text,
+      textAlign: TextAlign.center,
+      style: const TextStyle(color: AppColors.padLabelSoft, fontSize: 14),
+    ),
+  );
 }

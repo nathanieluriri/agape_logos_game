@@ -21,10 +21,9 @@ class DictionaryRepositoryImpl implements DictionaryRepository {
     try {
       final entries = await _remote.dictionary();
       final now = DateTime.now().millisecondsSinceEpoch;
-      await db.dictionaryEntriesDao.replaceAll(
-        uid,
-        [for (final e in entries) entryToCompanion(uid, e, now)],
-      );
+      await db.dictionaryEntriesDao.replaceAll(uid, [
+        for (final e in entries) entryToCompanion(uid, e, now),
+      ]);
       return entries;
     } on DioException catch (e) {
       // Offline or transient: serve the cached dictionary for this account.

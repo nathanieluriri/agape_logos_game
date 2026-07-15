@@ -23,6 +23,7 @@ class PublicProfilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(publicProfileProvider(uid));
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         // This page owns its scrolling (a ListView of match history), so the
         // stage must not wrap it in SingleChildScrollView + IntrinsicHeight.
@@ -78,12 +79,18 @@ class _Body extends StatelessWidget {
               // PLAN: reflect guest status per the multiplayer contract (guests
               // can be lost on reinstall). A guest shows a note beside the handle.
               p.isGuest ? '@${p.handle} - guest' : '@${p.handle}',
-              style: const TextStyle(color: AppColors.padLabelSoft, fontSize: 14),
+              style: const TextStyle(
+                color: AppColors.padLabelSoft,
+                fontSize: 14,
+              ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Level ${p.highestLevel + 1}  -  ${p.totalScore} pts',
-              style: const TextStyle(color: AppColors.padLabelSoft, fontSize: 14),
+              style: const TextStyle(
+                color: AppColors.padLabelSoft,
+                fontSize: 14,
+              ),
             ),
           ],
         ),
@@ -91,7 +98,11 @@ class _Body extends StatelessWidget {
         if (detail.recentMatches.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.fromLTRB(
-                AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.sm,
+            ),
             child: Text(
               'RECENT MATCHES',
               style: TextStyle(
@@ -115,13 +126,13 @@ class _Message extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.padLabelSoft, fontSize: 15),
-          ),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: AppColors.padLabelSoft, fontSize: 15),
+      ),
+    ),
+  );
 }

@@ -52,6 +52,11 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
   Rect? _wheelRect;
   Rect? _boardRect;
 
+  /// Everything the wheel/board geometry can actually depend on. Resolving the
+  /// rects walks two render trees, so it must not run on every frame: it runs
+  /// only when this key changes (mount, relayout, step change, new rack).
+  Object? _geometryKey;
+
   @override
   void dispose() {
     _celebrateTimer?.cancel();
@@ -65,8 +70,9 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
     final box = key.currentContext?.findRenderObject();
     if (box is! RenderBox || !box.attached || !box.hasSize) return null;
     final topLeft = overlay.globalToLocal(box.localToGlobal(Offset.zero));
-    final bottomRight = overlay
-        .globalToLocal(box.localToGlobal(box.size.bottomRight(Offset.zero)));
+    final bottomRight = overlay.globalToLocal(
+      box.localToGlobal(box.size.bottomRight(Offset.zero)),
+    );
     return Rect.fromPoints(topLeft, bottomRight);
   }
 
@@ -85,6 +91,12 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
     }
   }
 
+  void _scheduleResolve(Object key) {
+    if (key == _geometryKey) return;
+    _geometryKey = key;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resolveRects());
+  }
+
   /// Show the celebrate pill for its token duration, then retire the tutorial.
   void _onTutorialChanged(TutorialState? prev, TutorialState? next) {
     if (next?.phase == TutorialPhase.celebrate &&
@@ -100,14 +112,24 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
   Widget build(BuildContext context) {
     ref.listen<TutorialState?>(tutorialProvider, _onTutorialChanged);
     final tutorial = ref.watch(tutorialProvider);
-    final session = ref.watch(gameSessionProvider);
-    if (tutorial == null || session == null) {
+    // Only the fields this overlay reads, so a drag (which mutates the
+    // session's selection) does not drag the rect resolve along with it.
+    // wheelLetters is derived (a fresh list per call, so never equal under
+    // select): watch the two fields it is derived from and read it instead.
+    ref.watch(gameSessionProvider.select((s) => s?.puzzle));
+    final rackOrder = ref.watch(
+      gameSessionProvider.select((s) => s?.rackOrder),
+    );
+    // The hand loops only while the player is idle; a touch on the wheel hides
+    // it (the dashed guide stays).
+    final idle = ref.watch(
+      gameSessionProvider.select((s) => s?.selection.isEmpty ?? true),
+    );
+    if (tutorial == null || rackOrder == null) {
       if (_loop.isAnimating) _loop.stop();
       return const SizedBox.shrink();
     }
-    // Geometry can shift (board rows, FittedBox scale), so re-resolve after
-    // every frame this overlay is up; setState fires only on actual change.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _resolveRects());
+    final wheelLetters = ref.read(gameSessionProvider)!.wheelLetters;
 
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
@@ -117,19 +139,16 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
     // Dashed guide through the target word's letters, in overlay coordinates.
     List<Offset>? tracePoints;
     if (tracing && wheelRect != null) {
-      final slots = slotsForWord(session.wheelLetters, tutorial.targetWord);
+      final slots = slotsForWord(wheelLetters, tutorial.targetWord);
       if (slots != null) {
         final centers = LetterWheel.centersIn(
           wheelRect.size,
-          session.wheelLetters.length,
+          wheelLetters.length,
         );
         tracePoints = [for (final s in slots) wheelRect.topLeft + centers[s]];
       }
     }
 
-    // The hand loops only while the player is idle; a touch on the wheel
-    // hides it (the dashed guide stays).
-    final idle = session.selection.isEmpty;
     final showHand = tracePoints != null && idle;
     if (showHand && !reduceMotion) {
       if (!_loop.isAnimating) _loop.repeat();
@@ -143,59 +162,66 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
 
     return RepaintBoundary(
       child: LayoutBuilder(
-        builder: (context, constraints) => Stack(
-          children: [
-            Positioned.fill(
-              child: SpotlightBarrier(
-                wheelCenter: wheelRect?.center,
-                wheelRadius: wheelRadius,
-              ),
-            ),
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(
-                  painter: SpotlightScrimPainter(
-                    cutouts: SpotlightCutouts(
-                      wheelRect: wheelRect,
-                      boardRect: _boardRect,
-                    ),
-                  ),
+        builder: (context, constraints) {
+          _scheduleResolve((
+            constraints.biggest,
+            tutorial.phase,
+            rackOrder.length,
+          ));
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: SpotlightBarrier(
+                  wheelCenter: wheelRect?.center,
+                  wheelRadius: wheelRadius,
                 ),
               ),
-            ),
-            if (tracePoints != null)
               Positioned.fill(
                 child: IgnorePointer(
                   child: CustomPaint(
-                    painter: TutorialTracePainter(points: tracePoints),
-                  ),
-                ),
-              ),
-            if (showHand)
-              _HandAlongTrace(
-                points: tracePoints!,
-                loop: _loop,
-                reduceMotion: reduceMotion,
-              ),
-            _pill(tutorial, tracing, constraints.biggest, wheelRect),
-            if (tracing)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: AppSpacing.lg,
-                child: Center(
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.pillText,
+                    painter: SpotlightScrimPainter(
+                      cutouts: SpotlightCutouts(
+                        wheelRect: wheelRect,
+                        boardRect: _boardRect,
+                      ),
                     ),
-                    onPressed: () =>
-                        ref.read(tutorialProvider.notifier).skip(),
-                    child: const Text('Skip'),
                   ),
                 ),
               ),
-          ],
-        ),
+              if (tracePoints != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: TutorialTracePainter(points: tracePoints),
+                    ),
+                  ),
+                ),
+              if (showHand)
+                _HandAlongTrace(
+                  points: tracePoints!,
+                  loop: _loop,
+                  reduceMotion: reduceMotion,
+                ),
+              _pill(tutorial, tracing, constraints.biggest, wheelRect),
+              if (tracing)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: AppSpacing.lg,
+                  child: Center(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.pillText,
+                      ),
+                      onPressed: () =>
+                          ref.read(tutorialProvider.notifier).skip(),
+                      child: const Text('Skip'),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -217,7 +243,8 @@ class _TutorialOverlayState extends ConsumerState<TutorialOverlay>
       ),
     );
     if (!tracing || wheelRect == null) return Positioned.fill(child: pill);
-    final cutoutTop = wheelRect.center.dy -
+    final cutoutTop =
+        wheelRect.center.dy -
         (wheelRect.shortestSide / 2 + AppSizing.tutorialCutoutPad);
     return Positioned(
       left: AppSpacing.md,
@@ -242,10 +269,10 @@ class _HandAlongTrace extends StatelessWidget {
   final bool reduceMotion;
 
   Widget _at(Offset point) => Positioned(
-        left: point.dx,
-        top: point.dy,
-        child: const IgnorePointer(child: TutorialHand()),
-      );
+    left: point.dx,
+    top: point.dy,
+    child: const IgnorePointer(child: TutorialHand()),
+  );
 
   @override
   Widget build(BuildContext context) {

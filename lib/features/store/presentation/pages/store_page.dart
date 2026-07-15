@@ -27,6 +27,7 @@ class StorePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         child: PondStage(
           child: Column(
@@ -80,8 +81,7 @@ class _StoreBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final coins = ref.watch(coinsProvider);
     final catalog = ref.watch(storeCatalogProvider);
-    final inventory =
-        ref.watch(inventoryControllerProvider).value ?? const {};
+    final inventory = ref.watch(inventoryControllerProvider).value ?? const {};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -94,15 +94,10 @@ class _StoreBody extends ConsumerWidget {
         catalog.when(
           loading: () => const Padding(
             padding: EdgeInsets.all(AppSpacing.xxl),
-            child: Center(
-              child: PondLoader(
-                label: 'Loading the store',
-              ),
-            ),
+            child: Center(child: PondLoader(label: 'Loading the store')),
           ),
-          error: (_, __) => _StoreError(
-            onRetry: () => ref.invalidate(storeCatalogProvider),
-          ),
+          error: (_, __) =>
+              _StoreError(onRetry: () => ref.invalidate(storeCatalogProvider)),
           data: (items) => _Catalog(items: items, inventory: inventory),
         ),
       ],
@@ -120,10 +115,12 @@ class _Catalog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hints =
-        items.where((i) => i.category == 'hint' && !i.isBundle).toList();
-    final powerups =
-        items.where((i) => i.category == 'powerup' && !i.isBundle).toList();
+    final hints = items
+        .where((i) => i.category == 'hint' && !i.isBundle)
+        .toList();
+    final powerups = items
+        .where((i) => i.category == 'powerup' && !i.isBundle)
+        .toList();
     final bundles = items.where((i) => i.isBundle).toList();
 
     return Padding(

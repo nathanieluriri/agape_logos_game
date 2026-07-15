@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/design/theme/app_theme.dart';
 import '../features/splash/presentation/splash_gate.dart';
 import '../shared/widgets/tap_ripple_overlay.dart';
+import 'pond_shell.dart';
 import 'router/app_router.dart';
 
 class AgapeApp extends ConsumerWidget {
@@ -20,7 +21,9 @@ class AgapeApp extends ConsumerWidget {
       // App-wide water-tap ripple over every screen (and dialogs), without
       // absorbing any gestures. The one-shot cold-start splash sits above it.
       builder: (context, child) => SplashGate(
-        child: TapRippleOverlay(child: child ?? const SizedBox.shrink()),
+        child: TapRippleOverlay(
+          child: PondShell(child: child ?? const SizedBox.shrink()),
+        ),
       ),
     );
   }

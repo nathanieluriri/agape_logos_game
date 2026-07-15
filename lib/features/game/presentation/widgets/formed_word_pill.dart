@@ -37,7 +37,8 @@ class FormedWordPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return AnimatedOpacity(
       opacity: word.isEmpty ? 0 : 1,
       duration: reduceMotion ? Duration.zero : AppDurations.fast,
@@ -69,11 +70,7 @@ class FormedWordPill extends StatelessWidget {
 
 /// A single capsule letter that pops in the first time it appears.
 class _PillLetter extends StatelessWidget {
-  const _PillLetter({
-    super.key,
-    required this.char,
-    required this.animate,
-  });
+  const _PillLetter({super.key, required this.char, required this.animate});
 
   final String char;
   final bool animate;

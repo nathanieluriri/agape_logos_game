@@ -58,8 +58,11 @@ class _FrostDisc extends StatelessWidget {
           BorderSide(color: AppColors.frostBorder, width: 2),
         ),
       ),
-      child: const Icon(Icons.ac_unit_rounded,
-          color: AppColors.frostBorder, size: 24),
+      child: const Icon(
+        Icons.ac_unit_rounded,
+        color: AppColors.frostBorder,
+        size: 24,
+      ),
     );
   }
 }

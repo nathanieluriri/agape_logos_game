@@ -78,10 +78,7 @@ class DictionarySheetContent extends StatelessWidget {
   /// Hairline separator between entries (mirrors the settings card rows).
   static const _divider = Padding(
     padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-    child: SizedBox(
-      height: 1,
-      child: ColoredBox(color: AppColors.rowDivider),
-    ),
+    child: SizedBox(height: 1, child: ColoredBox(color: AppColors.rowDivider)),
   );
 
   @override
@@ -100,61 +97,61 @@ class DictionarySheetContent extends StatelessWidget {
               bottom: AppSpacing.md,
             ),
             child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Center(
-                child: SizedBox(
-                  width: _dragBarWidth,
-                  height: _dragBarHeight,
-                  child: DecoratedBox(decoration: _dragBarDecoration),
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Center(
+                  child: SizedBox(
+                    width: _dragBarWidth,
+                    height: _dragBarHeight,
+                    child: DecoratedBox(decoration: _dragBarDecoration),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const Center(
-                child: LilyPad(
-                  size: _padSize,
-                  palette: LilyPadPalette.teal,
-                  shape: PadShape.smooth,
+                const SizedBox(height: AppSpacing.md),
+                const Center(
+                  child: LilyPad(
+                    size: _padSize,
+                    palette: LilyPadPalette.teal,
+                    shape: PadShape.smooth,
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const Text(
-                'Dictionary',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.padLabel,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
+                const SizedBox(height: AppSpacing.md),
+                const Text(
+                  'Dictionary',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.padLabel,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              const Text(
-                'Words from this pond.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.padLabelSoft, fontSize: 14),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              // Flexible: hugs short lists, shrinks and scrolls long ones
-              // within the sheet's overall height bound.
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  itemCount: targets.length,
-                  separatorBuilder: (_, __) => _divider,
-                  itemBuilder: (_, index) {
-                    final answer = targets[index];
-                    final key = answer.word.toUpperCase();
-                    return _DictionaryEntry(
-                      answer: answer,
-                      isFound: found.contains(key),
-                      revealedCount: revealed[key] ?? 0,
-                    );
-                  },
+                const SizedBox(height: AppSpacing.xs),
+                const Text(
+                  'Words from this pond.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.padLabelSoft, fontSize: 14),
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.lg),
+                // Flexible: hugs short lists, shrinks and scrolls long ones
+                // within the sheet's overall height bound.
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: targets.length,
+                    separatorBuilder: (_, __) => _divider,
+                    itemBuilder: (_, index) {
+                      final answer = targets[index];
+                      final key = answer.word.toUpperCase();
+                      return _DictionaryEntry(
+                        answer: answer,
+                        isFound: found.contains(key),
+                        revealedCount: revealed[key] ?? 0,
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -220,13 +217,13 @@ class _DictionaryEntry extends StatelessWidget {
   }
 
   List<Widget> _foundChildren() => [
-        Text(answer.word.toUpperCase(), style: _wordStyle),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          answer.definition ?? 'No definition for this one yet.',
-          style: _definitionStyle,
-        ),
-      ];
+    Text(answer.word.toUpperCase(), style: _wordStyle),
+    const SizedBox(height: AppSpacing.xs),
+    Text(
+      answer.definition ?? 'No definition for this one yet.',
+      style: _definitionStyle,
+    ),
+  ];
 
   List<Widget> _hiddenChildren() {
     final word = answer.word.toUpperCase();

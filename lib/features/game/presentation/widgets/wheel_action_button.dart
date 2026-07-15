@@ -63,14 +63,17 @@ class _WheelActionButtonState extends State<WheelActionButton> {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return Semantics(
       button: true,
       enabled: widget.enabled,
       label: widget.semanticLabel,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTapDown: widget.enabled ? (_) => setState(() => _pressed = true) : null,
+        onTapDown: widget.enabled
+            ? (_) => setState(() => _pressed = true)
+            : null,
         onTapCancel: () => setState(() => _pressed = false),
         onTap: widget.enabled
             ? () {

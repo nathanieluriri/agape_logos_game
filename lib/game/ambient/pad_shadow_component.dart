@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
@@ -10,6 +11,11 @@ import '../../core/design/tokens/elevation.dart';
 /// A large, flat submerged lily-pad silhouette drifting slowly under the
 /// surface. Uses the shared notched-pad outline so the background pads read
 /// as the same species as the buttons, just deeper in the water.
+///
+/// The blurred silhouette is rasterized once at the pad's largest breath size
+/// and then drawn as an image: a `MaskFilter.blur` on a live path would rebuild
+/// the blurred mask every frame, because both the scale and the alpha change
+/// every frame.
 class PadShadowComponent extends PositionComponent {
   PadShadowComponent({
     required Vector2 position,
@@ -30,11 +36,59 @@ class PadShadowComponent extends PositionComponent {
   final Color color;
   double phase;
 
-  late final Paint _paint = Paint()
-    ..color = color
-    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+  static const double _blurSigma = 6;
 
+  /// The blur bleeds past the pad outline, so the raster is padded on every
+  /// side (viewBox units) to keep the soft edge inside the image.
+  static const double _bleed = 24;
+
+  static const double _rasterViewBox = PadGeometry.viewBox + _bleed * 2;
+
+  late final double _maxScale = (radius * 2) /
+      PadGeometry.viewBox *
+      (1 + PadElevation.ambientScaleGain);
+
+  late final int _rasterSide = (_rasterViewBox * _maxScale).ceil();
+
+  late final Rect _src =
+      Rect.fromLTWH(0, 0, _rasterSide.toDouble(), _rasterSide.toDouble());
+
+  static const Rect _dst =
+      Rect.fromLTWH(-_bleed, -_bleed, _rasterViewBox, _rasterViewBox);
+
+  final Paint _paint = Paint()..filterQuality = FilterQuality.low;
+
+  ui.Image? _raster;
   Vector2? _origin;
+
+  @override
+  void onLoad() {
+    _raster = _rasterize();
+  }
+
+  @override
+  void onRemove() {
+    _raster?.dispose();
+    _raster = null;
+    super.onRemove();
+  }
+
+  ui.Image _rasterize() {
+    final recorder = ui.PictureRecorder();
+    Canvas(recorder)
+      ..scale(_maxScale)
+      ..translate(_bleed, _bleed)
+      ..drawPath(
+        PadGeometry.notchedPad,
+        Paint()
+          ..color = color
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, _blurSigma),
+      );
+    final picture = recorder.endRecording();
+    final image = picture.toImageSync(_rasterSide, _rasterSide);
+    picture.dispose();
+    return image;
+  }
 
   @override
   void update(double dt) {
@@ -47,28 +101,28 @@ class PadShadowComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    // Gentle depth breath: the pad swells and fades a touch, out of phase with
-    // its drift, so the field reads as water depth rather than a flat decal.
-    // Driven by the same [phase] that drives the drift in update().
-    // PLAN: `color.a` is the wide-gamut accessor used elsewhere; if the SDK
-    // rejects it, use `(color.value >> 24 & 0xFF) / 255.0`. Mutating
-    // _paint.color each frame is intended (Paint is mutable). Eyeball on
-    // device: the breath must be barely perceptible.
+    final raster = _raster;
+    if (raster == null) return;
+
     final wobble = sin(phase * PadElevation.ambientBreatheFreq); // -1..1
     final scale = (radius * 2) /
         PadGeometry.viewBox *
         (1 + PadElevation.ambientScaleGain * wobble);
     final breath = (wobble + 1) / 2; // 0 at deepest, 1 at shallowest.
+
+    // The pad's own alpha is already baked into the raster, so only the breath
+    // factor is modulated here. The RGB channels are unused by drawImageRect.
     _paint.color = color.withValues(
-      alpha: color.a * (1 - PadElevation.ambientOpacityGain * breath),
+      alpha: 1 - PadElevation.ambientOpacityGain * breath,
     );
+
     canvas
       ..save()
       ..translate(radius, radius)
       ..rotate(rotation)
       ..scale(scale)
       ..translate(-PadGeometry.center.dx, -PadGeometry.center.dy)
-      ..drawPath(PadGeometry.notchedPad, _paint)
+      ..drawImageRect(raster, _src, _dst, _paint)
       ..restore();
   }
 

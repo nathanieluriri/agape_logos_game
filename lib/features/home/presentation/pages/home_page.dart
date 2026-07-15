@@ -19,6 +19,7 @@ import '../../../../shared/widgets/pond_top_bar.dart';
 import '../../../../shared/widgets/wordmark_logo.dart';
 import '../../../../shared/widgets/glyphs/pond_glyph.dart';
 import '../widgets/progress_sync_notice.dart';
+import '../../../../core/design/tokens/colors.dart';
 
 /// The home screen. Thin composition of shared pond widgets.
 /// Shows the wordmark + the Play pad + a Dictionary pad. No progress, no bonus.
@@ -40,49 +41,50 @@ class HomePage extends ConsumerWidget {
         if (shouldLeave) await SystemNavigator.pop();
       },
       child: Scaffold(
-      body: PondBackground(
-        child: PondStage(
-          child: Column(
-            children: [
-              PondTopBar(
-                coins: coins,
-                onSettings: () => context.push('/settings'),
-                onAddCoins: () => context.push('/store'),
-                action: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const RewardGiftButton(),
-                    const SizedBox(width: AppSpacing.sm),
-                    FriendsButton(onPressed: () => context.push('/friends')),
-                  ],
+        backgroundColor: AppColors.transparent,
+        body: PondBackground(
+          child: PondStage(
+            child: Column(
+              children: [
+                PondTopBar(
+                  coins: coins,
+                  onSettings: () => context.push('/settings'),
+                  onAddCoins: () => context.push('/store'),
+                  action: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const RewardGiftButton(),
+                      const SizedBox(width: AppSpacing.sm),
+                      FriendsButton(onPressed: () => context.push('/friends')),
+                    ],
+                  ),
                 ),
-              ),
-              const ProgressSyncNotice(),
-              const Spacer(),
-              const WordmarkLogo(),
-              const Spacer(),
-              PlayPadCluster(
-                nextLabel: nextLabel,
-                onPlay: () => startPlayFlow(context, ref),
-                secondaryIcon: const PondIcon(
-                  PondGlyph.book,
-                  size: AppSizing.secondaryPadIcon,
+                const ProgressSyncNotice(),
+                const Spacer(),
+                const WordmarkLogo(),
+                const Spacer(),
+                PlayPadCluster(
+                  nextLabel: nextLabel,
+                  onPlay: () => startPlayFlow(context, ref),
+                  secondaryIcon: const PondIcon(
+                    PondGlyph.book,
+                    size: AppSizing.secondaryPadIcon,
+                  ),
+                  secondaryLabel: 'Dictionary',
+                  onSecondary: () => context.push('/dictionary'),
                 ),
-                secondaryLabel: 'Dictionary',
-                onSecondary: () => context.push('/dictionary'),
-              ),
-              // PLAN: eyeball the Home layout on a small phone: the cluster is
-              // 240px tall and the two Spacers absorb slack, so the added
-              // ~120px Versus pad may crowd short screens. If it overflows,
-              // move MultiplayerPad into the cluster's Stack as a third
-              // floating pad, or shrink a Spacer. Keep spacing token-based.
-              const SizedBox(height: AppSpacing.md),
-              const MultiplayerPad(),
-              const SizedBox(height: AppSpacing.xxl),
-            ],
+                // PLAN: eyeball the Home layout on a small phone: the cluster is
+                // 240px tall and the two Spacers absorb slack, so the added
+                // ~120px Versus pad may crowd short screens. If it overflows,
+                // move MultiplayerPad into the cluster's Stack as a third
+                // floating pad, or shrink a Spacer. Keep spacing token-based.
+                const SizedBox(height: AppSpacing.md),
+                const MultiplayerPad(),
+                const SizedBox(height: AppSpacing.xxl),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -103,8 +105,7 @@ class HomePage extends ConsumerWidget {
         ),
         PondPillButton(
           label: 'Leave',
-          onPressed: () =>
-              Navigator.of(context, rootNavigator: true).pop(true),
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(true),
         ),
       ],
     );
