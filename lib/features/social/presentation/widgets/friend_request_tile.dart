@@ -29,45 +29,61 @@ class FriendRequestTile extends StatelessWidget {
         horizontal: AppSpacing.md,
         vertical: AppSpacing.sm,
       ),
-      child: Row(
+      child: Column(
         children: [
-          SocialAvatarDot(name: request.displayName),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  request.displayName,
-                  style: const TextStyle(
-                    color: AppColors.padLabel,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
+          // Row 1: avatar + name/handle
+          Row(
+            children: [
+              SocialAvatarDot(name: request.displayName),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      request.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.padLabel,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '@${request.handle}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.padLabelSoft,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  '@${request.handle}',
-                  style: const TextStyle(
-                    color: AppColors.padLabelSoft,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          PondPillButton(
-            label: 'Accept',
-            enabled: !busy,
-            semanticLabel: 'Accept ${request.displayName}',
-            onPressed: onAccept,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          PondPillButton(
-            label: 'Decline',
-            variant: PondPillVariant.quiet,
-            enabled: !busy,
-            semanticLabel: 'Decline ${request.displayName}',
-            onPressed: onDecline,
+          const SizedBox(height: AppSpacing.sm),
+          // Row 2: right-aligned buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              PondPillButton(
+                label: 'Accept',
+                enabled: !busy,
+                semanticLabel: 'Accept ${request.displayName}',
+                onPressed: onAccept,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              PondPillButton(
+                label: 'Decline',
+                variant: PondPillVariant.quiet,
+                enabled: !busy,
+                semanticLabel: 'Decline ${request.displayName}',
+                onPressed: onDecline,
+              ),
+            ],
           ),
         ],
       ),

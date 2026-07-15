@@ -115,14 +115,31 @@ class _SegmentBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          seg('Friends', FriendsTab.friends),
-          seg(
-            requestCount > 0 ? 'Requests ($requestCount)' : 'Requests',
-            FriendsTab.requests,
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: seg('Friends', FriendsTab.friends),
+            ),
           ),
-          seg('Find', FriendsTab.find),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: seg(
+                requestCount > 0 ? 'Requests ($requestCount)' : 'Requests',
+                FriendsTab.requests,
+              ),
+            ),
+          ),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: seg('Find', FriendsTab.find),
+            ),
+          ),
         ],
       ),
     );
