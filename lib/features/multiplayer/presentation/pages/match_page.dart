@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/audio/audio_providers.dart';
+import '../../../../core/audio/sfx_keys.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
@@ -27,11 +29,14 @@ import '../../domain/match_event.dart';
 import '../../domain/match_rack.dart';
 import '../../domain/match_settings.dart';
 import '../../domain/powerup_kind.dart';
+import '../widgets/active_effect_chips.dart';
 import '../widgets/fog_overlay.dart';
 import '../widgets/frozen_letter_overlay.dart';
 import '../widgets/match_load_error.dart';
 import '../widgets/match_timer.dart';
 import '../widgets/opponent_hud.dart';
+import '../widgets/powerup_cast_flyout.dart';
+import '../widgets/powerup_incoming_banner.dart';
 import '../widgets/powerup_info_sheet.dart';
 import '../widgets/powerup_side_buttons.dart';
 import '../widgets/powerup_wheel.dart';
@@ -118,6 +123,13 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   final GlobalKey powerupDefenseButtonKey = GlobalKey();
   final GlobalKey powerupWheelSlotKey = GlobalKey();
 
+  // Task 6: cast/incoming/blocked animations. Every event id (fired-at-me
+  // event or my own blocked/warded outcome) animates at most once, even
+  // across duplicate stream emissions of the same doc.
+  final Set<String> _seenEventIds = <String>{};
+  final List<IncomingBannerData> _bannerQueue = <IncomingBannerData>[];
+  IncomingBannerData? _activeBanner;
+
   @override
   void initState() {
     super.initState();
@@ -195,30 +207,110 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     });
   }
 
-  /// A wheel slot was dragged out and released: fire [kind] at the match and
-  /// close the wheel. Mirrors the old PowerupBar flow (optimistic inventory
-  /// decrement; the store reconciles on its next open).
-  Future<void> _firePowerup(String kind) async {
+  /// A wheel slot was dragged out and released: fire [kind] at the match,
+  /// close the wheel, and launch the cast flyout from the release point.
+  /// Mirrors the old PowerupBar flow (optimistic inventory decrement) but
+  /// spends UP FRONT (rather than on success) so the flyout and the decrement
+  /// land together; a "warded"/402 outcome refunds the decrement once the
+  /// server responds (contract: `MatchRemote.powerup` -> `PowerupFireResult`).
+  Future<void> _firePowerup(String kind, Offset releaseGlobal) async {
     setState(() => _openPowerupCategory = null);
     final inventory =
         ref.read(inventoryControllerProvider).value ?? const <String, int>{};
     final itemId = powerupItemId(kind) ?? '';
-    final ok = await ref
+    final owned = inventory[itemId] ?? 0;
+    final decremented = itemId.isNotEmpty && owned > 0;
+    if (decremented) {
+      ref
+          .read(inventoryControllerProvider.notifier)
+          .applyServer({...inventory, itemId: owned - 1});
+    }
+
+    PowerupCastFlyout.show(context, kind, from: releaseGlobal);
+    _playSfxQuiet(SfxKeys.powerupCast);
+
+    final result = await ref
         .read(matchServiceProvider)
         .powerup(widget.matchId, kind, eventId: const Uuid().v4());
     if (!mounted) return;
-    if (!ok) {
+
+    if (!result.ok && decremented) {
+      final current =
+          ref.read(inventoryControllerProvider).value ?? const <String, int>{};
+      ref
+          .read(inventoryControllerProvider.notifier)
+          .applyServer({...current, itemId: owned});
+    }
+
+    if (result.reason == 'warded') {
+      _playSfxQuiet(SfxKeys.powerupBlocked);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Warded!')));
+      return;
+    }
+    if (!result.ok) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Could not fire that powerup')));
       return;
     }
-    final owned = inventory[itemId] ?? 0;
-    if (itemId.isNotEmpty && owned > 0) {
-      ref
-          .read(inventoryControllerProvider.notifier)
-          .applyServer({...inventory, itemId: owned - 1});
+    if (result.reason == 'blocked') {
+      _playSfxQuiet(SfxKeys.powerupBlocked);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Blocked!')));
     }
+  }
+
+  void _playSfxQuiet(String key) {
+    // Best-effort: no audio asset ships at this key yet (see sfx_keys.dart),
+    // so a failed play must never surface as an error in the match.
+    unawaited(ref.read(audioServiceProvider).playSfx(key).catchError((_) {}));
+  }
+
+  /// Resolves a wire kind ('fog_bank', ...) to the display name the store
+  /// catalog gives it, falling back to the item id (or the raw kind) while
+  /// the catalog is still loading.
+  String _powerupDisplayName(String wireKind) {
+    final itemId = powerupItemId(wireKind);
+    final catalog = ref.read(storeCatalogProvider).value ?? const <StoreItem>[];
+    for (final item in catalog) {
+      if (item.id == itemId) return item.name;
+    }
+    return itemId ?? wireKind;
+  }
+
+  /// Queues the incoming banner for a fired-at-me event, deduped by event id
+  /// so a duplicate stream emission never animates twice.
+  void _handleIncomingEvent(MatchEvent e) {
+    if (!_seenEventIds.add(e.id)) return;
+    final match = ref.read(matchStreamProvider(widget.matchId)).value;
+    final blocked = e.kind == MatchEventKind.blocked;
+    final wireKind = blocked
+        ? (e.originalKind ?? '')
+        : matchEventKindToWire(e.kind);
+    if (wireKind.isEmpty) return; // unknown/warded: nothing to show
+    final data = IncomingBannerData(
+      casterName: match?.playerFor(e.byUid)?.displayName ?? 'Opponent',
+      powerupName: _powerupDisplayName(wireKind),
+      blocked: blocked,
+    );
+    _bannerQueue.add(data);
+    _advanceBannerQueue();
+  }
+
+  void _advanceBannerQueue() {
+    if (_activeBanner != null || _bannerQueue.isEmpty || !mounted) return;
+    final next = _bannerQueue.removeAt(0);
+    _playSfxQuiet(next.blocked ? SfxKeys.powerupBlocked : SfxKeys.powerupIncoming);
+    setState(() => _activeBanner = next);
+  }
+
+  void _onBannerDone() {
+    if (!mounted) return;
+    setState(() => _activeBanner = null);
+    _advanceBannerQueue();
   }
 
   void _openPowerupInfo(List<StoreItem> catalog, String itemId) {
@@ -265,6 +357,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
           final w = e.stolenWord;
           if (w != null) ctrl.applyWordSteal(e.id, w);
         }
+        _handleIncomingEvent(e);
       }
     });
     // Navigate to the result screen once the match finishes.
@@ -509,6 +602,16 @@ class _MatchPageState extends ConsumerState<MatchPage> {
             ],
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _Ticking(
+              builder: (_, now, __) =>
+                  ActiveEffectChips(effects: effects, nowMillis: now),
+            ),
+          ),
+        ),
         Expanded(
           child: _Ticking(
             child: WordBoard(
@@ -622,9 +725,15 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                 ownedCounts: inventory,
                 prices: prices,
                 firstSlotKey: powerupWheelSlotKey,
-                onFire: (kind, _) => _firePowerup(kind),
+                onFire: _firePowerup,
                 onTapInfo: (itemId) => _openPowerupInfo(catalog, itemId),
                 onClose: () => setState(() => _openPowerupCategory = null),
+              ),
+            if (_activeBanner != null)
+              PowerupIncomingBanner(
+                key: ValueKey(_activeBanner),
+                data: _activeBanner!,
+                onDone: _onBannerDone,
               ),
           ],
         ),

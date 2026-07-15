@@ -51,9 +51,19 @@ void main() {
     expect((dio.calls.single.data as Map)['word'], 'TEAR');
   });
 
-  test('powerup returns false on 402 (none owned)', () async {
+  test('powerup returns ok:false on 402 (none owned)', () async {
     final dio = _CapturingDio()..throwStatus = 402;
     final remote = HttpMatchRemote(ApiClient(dio));
-    expect(await remote.powerup('m1', 'fog_bank', eventId: 'e1'), isFalse);
+    final result = await remote.powerup('m1', 'fog_bank', eventId: 'e1');
+    expect(result.ok, isFalse);
+    expect(result.reason, 'not_owned');
+  });
+
+  test('powerup surfaces a "blocked" reason from the response body', () async {
+    final dio = _CapturingDio()..next = {'ok': true, 'reason': 'blocked'};
+    final remote = HttpMatchRemote(ApiClient(dio));
+    final result = await remote.powerup('m1', 'fog_bank', eventId: 'e1');
+    expect(result.ok, isTrue);
+    expect(result.reason, 'blocked');
   });
 }

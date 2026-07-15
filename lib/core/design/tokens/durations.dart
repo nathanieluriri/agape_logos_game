@@ -84,4 +84,12 @@ abstract final class AppDurations {
   /// One full loop of the animated app mark: the rim traces, the icon wipes in
   /// behind it, the halo blooms, and it settles back to the start.
   static const Duration markDraw = Duration(milliseconds: 2600);
+
+  /// A fired powerup chip scaling up and flying off the top edge (the
+  /// caster's half of the cast feedback loop).
+  static const Duration powerupCast = Duration(milliseconds: 600);
+
+  /// How long the incoming-powerup banner holds at center, after dropping in
+  /// and before flying away, so "{caster} cast {powerup}!" has time to read.
+  static const Duration powerupBannerHold = Duration(milliseconds: 1500);
 }

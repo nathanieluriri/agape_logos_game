@@ -6,6 +6,16 @@ import '../application/server_clock.dart';
 import '../domain/active_match.dart';
 import '../domain/challenge_outcome.dart';
 
+/// Result of firing a powerup: `ok` mirrors the old boolean contract (false
+/// only on 402/not-owned or a "warded" 409); `reason` surfaces the server's
+/// structured outcomes so the caster can show the right feedback:
+/// - "blocked": fired and spent, but a shield absorbed it (ok: true).
+/// - "warded": nothing spent, an active ward refused it (ok: false).
+/// - "replay": an idempotent replay of an already-applied fire (ok: true).
+/// - "not_owned": the caller owns none of that powerup (ok: false).
+/// - null: a normal, unblocked fire (ok: true).
+typedef PowerupFireResult = ({bool ok, String? reason});
+
 /// Function-call transport for multiplayer (contract 8.7). Reads go through the
 /// Firestore listeners (see MatchFirestore); every WRITE is a Cloud Function
 /// call carrying an `idempotency-key` header. The Bearer token is attached by
@@ -26,9 +36,12 @@ abstract interface class MatchRemote {
   /// POST /matches/:id/submit {word}. Idempotent per (uid, normalized word).
   Future<void> submit(String matchId, String word);
 
-  /// POST /matches/:id/powerup {kind, eventId}. Returns false on 402 (the caller
-  /// owns none of that powerup); true when the event was accepted.
-  Future<bool> powerup(String matchId, String kind, {required String eventId});
+  /// POST /matches/:id/powerup {kind, eventId}. See [PowerupFireResult].
+  Future<PowerupFireResult> powerup(
+    String matchId,
+    String kind, {
+    required String eventId,
+  });
 
   /// POST /matches/:id/leave {}.
   Future<void> leave(String matchId);
@@ -113,7 +126,7 @@ class HttpMatchRemote implements MatchRemote {
   }
 
   @override
-  Future<bool> powerup(
+  Future<PowerupFireResult> powerup(
     String matchId,
     String kind, {
     required String eventId,
@@ -128,9 +141,13 @@ class HttpMatchRemote implements MatchRemote {
         headers: <String, String>{'idempotency-key': eventId},
       );
       _syncClock(res.data);
-      return true;
+      final ok = res.data?['ok'] as bool? ?? true;
+      final reason = res.data?['reason'] as String?;
+      return (ok: ok, reason: reason);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 402) return false; // none owned
+      if (e.response?.statusCode == 402) {
+        return (ok: false, reason: 'not_owned');
+      }
       rethrow;
     }
   }
