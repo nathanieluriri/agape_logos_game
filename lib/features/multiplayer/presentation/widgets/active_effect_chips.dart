@@ -20,6 +20,12 @@ class ActiveEffectChips extends StatelessWidget {
   final MatchActiveEffects effects;
   final int nowMillis;
 
+  // NOTE: the timed chips (fog, freeze, ward) require BOTH the boolean/letter
+  // flag AND a still-future `...Until` expiry. `activeEffectsProvider` always
+  // sets the pair together for a live timed effect, so a flag without an
+  // expiry (or a lapsed expiry the provider has not re-evaluated yet) renders
+  // no chip rather than a countdown-less one.
+
   static int? _secondsLeft(DateTime? until, int now) {
     if (until == null) return null;
     final ms = until.millisecondsSinceEpoch - now;
