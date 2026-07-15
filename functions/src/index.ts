@@ -64,3 +64,29 @@ export const onFriendRequest = onDocumentCreated(
     }
   },
 );
+
+// Push when a friend challenges you to a match. Like onFriendRequest, the live
+// listener already surfaces it in-app; this covers the app-CLOSED case, so it is
+// best-effort and never throws.
+export const onChallenge = onDocumentCreated(
+  {region: "us-central1", document: "users/{uid}/challenges/{matchId}"},
+  async (event) => {
+    const d = event.data?.data();
+    if (!d) return;
+    const uid = event.params.uid as string;
+    try {
+      await sendToUser(uid, {
+        title: "New challenge",
+        body: `${d.displayName ?? "Someone"} challenged you`,
+        data: {
+          type: "challenge",
+          matchId: String(d.matchId ?? event.params.matchId ?? ""),
+          byUid: String(d.byUid ?? ""),
+          mode: String(d.mode ?? "live"),
+        },
+      });
+    } catch (e) {
+      console.error(`challenge push failed for ${uid}`, e);
+    }
+  },
+);

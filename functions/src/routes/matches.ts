@@ -3,6 +3,7 @@ import {AuthedRequest, requireAuth} from "../middleware/auth";
 import {asyncHandler} from "../middleware/error";
 import {validate, ValidatedRequest} from "../middleware/validate";
 import {
+  ChallengeBodySchema,
   CreateMatchBodySchema,
   IdempotencyHeadersSchema,
   JoinMatchBodySchema,
@@ -10,11 +11,13 @@ import {
   MatchSettingsSchema,
   PowerupBodySchema,
   ReadyBodySchema,
+  RespondBodySchema,
   StartBodySchema,
   SubmitBodySchema,
 } from "../schemas/matches";
 import type {PowerupKind} from "../schemas/matches";
 import {createMatch, joinMatch, leaveMatch, setReady, startMatch} from "../services/match_service";
+import {challengeFriend, listActiveMatches, respondChallenge} from "../services/challenge_service";
 import {submitWord} from "../services/match_submit_service";
 import {firePowerup} from "../services/match_powerup_service";
 import {settleMatch} from "../services/match_finalize";
@@ -51,6 +54,56 @@ matchesRouter.post(
     const body = req.valid?.body as {code: string};
     const out = await joinMatch(req.uid as string, req.isGuest ?? false, body.code);
     res.status(200).json(out);
+  }),
+);
+
+// POST /matches/challenge - challenge a friend. 404 not_friends, 409 already.
+matchesRouter.post(
+  "/matches/challenge",
+  requireAuth,
+  validate({headers: IdempotencyHeadersSchema, body: ChallengeBodySchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const headers = req.valid?.headers as {"idempotency-key": string};
+    const body = req.valid?.body as {toUid: string; settings?: unknown};
+    const settings = MatchSettingsSchema.parse(body.settings ?? {});
+    const result = await challengeFriend(
+      req.uid as string,
+      req.isGuest ?? false,
+      body.toUid,
+      headers["idempotency-key"],
+      settings,
+    );
+    if (!result.ok) {
+      res.status(result.reason === "not_friends" ? 404 : 409).json({error: result.reason});
+      return;
+    }
+    res.status(201).json({matchId: result.matchId});
+  }),
+);
+
+// POST /matches/:id/respond - accept or decline a challenge. 404 no_challenge.
+matchesRouter.post(
+  "/matches/:id/respond",
+  requireAuth,
+  validate({params: MatchParamsSchema, body: RespondBodySchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const {id} = req.valid?.params as {id: string};
+    const {accept} = req.valid?.body as {accept: boolean};
+    const result = await respondChallenge(req.uid as string, req.isGuest ?? false, id, accept);
+    if (!result.ok) {
+      res.status(404).json({error: result.reason});
+      return;
+    }
+    res.status(200).json({status: result.status});
+  }),
+);
+
+// GET /me/matches/active - the caller's in-flight matches (resume screen).
+matchesRouter.get(
+  "/me/matches/active",
+  requireAuth,
+  asyncHandler<Authed>(async (req, res: Response) => {
+    res.status(200).json({matches: await listActiveMatches(req.uid as string)});
   }),
 );
 

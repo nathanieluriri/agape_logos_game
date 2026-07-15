@@ -32,4 +32,7 @@ export interface MatchData {
   players: Record<string, MatchPlayerDoc>;
   usedPuzzleIds?: string[];
   winner: string | null;
+  // Present only on challenge matches: who challenged whom, and when. The
+  // invitee joins as a participant only on ACCEPT (see challenge_service).
+  challenge?: {byUid: string; toUid: string; at: number};
 }

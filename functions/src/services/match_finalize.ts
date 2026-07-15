@@ -6,6 +6,9 @@ import type {MatchData} from "./match_types";
 
 // A stale lobby/countdown that never started is cancelled after this age.
 export const kLobbyTtlMs = 15 * 60 * 1000;
+// An unaccepted challenge (which may be a 6-hour async round) lives far longer
+// than an ordinary abandoned lobby before the sweeper cancels it.
+export const kChallengeTtlMs = 7 * 24 * 60 * 60 * 1000;
 
 export interface FinalizeOptions {
   // Force a winner (used by leave/forfeit). null/undefined -> compute by wordsFound.
@@ -116,6 +119,28 @@ export async function sweepStaleMatches(
       .get();
     for (const d of stale.docs) {
       const m = d.data() as MatchData;
+      // Async challenges (a 6-hour round) must outlive the 15-min lobby sweep;
+      // they are cancelled only by the challenge-TTL pass below.
+      if (m.settings.mode === "async") continue;
+      await d.ref.update({status: "cancelled"});
+      await releaseCode(m.code);
+      cancelled++;
+    }
+  }
+
+  // Separate, much longer TTL for unaccepted challenges (the invitee never
+  // joined). Reuses the same (status, createdAt) index.
+  const challengeCutoff = now - kChallengeTtlMs;
+  for (const status of ["lobby", "countdown"] as const) {
+    const stale = await db
+      .collection("matches")
+      .where("status", "==", status)
+      .where("createdAt", "<=", challengeCutoff)
+      .limit(limit)
+      .get();
+    for (const d of stale.docs) {
+      const m = d.data() as MatchData;
+      if (!m.challenge) continue; // only unaccepted challenges use this TTL
       await d.ref.update({status: "cancelled"});
       await releaseCode(m.code);
       cancelled++;

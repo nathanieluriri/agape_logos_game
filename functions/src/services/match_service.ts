@@ -17,6 +17,8 @@ export const kMaxPlayers = 2;
 // A short shared countdown before play starts, so both clients agree on the go
 // moment (startedAt) via one server transition.
 export const kCountdownMs = 3000;
+// An async challenge is a 6-hour round; its clock starts when the friend accepts.
+export const kAsyncRoundMs = 6 * 60 * 60 * 1000;
 
 const defaultRng: Rng = () => Math.random();
 
@@ -151,17 +153,19 @@ export async function createMatch(
 
 // --- join ------------------------------------------------------------------
 
-// Adds the caller to a lobby by code and draws their rack (a DIFFERENT puzzle
-// from the creator's). Attach + cap check run in a transaction; the rack draw
-// (pool queries) runs after. Idempotent: re-joining returns the same matchId.
-export async function joinMatch(
+// Adds [uid] as a participant of an existing lobby by id and draws their rack (a
+// DIFFERENT puzzle from the creator's, via usedPuzzleIds). Attach + cap check run
+// in a transaction; the rack draw (pool queries) runs after. Idempotent:
+// re-adding an existing participant is a no-op. Throws 409 if not joinable.
+//
+// This is the shared body of joinMatch; the challenge accept path reuses it by
+// matchId so both entry points draw racks through the exact same tested logic.
+export async function addParticipant(
   uid: string,
   isGuest: boolean,
-  code: string,
+  matchId: string,
   rng: Rng = defaultRng,
-): Promise<{matchId: string}> {
-  const matchId = await lookupCode(code);
-  if (!matchId) throw new HttpError(404, "unknown or closed code");
+): Promise<void> {
   const matchRef = db.collection("matches").doc(matchId);
   const player = await buildPlayer(uid, isGuest);
 
@@ -189,6 +193,19 @@ export async function joinMatch(
     const pid = await drawRackForPlayer(matchId, uid, tier, exclude, rng, theme);
     await matchRef.update({usedPuzzleIds: FieldValue.arrayUnion(pid)});
   }
+}
+
+// Adds the caller to a lobby by code and draws their rack (a DIFFERENT puzzle
+// from the creator's). Idempotent: re-joining returns the same matchId.
+export async function joinMatch(
+  uid: string,
+  isGuest: boolean,
+  code: string,
+  rng: Rng = defaultRng,
+): Promise<{matchId: string}> {
+  const matchId = await lookupCode(code);
+  if (!matchId) throw new HttpError(404, "unknown or closed code");
+  await addParticipant(uid, isGuest, matchId, rng);
   return {matchId};
 }
 
@@ -196,7 +213,7 @@ export async function joinMatch(
 
 // Sets startedAt/endsAt and moves to countdown. startedAt is a few seconds out
 // so both clients run the same visual countdown, then play from startedAt.
-function applyStart(
+export function applyStart(
   tx: FirebaseFirestore.Transaction,
   matchRef: FirebaseFirestore.DocumentReference,
   m: MatchData,

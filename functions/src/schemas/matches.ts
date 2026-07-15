@@ -26,6 +26,9 @@ export const MatchSettingsSchema = z.object({
   durationSec: z.number().int().min(30).max(600).default(120),
   rackSize: z.number().int().min(3).max(9).default(7),
   theme: z.string().min(1).max(64).nullable().default(null),
+  // "live" behaves like a normal timed match (countdown -> active -> endsAt).
+  // "async" is a 6-hour round whose clock starts on ACCEPT, no countdown.
+  mode: z.enum(["live", "async"]).default("live"),
 });
 export type MatchSettings = z.infer<typeof MatchSettingsSchema>;
 
@@ -55,6 +58,15 @@ export const JoinMatchBodySchema = z.object({
 });
 
 export const ReadyBodySchema = z.object({ready: z.boolean().default(true)});
+
+// POST /matches/challenge - challenge a friend to a live or async match.
+export const ChallengeBodySchema = z.object({
+  toUid: z.string().min(1).max(128),
+  settings: MatchSettingsSchema.optional(),
+});
+
+// POST /matches/:id/respond - accept or decline a challenge.
+export const RespondBodySchema = z.object({accept: z.boolean()});
 
 export const StartBodySchema = z.object({}).strict();
 
