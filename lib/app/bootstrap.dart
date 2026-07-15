@@ -12,6 +12,7 @@ import '../core/haptics/haptic_service.dart';
 import '../core/haptics/haptics.dart';
 import '../core/logging/app_logger.dart';
 import '../core/network/network_providers.dart';
+import '../core/notifications/push_providers.dart';
 import '../core/offline/http_mutation_sender.dart';
 import '../core/offline/offline_providers.dart';
 import '../core/offline/sync_engine.dart';
@@ -49,9 +50,7 @@ Future<void> bootstrap() async {
   // Opting in makes the address bar (and back/forward history) track the route.
   GoRouter.optionURLReflectsImperativeAPIs = true;
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final AppDatabase db = AppDatabase();
 
@@ -85,7 +84,8 @@ Future<void> bootstrap() async {
             // Attach the current user's ID token to outgoing sync requests
             // without core/network importing the auth feature.
             authTokenProvider.overrideWith(
-              (ref) => () => ref.read(authRepositoryProvider).idToken(),
+              (ref) =>
+                  () => ref.read(authRepositoryProvider).idToken(),
             ),
             mutationSenderProvider.overrideWith((ref) {
               final HttpMutationSender sender = HttpMutationSender(
@@ -149,13 +149,20 @@ class _BootstrapGateState extends ConsumerState<_BootstrapGate> {
       if (uid == null) {
         if (prevUid != null) {
           unawaited(ref.read(profileControllerProvider.notifier).clear());
+          // Stop this device receiving the signed-out user's pushes.
+          unawaited(ref.read(pushServiceProvider).unregister());
         }
       } else if (uid != prevUid) {
         unawaited(
-          ref.read(profileControllerProvider.notifier).load(
-                uid,
-                firebaseDisplayName: next.asData?.value?.displayName,
-              ),
+          ref
+              .read(profileControllerProvider.notifier)
+              .load(uid, firebaseDisplayName: next.asData?.value?.displayName),
+        );
+        // Register the FCM token IF permission was already granted. Never prompts
+        // here (prompt: false) so a restored session shows no dialog at launch;
+        // the Friends page owns the first, deliberate permission request.
+        unawaited(
+          ref.read(pushServiceProvider).registerForUser(uid, prompt: false),
         );
         // The startup flush ran before Firebase restored the user, so any
         // offline win mutation was skipped as transient. Now that the user is

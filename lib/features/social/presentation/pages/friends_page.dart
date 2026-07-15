@@ -8,6 +8,7 @@ import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_page_header.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_stage.dart';
+import '../../../../core/notifications/push_providers.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../application/social_providers.dart';
 import '../../social_config.dart';
@@ -31,11 +32,28 @@ class FriendsPage extends ConsumerStatefulWidget {
 
 class _FriendsPageState extends ConsumerState<FriendsPage> {
   late FriendsTab _tab = widget.initialTab;
+  bool _askedForPush = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Lazy permission: the first deliberate opt-in to notifications happens when
+    // the user opens Friends, not at cold start. Fires once per mount and only
+    // when signed in. Registration is idempotent (backend keys by token).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_askedForPush) return;
+      final uid = ref.read(currentUserProvider)?.uid;
+      if (uid == null) return;
+      _askedForPush = true;
+      ref.read(pushServiceProvider).registerForUser(uid);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     return Scaffold(
+      backgroundColor: AppColors.transparent,
       body: PondBackground(
         // This page owns its scrolling (the panes are ListViews), so the stage
         // must not wrap it in SingleChildScrollView + IntrinsicHeight.
@@ -69,10 +87,10 @@ class _FriendsPageState extends ConsumerState<FriendsPage> {
   }
 
   Widget _pane(FriendsTab tab) => switch (tab) {
-        FriendsTab.friends => const _FriendsList(),
-        FriendsTab.requests => const _RequestsList(),
-        FriendsTab.find => const UserSearchView(),
-      };
+    FriendsTab.friends => const _FriendsList(),
+    FriendsTab.requests => const _RequestsList(),
+    FriendsTab.find => const UserSearchView(),
+  };
 }
 
 class _SegmentBar extends StatelessWidget {
@@ -89,18 +107,20 @@ class _SegmentBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     PondPillButton seg(String label, FriendsTab value) => PondPillButton(
-          label: label,
-          variant: tab == value ? PondPillVariant.primary : PondPillVariant.quiet,
-          onPressed: () => onChanged(value),
-        );
+      label: label,
+      variant: tab == value ? PondPillVariant.primary : PondPillVariant.quiet,
+      onPressed: () => onChanged(value),
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           seg('Friends', FriendsTab.friends),
-          seg(requestCount > 0 ? 'Requests ($requestCount)' : 'Requests',
-              FriendsTab.requests),
+          seg(
+            requestCount > 0 ? 'Requests ($requestCount)' : 'Requests',
+            FriendsTab.requests,
+          ),
           seg('Find', FriendsTab.find),
         ],
       ),
@@ -162,14 +182,18 @@ class _GuestNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.fromLTRB(
-            AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
-        child: Text(
-          'You are playing as a guest. Link a Google or email account in Settings '
-          'so your friends are not lost if you reinstall.',
-          style: TextStyle(color: AppColors.padLabelSoft, fontSize: 12),
-        ),
-      );
+    padding: EdgeInsets.fromLTRB(
+      AppSpacing.md,
+      0,
+      AppSpacing.md,
+      AppSpacing.sm,
+    ),
+    child: Text(
+      'You are playing as a guest. Link a Google or email account in Settings '
+      'so your friends are not lost if you reinstall.',
+      style: TextStyle(color: AppColors.padLabelSoft, fontSize: 12),
+    ),
+  );
 }
 
 class _SignedOut extends StatelessWidget {
@@ -177,25 +201,25 @@ class _SignedOut extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Sign in to add friends and see your match history.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.padLabelSoft, fontSize: 15),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              PondPillButton(
-                label: 'Sign in',
-                onPressed: () => context.push('/sign-in'),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Sign in to add friends and see your match history.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.padLabelSoft, fontSize: 15),
           ),
-        ),
-      );
+          const SizedBox(height: AppSpacing.lg),
+          PondPillButton(
+            label: 'Sign in',
+            onPressed: () => context.push('/sign-in'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _Empty extends StatelessWidget {
@@ -204,13 +228,13 @@ class _Empty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.padLabelSoft, fontSize: 14),
-          ),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: AppColors.padLabelSoft, fontSize: 14),
+      ),
+    ),
+  );
 }
