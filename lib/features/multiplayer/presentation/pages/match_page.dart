@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/sizing.dart';
@@ -17,18 +18,23 @@ import '../../../game/presentation/widgets/letter_wheel.dart';
 import '../../../game/presentation/widgets/wheel_action_button.dart';
 import '../../../game/presentation/widgets/word_board.dart';
 import '../../../puzzles/domain/puzzle.dart';
+import '../../../store/application/store_providers.dart';
+import '../../../store/domain/store_item.dart';
 import '../../application/match_controller.dart';
 import '../../application/match_providers.dart';
 import '../../domain/match.dart';
 import '../../domain/match_event.dart';
 import '../../domain/match_rack.dart';
 import '../../domain/match_settings.dart';
+import '../../domain/powerup_kind.dart';
 import '../widgets/fog_overlay.dart';
 import '../widgets/frozen_letter_overlay.dart';
 import '../widgets/match_load_error.dart';
 import '../widgets/match_timer.dart';
 import '../widgets/opponent_hud.dart';
-import '../widgets/powerup_bar.dart';
+import '../widgets/powerup_info_sheet.dart';
+import '../widgets/powerup_side_buttons.dart';
+import '../widgets/powerup_wheel.dart';
 
 /// How often anything on the match page consults the wall clock. Not a motion
 /// token: this is a polling interval, not an animation.
@@ -103,6 +109,14 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   // so a dropped request retries on the next tick instead of stranding the match.
   bool _pokedStart = false;
   bool _pokedEnd = false;
+
+  // Which powerup wheel (if any) is open. Task 8's tutorial spotlights these
+  // via the exposed GlobalKeys: the offense button, the defense button, and
+  // the first slot of whichever wheel is open.
+  PowerupCategory? _openPowerupCategory;
+  final GlobalKey powerupOffenseButtonKey = GlobalKey();
+  final GlobalKey powerupDefenseButtonKey = GlobalKey();
+  final GlobalKey powerupWheelSlotKey = GlobalKey();
 
   @override
   void initState() {
@@ -179,6 +193,46 @@ class _MatchPageState extends ConsumerState<MatchPage> {
       // Offline or a transient failure: re-arm so the next tick tries again.
       if (mounted) rearm();
     });
+  }
+
+  /// A wheel slot was dragged out and released: fire [kind] at the match and
+  /// close the wheel. Mirrors the old PowerupBar flow (optimistic inventory
+  /// decrement; the store reconciles on its next open).
+  Future<void> _firePowerup(String kind) async {
+    setState(() => _openPowerupCategory = null);
+    final inventory =
+        ref.read(inventoryControllerProvider).value ?? const <String, int>{};
+    final itemId = kPowerupWireKinds.entries
+        .firstWhere((e) => e.value == kind, orElse: () => const MapEntry('', ''))
+        .key;
+    final ok = await ref
+        .read(matchServiceProvider)
+        .powerup(widget.matchId, kind, eventId: const Uuid().v4());
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not fire that powerup')));
+      return;
+    }
+    final owned = inventory[itemId] ?? 0;
+    if (itemId.isNotEmpty && owned > 0) {
+      ref
+          .read(inventoryControllerProvider.notifier)
+          .applyServer({...inventory, itemId: owned - 1});
+    }
+  }
+
+  void _openPowerupInfo(List<StoreItem> catalog, String itemId) {
+    StoreItem? item;
+    for (final candidate in catalog) {
+      if (candidate.id == itemId) {
+        item = candidate;
+        break;
+      }
+    }
+    if (item == null) return;
+    PowerupInfoSheet.show(context, ref, item);
   }
 
   Future<void> _submit(String word) async {
@@ -429,6 +483,10 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     final wheelLetters = _wheelLettersOf(rack, playState);
     final found = _foundOf(rack, playState);
     final targets = _targetsOf(rack);
+    final catalog = ref.watch(storeCatalogProvider).value ?? const <StoreItem>[];
+    final inventory =
+        ref.watch(inventoryControllerProvider).value ?? const <String, int>{};
+    final prices = {for (final item in catalog) item.id: item.cost};
 
     final myScore = myUid == null ? 0 : (match.playerFor(myUid)?.score ?? 0);
     final formed = [
@@ -471,80 +529,106 @@ class _MatchPageState extends ConsumerState<MatchPage> {
         ),
         FormedWordPill(word: formed),
         const SizedBox(height: AppSpacing.sm),
-        PowerupBar(matchId: match.matchId),
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.md,
-          ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                WheelActionButton(
-                  icon: Icons.shuffle,
-                  semanticLabel: 'Shuffle',
-                  onTap: controller.shuffle,
-                ),
-                const SizedBox(width: AppSpacing.lg),
-                SizedBox(
-                  width: _wheelSize.width,
-                  height: _wheelSize.height,
-                  child: Stack(
-                    children: [
-                      LetterWheel(
-                        letters: wheelLetters,
-                        selected: playState.selection,
-                        ids: order,
-                        onTouch: (slot) => controller.touchLetter(
-                          slot,
-                          frozen: _frozenSlots(
-                            effects,
-                            wheelLetters,
-                            DateTime.now().millisecondsSinceEpoch,
-                          ),
+        Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.md,
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PowerupSideButtons(
+                          onOpen: (category) =>
+                              setState(() => _openPowerupCategory = category),
+                          offenseKey: powerupOffenseButtonKey,
+                          defenseKey: powerupDefenseButtonKey,
                         ),
-                        onEnd: () {
-                          final word = controller.endSelection(rack, found);
-                          if (word != null) _submit(word);
+                        const SizedBox(height: AppSpacing.sm),
+                        WheelActionButton(
+                          icon: Icons.shuffle,
+                          semanticLabel: 'Shuffle',
+                          onTap: controller.shuffle,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: AppSpacing.lg),
+                    SizedBox(
+                      width: _wheelSize.width,
+                      height: _wheelSize.height,
+                      child: Stack(
+                        children: [
+                          LetterWheel(
+                            letters: wheelLetters,
+                            selected: playState.selection,
+                            ids: order,
+                            onTouch: (slot) => controller.touchLetter(
+                              slot,
+                              frozen: _frozenSlots(
+                                effects,
+                                wheelLetters,
+                                DateTime.now().millisecondsSinceEpoch,
+                              ),
+                            ),
+                            onEnd: () {
+                              final word = controller.endSelection(rack, found);
+                              if (word != null) _submit(word);
+                            },
+                          ),
+                          Positioned.fill(
+                            child: _Ticking(
+                              builder: (_, now, __) => FrozenLetterOverlay(
+                                frozenSlots: _frozenSlots(
+                                  effects,
+                                  wheelLetters,
+                                  now,
+                                ),
+                                letterCount: wheelLetters.length,
+                                size: _wheelSize,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.lg),
+                    // Live only: the flag forfeits, so it gates on the same confirm
+                    // as back. Async has no forfeit (leaving is normal), so the
+                    // flag is hidden entirely; the player leaves via the back arrow
+                    // and returns through Resume. The gap keeps the wheel centered.
+                    if (isAsync)
+                      const SizedBox(width: AppSizing.actionButton)
+                    else
+                      WheelActionButton(
+                        icon: Icons.flag_outlined,
+                        semanticLabel: 'Leave match',
+                        onTap: () async {
+                          final leave = await _confirmForfeit();
+                          if (leave && mounted) _leaveMatch();
                         },
                       ),
-                      Positioned.fill(
-                        child: _Ticking(
-                          builder: (_, now, __) => FrozenLetterOverlay(
-                            frozenSlots: _frozenSlots(
-                              effects,
-                              wheelLetters,
-                              now,
-                            ),
-                            letterCount: wheelLetters.length,
-                            size: _wheelSize,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-                const SizedBox(width: AppSpacing.lg),
-                // Live only: the flag forfeits, so it gates on the same confirm
-                // as back. Async has no forfeit (leaving is normal), so the
-                // flag is hidden entirely; the player leaves via the back arrow
-                // and returns through Resume. The gap keeps the wheel centered.
-                if (isAsync)
-                  const SizedBox(width: AppSizing.actionButton)
-                else
-                  WheelActionButton(
-                    icon: Icons.flag_outlined,
-                    semanticLabel: 'Leave match',
-                    onTap: () async {
-                      final leave = await _confirmForfeit();
-                      if (leave && mounted) _leaveMatch();
-                    },
-                  ),
-              ],
+              ),
             ),
-          ),
+            if (_openPowerupCategory != null)
+              PowerupWheel(
+                category: _openPowerupCategory!,
+                ownedCounts: inventory,
+                prices: prices,
+                firstSlotKey: powerupWheelSlotKey,
+                onFire: (kind, _) => _firePowerup(kind),
+                onTapInfo: (itemId) => _openPowerupInfo(catalog, itemId),
+                onClose: () => setState(() => _openPowerupCategory = null),
+              ),
+          ],
         ),
       ],
     );

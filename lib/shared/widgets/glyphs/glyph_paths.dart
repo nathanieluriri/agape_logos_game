@@ -3,7 +3,7 @@ import 'dart:ui';
 
 /// The glyph vocabulary of the pond design system. Each case maps to a
 /// hand-authored path in [GlyphPaths]; rendering happens in PondGlyphPainter.
-enum PondGlyph { play, book, versus, plus, key, chevronLeft, friends }
+enum PondGlyph { play, book, versus, plus, key, chevronLeft, friends, swords, shield }
 
 /// One glyph's geometry: a path in the 100x100 viewBox, drawn filled when
 /// [strokeWidth] is null, otherwise stroked with round caps and joins.
@@ -29,6 +29,8 @@ abstract final class GlyphPaths {
             PondGlyph.key => GlyphSpec.stroke(_key(), 12),
             PondGlyph.chevronLeft => GlyphSpec.stroke(_chevronLeft(), 16),
             PondGlyph.friends => GlyphSpec.fill(_friends()),
+            PondGlyph.swords => GlyphSpec.fill(_swords()),
+            PondGlyph.shield => GlyphSpec.fill(_shield()),
           });
 
   /// Rounded right-pointing triangle, ported from the original PlayTriangle
@@ -94,6 +96,39 @@ abstract final class GlyphPaths {
         const Rect.fromLTRB(18, 56, 56, 84), const Radius.circular(19)))
     ..addRRect(RRect.fromRectAndRadius(
         const Rect.fromLTRB(44, 60, 88, 90), const Radius.circular(21)));
+
+  /// Two crossed blades: the offense powerup mark. Each blade is a thin
+  /// rounded quad along its diagonal.
+  static Path _swords() => Path()
+    ..addPath(_blade(const Offset(18, 18), const Offset(82, 82)), Offset.zero)
+    ..addPath(_blade(const Offset(82, 18), const Offset(18, 82)), Offset.zero);
+
+  static Path _blade(Offset a, Offset b) {
+    final dir = b - a;
+    final unit = dir / dir.distance;
+    final normal = Offset(-unit.dy, unit.dx) * 5;
+    final p1 = a + normal;
+    final p2 = a - normal;
+    final p3 = b - normal;
+    final p4 = b + normal;
+    return Path()
+      ..moveTo(p1.dx, p1.dy)
+      ..lineTo(p2.dx, p2.dy)
+      ..lineTo(p3.dx, p3.dy)
+      ..lineTo(p4.dx, p4.dy)
+      ..close();
+  }
+
+  /// Rounded shield outline: the defense powerup mark.
+  static Path _shield() => Path()
+    ..moveTo(50, 12)
+    ..quadraticBezierTo(78, 20, 82, 30)
+    ..lineTo(82, 48)
+    ..quadraticBezierTo(82, 76, 50, 90)
+    ..quadraticBezierTo(18, 76, 18, 48)
+    ..lineTo(18, 30)
+    ..quadraticBezierTo(22, 20, 50, 12)
+    ..close();
 
   /// Closed polygon with every corner rounded by radius [r] (quadratic
   /// bezier through the vertex), generalized from the PlayTriangle painter.
