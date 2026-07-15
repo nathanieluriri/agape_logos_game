@@ -7,4 +7,4 @@
 /// While this is empty, web push registration is a clean no-op (see
 /// `push_service_web.dart`). Android push does NOT use this key and works fully
 /// regardless.
-const String kWebPushVapidKey = '';
+const String kWebPushVapidKey = 'BFVpPzH2NaIGZN49wuPMQtT9ZPrfEHKevNdup6Ey-Mh-4YwxE7EMgoczLy1JZ10h8LhPOWSluRethi-P4Fn7uEA';
