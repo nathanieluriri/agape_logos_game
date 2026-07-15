@@ -12,6 +12,7 @@ import '../../features/multiplayer/presentation/pages/matchmaking_page.dart';
 import '../../features/multiplayer/presentation/pages/lobby_page.dart';
 import '../../features/multiplayer/presentation/pages/match_page.dart';
 import '../../features/multiplayer/presentation/pages/match_result_page.dart';
+import '../../features/multiplayer/presentation/pages/resume_games_page.dart';
 import '../../features/social/presentation/pages/friends_page.dart';
 import '../../features/social/presentation/pages/match_history_page.dart';
 import '../../features/social/presentation/pages/public_profile_page.dart';
@@ -89,6 +90,11 @@ final GoRouter appRouter = GoRouter(
         MatchResultPage(matchId: state.pathParameters['id']!),
         state,
       ),
+    ),
+    GoRoute(
+      path: '/multiplayer/resume',
+      pageBuilder: (context, state) =>
+          pondRevealPage(const ResumeGamesPage(), state),
     ),
     GoRoute(
       path: '/friends',

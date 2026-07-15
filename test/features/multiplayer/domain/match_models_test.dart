@@ -30,7 +30,13 @@ void main() {
         difficulty: MatchDifficulty.hard, durationSec: 90, rackSize: 7,
         theme: null,
       ).toWire(),
-      {'difficulty': 'hard', 'durationSec': 90, 'rackSize': 7, 'theme': null},
+      {
+        'difficulty': 'hard',
+        'durationSec': 90,
+        'rackSize': 7,
+        'theme': null,
+        'mode': 'live',
+      },
     );
   });
 

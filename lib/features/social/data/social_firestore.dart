@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../multiplayer/domain/challenge_invite.dart';
 import '../domain/friend.dart';
 import '../domain/friend_request.dart';
 
@@ -34,6 +35,31 @@ class SocialFirestore {
       .orderBy('since', descending: true)
       .snapshots()
       .map((q) => q.docs.map(_friendFrom).toList());
+
+  /// Incoming friend challenges for [uid], newest first. The invite doc stores
+  /// `at` as a Firestore [Timestamp]; convert it by hand like the others.
+  Stream<List<ChallengeInvite>> watchChallenges(String uid) => _db
+      .collection('users')
+      .doc(uid)
+      .collection('challenges')
+      .orderBy('at', descending: true)
+      .snapshots()
+      .map((q) => q.docs.map(_challengeFrom).toList());
+
+  ChallengeInvite _challengeFrom(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    return ChallengeInvite(
+      matchId: (data['matchId'] as String?) ?? doc.id,
+      byUid: (data['byUid'] as String?) ?? '',
+      handle: (data['handle'] as String?) ?? '',
+      displayName: (data['displayName'] as String?) ?? '',
+      avatarId: (data['avatarId'] as String?) ?? '',
+      mode: (data['mode'] as String?) ?? 'live',
+      at: (data['at'] as Timestamp?)?.millisecondsSinceEpoch ?? 0,
+    );
+  }
 
   FriendRequest _requestFrom(
     QueryDocumentSnapshot<Map<String, dynamic>> doc,

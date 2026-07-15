@@ -2,6 +2,7 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
 import 'package:agape_logos_game/features/multiplayer/data/match_remote.dart';
+import 'package:agape_logos_game/features/multiplayer/domain/active_match.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/challenge_outcome.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_event.dart';
@@ -19,6 +20,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// Records the settling GET the page pokes at each clock boundary.
 class _FakeRemote implements MatchRemote {
   final List<String> settled = <String>[];
+  final List<String> left = <String>[];
 
   @override
   Future<void> settle(String matchId) async => settled.add(matchId);
@@ -38,7 +40,7 @@ class _FakeRemote implements MatchRemote {
   Future<bool> powerup(String m, String k, {required String eventId}) async =>
       true;
   @override
-  Future<void> leave(String matchId) async {}
+  Future<void> leave(String matchId) async => left.add(matchId);
 
   @override
   Future<ChallengeOutcome> challenge(String toUid, {required String mode}) async =>
@@ -46,6 +48,9 @@ class _FakeRemote implements MatchRemote {
 
   @override
   Future<void> respondChallenge(String matchId, {required bool accept}) async {}
+
+  @override
+  Future<List<ActiveMatch>> activeMatches() async => const [];
 }
 
 MatchPlayer _p(String uid, {int score = 0}) => MatchPlayer(
@@ -61,6 +66,10 @@ Match _active() => Match(
       settings: MatchSettings.defaults(),
       players: {'me': _p('me', score: 7), 'opp': _p('opp', score: 3)},
       winner: null,
+    );
+
+Match _asyncActive() => _active().copyWith(
+      settings: MatchSettings.defaults().copyWith(mode: MatchMode.async),
     );
 
 MatchRack _rack() => const MatchRack(
@@ -154,5 +163,56 @@ void main() {
 
     expect(find.textContaining("Time's up"), findsOneWidget);
     expect(remote.settled, <String>['m1']);
+  });
+
+  // An async (6-hour) match is played across sittings: leaving the screen is
+  // NORMAL and must NOT forfeit. Back pops straight out, shows no forfeit
+  // dialog, and never calls leave (the game keeps running server-side).
+  testWidgets('an async match pops on back WITHOUT a forfeit dialog or leave',
+      (tester) async {
+    final remote = _FakeRemote();
+    final navKey = GlobalKey<NavigatorState>();
+
+    Widget host(Widget child) => ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+            matchServiceProvider.overrideWithValue(remote),
+            matchStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_asyncActive())),
+            myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
+            matchEventsStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(const <MatchEvent>[])),
+            storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+          ],
+          child: MaterialApp(navigatorKey: navKey, home: child),
+        );
+
+    await tester.pumpWidget(host(
+      Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const MatchPage(matchId: 'm1'),
+              ),
+            ),
+            child: const Text('Go'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('Go'));
+    await tester.pumpAndSettle();
+    // The match board is up (no forfeit flag button for async).
+    expect(find.text('7'), findsOneWidget);
+    expect(find.bySemanticsLabel('Leave match'), findsNothing);
+
+    // System back: async pops cleanly.
+    await navKey.currentState!.maybePop();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Leave the match?'), findsNothing); // no forfeit confirm
+    expect(remote.left, isEmpty); // never forfeited
+    expect(find.text('Go'), findsOneWidget); // popped back to the caller
   });
 }

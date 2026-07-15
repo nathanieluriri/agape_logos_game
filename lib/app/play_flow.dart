@@ -36,6 +36,12 @@ Future<void> startMultiplayerFlow(BuildContext context, WidgetRef ref) async {
   }
   final choice = await showMultiplayerSheet(context);
   if (choice == null || !context.mounted) return;
-  final mode = choice == MultiplayerChoice.create ? 'create' : 'join';
-  await context.push('/multiplayer?mode=$mode');
+  switch (choice) {
+    case MultiplayerChoice.resume:
+      await context.push('/multiplayer/resume');
+    case MultiplayerChoice.create:
+      await context.push('/multiplayer?mode=create');
+    case MultiplayerChoice.join:
+      await context.push('/multiplayer?mode=join');
+  }
 }

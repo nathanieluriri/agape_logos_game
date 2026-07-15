@@ -1,9 +1,23 @@
 import 'package:agape_logos_game/features/multiplayer/data/match_mappers.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_event.dart';
+import 'package:agape_logos_game/features/multiplayer/domain/match_settings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('matchSettingsFromWire reads mode: async wins, otherwise live', () {
+    expect(
+      matchSettingsFromWire({'mode': 'async', 'durationSec': 120}).mode,
+      MatchMode.async,
+    );
+    expect(
+      matchSettingsFromWire({'mode': 'live', 'durationSec': 120}).mode,
+      MatchMode.live,
+    );
+    // Missing / unknown mode defaults to live (async is server-set only).
+    expect(matchSettingsFromWire({'durationSec': 120}).mode, MatchMode.live);
+  });
+
   test('matchFromSnapshot maps status, settings, and the players map', () {
     final m = matchFromSnapshot('m1', {
       'code': 'ABCD',

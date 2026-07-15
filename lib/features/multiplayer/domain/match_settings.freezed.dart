@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MatchSettings {
 
- MatchDifficulty get difficulty; int get durationSec; int get rackSize; String? get theme;
+ MatchDifficulty get difficulty; int get durationSec; int get rackSize; String? get theme; MatchMode get mode;
 /// Create a copy of MatchSettings
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $MatchSettingsCopyWith<MatchSettings> get copyWith => _$MatchSettingsCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MatchSettings&&(identical(other.difficulty, difficulty) || other.difficulty == difficulty)&&(identical(other.durationSec, durationSec) || other.durationSec == durationSec)&&(identical(other.rackSize, rackSize) || other.rackSize == rackSize)&&(identical(other.theme, theme) || other.theme == theme));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MatchSettings&&(identical(other.difficulty, difficulty) || other.difficulty == difficulty)&&(identical(other.durationSec, durationSec) || other.durationSec == durationSec)&&(identical(other.rackSize, rackSize) || other.rackSize == rackSize)&&(identical(other.theme, theme) || other.theme == theme)&&(identical(other.mode, mode) || other.mode == mode));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,difficulty,durationSec,rackSize,theme);
+int get hashCode => Object.hash(runtimeType,difficulty,durationSec,rackSize,theme,mode);
 
 @override
 String toString() {
-  return 'MatchSettings(difficulty: $difficulty, durationSec: $durationSec, rackSize: $rackSize, theme: $theme)';
+  return 'MatchSettings(difficulty: $difficulty, durationSec: $durationSec, rackSize: $rackSize, theme: $theme, mode: $mode)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $MatchSettingsCopyWith<$Res>  {
   factory $MatchSettingsCopyWith(MatchSettings value, $Res Function(MatchSettings) _then) = _$MatchSettingsCopyWithImpl;
 @useResult
 $Res call({
- MatchDifficulty difficulty, int durationSec, int rackSize, String? theme
+ MatchDifficulty difficulty, int durationSec, int rackSize, String? theme, MatchMode mode
 });
 
 
@@ -62,13 +62,14 @@ class _$MatchSettingsCopyWithImpl<$Res>
 
 /// Create a copy of MatchSettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? difficulty = null,Object? durationSec = null,Object? rackSize = null,Object? theme = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? difficulty = null,Object? durationSec = null,Object? rackSize = null,Object? theme = freezed,Object? mode = null,}) {
   return _then(_self.copyWith(
 difficulty: null == difficulty ? _self.difficulty : difficulty // ignore: cast_nullable_to_non_nullable
 as MatchDifficulty,durationSec: null == durationSec ? _self.durationSec : durationSec // ignore: cast_nullable_to_non_nullable
 as int,rackSize: null == rackSize ? _self.rackSize : rackSize // ignore: cast_nullable_to_non_nullable
 as int,theme: freezed == theme ? _self.theme : theme // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,mode: null == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
+as MatchMode,
   ));
 }
 
@@ -153,10 +154,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MatchDifficulty difficulty,  int durationSec,  int rackSize,  String? theme)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MatchDifficulty difficulty,  int durationSec,  int rackSize,  String? theme,  MatchMode mode)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MatchSettings() when $default != null:
-return $default(_that.difficulty,_that.durationSec,_that.rackSize,_that.theme);case _:
+return $default(_that.difficulty,_that.durationSec,_that.rackSize,_that.theme,_that.mode);case _:
   return orElse();
 
 }
@@ -174,10 +175,10 @@ return $default(_that.difficulty,_that.durationSec,_that.rackSize,_that.theme);c
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MatchDifficulty difficulty,  int durationSec,  int rackSize,  String? theme)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MatchDifficulty difficulty,  int durationSec,  int rackSize,  String? theme,  MatchMode mode)  $default,) {final _that = this;
 switch (_that) {
 case _MatchSettings():
-return $default(_that.difficulty,_that.durationSec,_that.rackSize,_that.theme);case _:
+return $default(_that.difficulty,_that.durationSec,_that.rackSize,_that.theme,_that.mode);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +195,10 @@ return $default(_that.difficulty,_that.durationSec,_that.rackSize,_that.theme);c
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MatchDifficulty difficulty,  int durationSec,  int rackSize,  String? theme)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MatchDifficulty difficulty,  int durationSec,  int rackSize,  String? theme,  MatchMode mode)?  $default,) {final _that = this;
 switch (_that) {
 case _MatchSettings() when $default != null:
-return $default(_that.difficulty,_that.durationSec,_that.rackSize,_that.theme);case _:
+return $default(_that.difficulty,_that.durationSec,_that.rackSize,_that.theme,_that.mode);case _:
   return null;
 
 }
@@ -209,13 +210,14 @@ return $default(_that.difficulty,_that.durationSec,_that.rackSize,_that.theme);c
 
 
 class _MatchSettings extends MatchSettings {
-  const _MatchSettings({required this.difficulty, required this.durationSec, required this.rackSize, this.theme}): super._();
+  const _MatchSettings({required this.difficulty, required this.durationSec, required this.rackSize, this.theme, this.mode = MatchMode.live}): super._();
   
 
 @override final  MatchDifficulty difficulty;
 @override final  int durationSec;
 @override final  int rackSize;
 @override final  String? theme;
+@override@JsonKey() final  MatchMode mode;
 
 /// Create a copy of MatchSettings
 /// with the given fields replaced by the non-null parameter values.
@@ -227,16 +229,16 @@ _$MatchSettingsCopyWith<_MatchSettings> get copyWith => __$MatchSettingsCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MatchSettings&&(identical(other.difficulty, difficulty) || other.difficulty == difficulty)&&(identical(other.durationSec, durationSec) || other.durationSec == durationSec)&&(identical(other.rackSize, rackSize) || other.rackSize == rackSize)&&(identical(other.theme, theme) || other.theme == theme));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MatchSettings&&(identical(other.difficulty, difficulty) || other.difficulty == difficulty)&&(identical(other.durationSec, durationSec) || other.durationSec == durationSec)&&(identical(other.rackSize, rackSize) || other.rackSize == rackSize)&&(identical(other.theme, theme) || other.theme == theme)&&(identical(other.mode, mode) || other.mode == mode));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,difficulty,durationSec,rackSize,theme);
+int get hashCode => Object.hash(runtimeType,difficulty,durationSec,rackSize,theme,mode);
 
 @override
 String toString() {
-  return 'MatchSettings(difficulty: $difficulty, durationSec: $durationSec, rackSize: $rackSize, theme: $theme)';
+  return 'MatchSettings(difficulty: $difficulty, durationSec: $durationSec, rackSize: $rackSize, theme: $theme, mode: $mode)';
 }
 
 
@@ -247,7 +249,7 @@ abstract mixin class _$MatchSettingsCopyWith<$Res> implements $MatchSettingsCopy
   factory _$MatchSettingsCopyWith(_MatchSettings value, $Res Function(_MatchSettings) _then) = __$MatchSettingsCopyWithImpl;
 @override @useResult
 $Res call({
- MatchDifficulty difficulty, int durationSec, int rackSize, String? theme
+ MatchDifficulty difficulty, int durationSec, int rackSize, String? theme, MatchMode mode
 });
 
 
@@ -264,13 +266,14 @@ class __$MatchSettingsCopyWithImpl<$Res>
 
 /// Create a copy of MatchSettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? difficulty = null,Object? durationSec = null,Object? rackSize = null,Object? theme = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? difficulty = null,Object? durationSec = null,Object? rackSize = null,Object? theme = freezed,Object? mode = null,}) {
   return _then(_MatchSettings(
 difficulty: null == difficulty ? _self.difficulty : difficulty // ignore: cast_nullable_to_non_nullable
 as MatchDifficulty,durationSec: null == durationSec ? _self.durationSec : durationSec // ignore: cast_nullable_to_non_nullable
 as int,rackSize: null == rackSize ? _self.rackSize : rackSize // ignore: cast_nullable_to_non_nullable
 as int,theme: freezed == theme ? _self.theme : theme // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,mode: null == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
+as MatchMode,
   ));
 }
 

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/network/api_client.dart';
+import '../domain/active_match.dart';
 import '../domain/challenge_outcome.dart';
 
 /// Function-call transport for multiplayer (contract 8.7). Reads go through the
@@ -44,6 +45,10 @@ abstract interface class MatchRemote {
 
   /// POST /matches/:id/respond. Accept or decline an incoming challenge.
   Future<void> respondChallenge(String matchId, {required bool accept});
+
+  /// GET /me/matches/active -> {matches: [ActiveMatchView, ...]}. The player's
+  /// in-progress matches (live and async), for the Resume Games list.
+  Future<List<ActiveMatch>> activeMatches();
 }
 
 class HttpMatchRemote implements MatchRemote {
@@ -162,6 +167,19 @@ class HttpMatchRemote implements MatchRemote {
   @override
   Future<void> respondChallenge(String matchId, {required bool accept}) =>
       _post('/matches/$matchId/respond', <String, dynamic>{'accept': accept});
+
+  @override
+  Future<List<ActiveMatch>> activeMatches() async {
+    final res = await _api.request<Map<String, dynamic>>(
+      '/me/matches/active',
+      method: 'GET',
+    );
+    final data = res.data ?? const <String, dynamic>{};
+    final raw = (data['matches'] as List?) ?? const [];
+    return raw
+        .map((e) => ActiveMatch.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
 
   Future<void> _post(
     String path,

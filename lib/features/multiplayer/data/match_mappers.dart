@@ -24,6 +24,7 @@ MatchSettings matchSettingsFromWire(Map<String, dynamic> m) => MatchSettings(
   durationSec: _asInt(m['durationSec']),
   rackSize: (m['rackSize'] as num?)?.toInt() ?? 7,
   theme: m['theme'] as String?,
+  mode: m['mode'] == 'async' ? MatchMode.async : MatchMode.live,
 );
 
 Match matchFromSnapshot(String id, Map<String, dynamic> m) {

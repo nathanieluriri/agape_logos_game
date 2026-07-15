@@ -1,5 +1,6 @@
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
 import 'package:agape_logos_game/features/multiplayer/data/match_remote.dart';
+import 'package:agape_logos_game/features/multiplayer/domain/active_match.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/challenge_outcome.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/pages/matchmaking_page.dart';
 import 'package:flutter/material.dart';
@@ -36,6 +37,9 @@ class _FakeRemote implements MatchRemote {
 
   @override
   Future<void> respondChallenge(String matchId, {required bool accept}) async {}
+
+  @override
+  Future<List<ActiveMatch>> activeMatches() async => const [];
 }
 
 GoRouter _router() => GoRouter(routes: [

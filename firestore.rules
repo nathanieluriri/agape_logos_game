@@ -42,6 +42,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Incoming friend challenges (the invite half of a challenge). Same window
+    // as friendRequests: a user listens to their OWN invites so a challenge
+    // arrives live. Written only by the server (POST /matches/challenge).
+    match /users/{uid}/challenges/{matchId} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // Everything else stays server-only. Match codes, user profiles, puzzles,
     // inventory, history: all read/written through Cloud Functions only. The
     // social layer's public-profile reads go through GET /users/:uid/public

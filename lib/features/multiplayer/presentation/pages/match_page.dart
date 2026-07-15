@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/design/tokens/colors.dart';
+import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/animated_app_icon.dart';
 import '../../../../shared/widgets/pond_background.dart';
@@ -21,6 +22,7 @@ import '../../application/match_providers.dart';
 import '../../domain/match.dart';
 import '../../domain/match_event.dart';
 import '../../domain/match_rack.dart';
+import '../../domain/match_settings.dart';
 import '../widgets/fog_overlay.dart';
 import '../widgets/frozen_letter_overlay.dart';
 import '../widgets/match_load_error.dart';
@@ -235,12 +237,19 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     final effects = ref.watch(activeEffectsProvider(matchId));
     final playState = ref.watch(matchPlayControllerProvider);
 
+    // An async (6-hour) match is meant to be played across sittings, so leaving
+    // the screen is NORMAL and must NOT forfeit: the game keeps running
+    // server-side and the player returns to it via Resume. Only a live match
+    // treats a mid-match exit as a forfeit.
+    final isAsync = match?.settings.mode == MatchMode.async;
+
     return PopScope(
-      // Mid-match: intercept back (OS gesture included) and confirm the
-      // forfeit instead of silently dropping the player out of the match.
-      canPop: false,
+      // Live: intercept back (OS gesture included) and confirm the forfeit
+      // instead of silently dropping the player out of the match. Async: let
+      // back pop straight through; it just leaves the screen, no forfeit.
+      canPop: isAsync,
       onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
+        if (didPop) return; // async popped cleanly, or a live pop already ran.
         final leave = await _confirmForfeit();
         if (leave && mounted) _leaveMatch();
       },
@@ -248,7 +257,15 @@ class _MatchPageState extends ConsumerState<MatchPage> {
         backgroundColor: AppColors.transparent,
         body: PondBackground(
           child: SafeArea(
-            child: _content(match, rack, effects, playState, myUid, failed),
+            child: _content(
+              match,
+              rack,
+              effects,
+              playState,
+              myUid,
+              failed,
+              isAsync,
+            ),
           ),
         ),
       ),
@@ -356,6 +373,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     MatchPlayState playState,
     String? myUid,
     bool failed,
+    bool isAsync,
   ) {
     if (failed) {
       return MatchLoadError(
@@ -489,14 +507,21 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.lg),
-                WheelActionButton(
-                  icon: Icons.flag_outlined,
-                  semanticLabel: 'Leave match',
-                  onTap: () async {
-                    final leave = await _confirmForfeit();
-                    if (leave && mounted) _leaveMatch();
-                  },
-                ),
+                // Live only: the flag forfeits, so it gates on the same confirm
+                // as back. Async has no forfeit (leaving is normal), so the
+                // flag is hidden entirely; the player leaves via the back arrow
+                // and returns through Resume. The gap keeps the wheel centered.
+                if (isAsync)
+                  const SizedBox(width: AppSizing.actionButton)
+                else
+                  WheelActionButton(
+                    icon: Icons.flag_outlined,
+                    semanticLabel: 'Leave match',
+                    onTap: () async {
+                      final leave = await _confirmForfeit();
+                      if (leave && mounted) _leaveMatch();
+                    },
+                  ),
               ],
             ),
           ),

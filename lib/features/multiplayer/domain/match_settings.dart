@@ -4,6 +4,11 @@ part 'match_settings.freezed.dart';
 
 enum MatchDifficulty { easy, medium, hard }
 
+/// Live = both players in the same sitting (real-time). Async = a 6-hour
+/// challenge played across sittings. Only the server sets `async` on a
+/// challenge; everything the client creates defaults to `live`.
+enum MatchMode { live, async }
+
 MatchDifficulty matchDifficultyFromWire(String? raw) {
   switch (raw) {
     case 'easy':
@@ -24,6 +29,7 @@ abstract class MatchSettings with _$MatchSettings {
     required int durationSec,
     required int rackSize,
     String? theme,
+    @Default(MatchMode.live) MatchMode mode,
   }) = _MatchSettings;
 
   const MatchSettings._();
@@ -33,6 +39,7 @@ abstract class MatchSettings with _$MatchSettings {
     durationSec: 120,
     rackSize: 7,
     theme: null,
+    mode: MatchMode.live,
   );
 
   /// Wire form for the `POST /matches` body (contract 8.7). `difficulty` is the
@@ -42,5 +49,6 @@ abstract class MatchSettings with _$MatchSettings {
     'durationSec': durationSec,
     'rackSize': rackSize,
     'theme': theme,
+    'mode': mode.name,
   };
 }
