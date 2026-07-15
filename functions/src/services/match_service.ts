@@ -58,11 +58,14 @@ async function drawRackForPlayer(
   exclude: Set<string>,
   rng: Rng,
   themeId: string | null = null,
+  reusePuzzleId: string | null = null,
 ): Promise<string> {
+  // A non-null reusePuzzleId skips the draw entirely: the joiner gets the SAME
+  // puzzle as the creator so max words/score are identical (fair race).
+  let id: string | null = reusePuzzleId;
   // Themed matches prefer a theme-tagged puzzle; the fallback is the untethered
   // draw, so this branch is inert until themes are seeded (plan 11 Task 9).
-  let id: string | null = null;
-  if (themeId) id = await themedPuzzleId(themeId, tier, exclude);
+  if (!id && themeId) id = await themedPuzzleId(themeId, tier, exclude);
   if (!id) id = await drawRandomPuzzleId(tier, exclude, rng);
   if (!id) throw new HttpError(409, `no puzzle available for tier ${tier}`);
   const [puzzle] = await fetchPuzzles([id]);
@@ -146,15 +149,15 @@ export async function createMatch(
 
   const tier = DIFFICULTY_TIER[settings.difficulty];
   const pid = await drawRackForPlayer(matchId, uid, tier, new Set(), rng, settings.theme);
-  await matchRef.update({usedPuzzleIds: FieldValue.arrayUnion(pid)});
+  await matchRef.update({usedPuzzleIds: FieldValue.arrayUnion(pid), puzzleId: pid});
   await createRef.set({matchId, code, at: now});
   return {matchId, code};
 }
 
 // --- join ------------------------------------------------------------------
 
-// Adds [uid] as a participant of an existing lobby by id and draws their rack (a
-// DIFFERENT puzzle from the creator's, via usedPuzzleIds). Attach + cap check run
+// Adds [uid] as a participant of an existing lobby by id and writes their rack
+// (the SAME puzzle as the creator's, via puzzleId). Attach + cap check run
 // in a transaction; the rack draw (pool queries) runs after. Idempotent:
 // re-adding an existing participant is a no-op. Throws 409 if not joinable.
 //
@@ -169,15 +172,16 @@ export async function addParticipant(
   const matchRef = db.collection("matches").doc(matchId);
   const player = await buildPlayer(uid, isGuest);
 
-  const {tier, alreadyIn, exclude, theme} = await db.runTransaction(async (tx) => {
+  const {tier, alreadyIn, exclude, theme, puzzleId} = await db.runTransaction(async (tx) => {
     const snap = await tx.get(matchRef);
     if (!snap.exists) throw new HttpError(404, "match not found");
     const m = snap.data() as MatchData;
     const t = DIFFICULTY_TIER[m.settings.difficulty];
     const ex = new Set(m.usedPuzzleIds ?? []);
     const th = m.settings.theme;
+    const pz = m.puzzleId ?? null;
     if (m.participants.includes(uid)) {
-      return {tier: t, alreadyIn: true, exclude: ex, theme: th};
+      return {tier: t, alreadyIn: true, exclude: ex, theme: th, puzzleId: pz};
     }
     if (m.status !== "lobby") throw new HttpError(409, "match already started");
     if (m.participants.length >= kMaxPlayers) throw new HttpError(409, "match is full");
@@ -186,17 +190,18 @@ export async function addParticipant(
       playerOrder: FieldValue.arrayUnion(uid),
       [`players.${uid}`]: player,
     });
-    return {tier: t, alreadyIn: false, exclude: ex, theme: th};
+    return {tier: t, alreadyIn: false, exclude: ex, theme: th, puzzleId: pz};
   });
 
   if (!alreadyIn) {
-    const pid = await drawRackForPlayer(matchId, uid, tier, exclude, rng, theme);
-    await matchRef.update({usedPuzzleIds: FieldValue.arrayUnion(pid)});
+    // Both players race on the SAME puzzle so max words/score are identical (fair).
+    const pid = await drawRackForPlayer(matchId, uid, tier, exclude, rng, theme, puzzleId);
+    if (!puzzleId) await matchRef.update({usedPuzzleIds: FieldValue.arrayUnion(pid), puzzleId: pid});
   }
 }
 
-// Adds the caller to a lobby by code and draws their rack (a DIFFERENT puzzle
-// from the creator's). Idempotent: re-joining returns the same matchId.
+// Adds the caller to a lobby by code and writes their rack (the SAME puzzle as
+// the creator's). Idempotent: re-joining returns the same matchId.
 export async function joinMatch(
   uid: string,
   isGuest: boolean,

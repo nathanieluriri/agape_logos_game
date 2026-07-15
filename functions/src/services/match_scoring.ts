@@ -10,20 +10,25 @@ export function wordScore(word: string): number {
 export interface PlayerScoreLike {
   wordsFound: number;
   score: number;
+  lastWordAt?: number;
 }
 
-// Winner by most words found; equal wordsFound is a draw. participants is the
-// [uidA, uidB] array; returns a uid or "draw".
+// Winner by most words found; equal wordsFound tiebreaks by speed (earlier
+// lastWordAt, i.e. faster to the tied count), then score, then draw.
+// participants is the [uidA, uidB] array; returns a uid or "draw".
 export function computeWinner(
   participants: string[],
   players: Record<string, PlayerScoreLike>,
 ): string {
   if (participants.length < 2) return participants[0] ?? "draw";
   const [a, b] = participants;
-  const wa = players[a]?.wordsFound ?? 0;
-  const wb = players[b]?.wordsFound ?? 0;
-  if (wa > wb) return a;
-  if (wb > wa) return b;
+  const pa = players[a]; const pb = players[b];
+  const wa = pa?.wordsFound ?? 0; const wb = pb?.wordsFound ?? 0;
+  if (wa !== wb) return wa > wb ? a : b;
+  const ta = pa?.lastWordAt ?? 0; const tb = pb?.lastWordAt ?? 0;
+  if (ta > 0 && tb > 0 && ta !== tb) return ta < tb ? a : b; // faster to the tied count wins
+  const sa = pa?.score ?? 0; const sb = pb?.score ?? 0;
+  if (sa !== sb) return sa > sb ? a : b;
   return "draw";
 }
 

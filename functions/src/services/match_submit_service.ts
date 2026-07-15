@@ -35,7 +35,8 @@ export async function submitWord(
     const mSnap = await tx.get(matchRef);
     const rackSnap = await tx.get(rackRef);
     const m = mSnap.data() as MatchData;
-    const rack = rackSnap.data() as {letterKey: string; foundWords: string[]} | undefined;
+    const rack = rackSnap.data() as
+      {letterKey: string; foundWords: string[]; answerCount?: number} | undefined;
     if (!rack) throw new HttpError(409, "no rack for player");
 
     const now = Date.now();
@@ -56,10 +57,15 @@ export async function submitWord(
     if (!valid) return {accepted: false, score: curScore, wordsFound: curWords, reason: "invalid"};
 
     const pts = wordScore(word);
+    // finishedAt marks finding the LAST answer; settleMatch ends the match early
+    // once every participant is done. lastWordAt is the speed tiebreak.
+    const done = rack.foundWords.length + 1 >= (rack.answerCount ?? Number.MAX_SAFE_INTEGER);
     tx.update(rackRef, {foundWords: FieldValue.arrayUnion(word)});
     tx.update(matchRef, {
       [`players.${uid}.score`]: FieldValue.increment(pts),
       [`players.${uid}.wordsFound`]: FieldValue.increment(1),
+      [`players.${uid}.lastWordAt`]: now,
+      ...(done ? {[`players.${uid}.finishedAt`]: now} : {}),
       [`players.${uid}.lastSeen`]: now,
     });
     return {accepted: true, score: curScore + pts, wordsFound: curWords + 1};

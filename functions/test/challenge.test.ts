@@ -87,7 +87,7 @@ describe("challenges", () => {
     expect(second.body.error).toBe("already_challenged");
   });
 
-  test("accept (async) goes active with a ~6h deadline and DIFFERENT puzzles", async () => {
+  test("accept (async) goes active with a ~6h deadline and the SAME puzzle", async () => {
     await seedPuzzle("AERT", ["A", "E", "R", "T"], ["TEAR", "RATE", "ATE"]);
     await seedPuzzle("AEST", ["A", "E", "S", "T"], ["EATS", "SEAT", "TEA"]);
     await seedPuzzle("AELS", ["A", "E", "L", "S"], ["SEAL", "ALES", "SEA"]);
@@ -117,11 +117,11 @@ describe("challenges", () => {
       .collection("challenges").doc(matchId).get();
     expect(invite.exists).toBe(false);
 
-    // Both players hold a rack, drawn from DIFFERENT puzzles.
+    // Both players hold a rack built from the SAME shared puzzle (fair race).
     const [ka, kb] = await Promise.all([rackKey(matchId, a.uid), rackKey(matchId, b.uid)]);
     expect(ka).toBeTruthy();
     expect(kb).toBeTruthy();
-    expect(ka).not.toBe(kb);
+    expect(ka).toBe(kb);
   });
 
   test("decline cancels the match and clears the invite", async () => {

@@ -71,7 +71,7 @@ describe("matches", () => {
     expect(b.body.code).toBe(a.body.code);
   });
 
-  test("join by code adds the player with a DIFFERENT rack; unknown code 404", async () => {
+  test("join by code adds the player with the SAME rack; unknown code 404", async () => {
     const creator = await mintUser();
     const joiner = await mintUser();
     const created = await request(app).post("/matches")
@@ -90,9 +90,9 @@ describe("matches", () => {
       .set("Authorization", `Bearer ${joiner.idToken}`).send({code: created.body.code});
     expect(join.status).toBe(200);
     const m = (await admin.firestore().collection("matches").doc(created.body.matchId).get()).data() as
-      {participants: string[]; usedPuzzleIds: string[]};
+      {participants: string[]; usedPuzzleIds: string[]; puzzleId: string};
     expect(m.participants).toContain(joiner.uid);
-    expect(new Set(m.usedPuzzleIds).size).toBe(m.usedPuzzleIds.length); // distinct puzzles
+    expect(m.usedPuzzleIds).toEqual([m.puzzleId]); // one SHARED puzzle for both
   });
 
   test("submit: valid scores, invalid rejected, duplicate is idempotent", async () => {

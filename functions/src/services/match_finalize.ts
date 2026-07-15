@@ -74,6 +74,15 @@ export async function settleMatch(matchId: string): Promise<MatchData | null> {
   const m = snap.data() as MatchData;
   const now = Date.now();
 
+  // Early finish: once every participant has found ALL their answers, there is
+  // nothing left to play; finalize immediately instead of waiting out endsAt.
+  const allDone = m.status === "active" && m.participants.length >= 2 &&
+    m.participants.every((p) => (m.players[p]?.finishedAt ?? 0) > 0);
+  if (allDone) {
+    await finalizeMatch(matchId);
+    const done = await matchRef.get();
+    return (done.data() as MatchData) ?? null;
+  }
   if (m.endsAt > 0 && now >= m.endsAt && (m.status === "active" || m.status === "countdown")) {
     await finalizeMatch(matchId);
     const done = await matchRef.get();

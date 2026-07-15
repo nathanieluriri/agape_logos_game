@@ -23,7 +23,7 @@ describe("computeWinner", () => {
     expect(computeWinner(["uidA", "uidB"], players(5, 3))).toBe("uidA");
     expect(computeWinner(["uidA", "uidB"], players(2, 6))).toBe("uidB");
   });
-  test("equal words is a draw (score does not break the tie)", () => {
+  test("equal words, no timestamps, equal score is a draw", () => {
     expect(computeWinner(["uidA", "uidB"], players(4, 4))).toBe("draw");
   });
 });
