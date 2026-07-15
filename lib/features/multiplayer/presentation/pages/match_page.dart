@@ -601,7 +601,11 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                 myUid == null ? 0 : (match.opponentOf(myUid)?.wordsFound ?? 0),
             opponentConnected:
                 myUid == null ? false : (match.opponentOf(myUid)?.connected ?? false),
-            endsAt: DateTime.fromMillisecondsSinceEpoch(match.endsAt),
+            // Per-player deadline: endsAt plus MY banked time_boost bonus.
+            // Raw endsAt would expire the countdown early for a boosted player.
+            endsAt: DateTime.fromMillisecondsSinceEpoch(
+              myUid == null ? match.endsAt : match.deadlineFor(myUid),
+            ),
             onDictionary: () => showDictionarySheet(
               context,
               targets: targets,

@@ -56,9 +56,11 @@ class _FakeRemote implements MatchRemote {
   Future<List<ActiveMatch>> activeMatches() async => const [];
 }
 
-MatchPlayer _p(String uid, {int score = 0}) => MatchPlayer(
+MatchPlayer _p(String uid, {int score = 0, int endsAtBonusMs = 0}) =>
+    MatchPlayer(
       uid: uid, displayName: uid, avatarId: 'a', isGuest: false, ready: true,
       connected: true, score: score, wordsFound: 0,
+      endsAtBonusMs: endsAtBonusMs,
     );
 
 Match _active() => Match(
@@ -103,6 +105,40 @@ void main() {
     expect(find.text('F'), findsWidgets);
     expect(find.text('7'), findsOneWidget); // my score
     expect(find.text('opp'), findsOneWidget); // opponent HUD name
+  });
+
+  // The HUD countdown must track MY per-player deadline (endsAt + my banked
+  // time_boost bonus), not the raw endsAt: a boosted player would otherwise
+  // watch their timer expire early. With endsAt 90s away but a 1h bonus for
+  // me, the timer must render in the over-an-hour "Xh YYm" form.
+  testWidgets('HUD timer uses my boosted per-player deadline, not raw endsAt',
+      (tester) async {
+    final remote = _FakeRemote();
+    final boosted = _active().copyWith(
+      players: {
+        'me': _p('me', score: 7, endsAtBonusMs: 3600000),
+        'opp': _p('opp', score: 3),
+      },
+    );
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchServiceProvider.overrideWithValue(remote),
+        matchStreamProvider('m1').overrideWith((ref) => Stream.value(boosted)),
+        myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
+        matchEventsStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(const <MatchEvent>[])),
+        storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+      ],
+      child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    // Raw endsAt is ~90s out (would render "1:29" style); my deadline is
+    // ~1h 1m out, so the over-an-hour format must be on screen.
+    expect(find.textContaining('h '), findsOneWidget);
   });
 
   // Regression: the server parks the doc in `countdown` and only flips it to
