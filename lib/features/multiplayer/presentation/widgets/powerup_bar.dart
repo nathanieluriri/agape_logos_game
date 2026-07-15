@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/design/tokens/colors.dart';
@@ -12,25 +13,16 @@ import '../../../store/domain/store_item.dart';
 import '../../application/match_providers.dart';
 import '../../domain/powerup_kind.dart';
 
-/// Icon for each offense powerup, keyed by the STORE ITEM ID.
-///
-/// It used to key off `effect.rule`, which is prose, so nothing ever matched and
-/// every powerup fell through to the generic bolt. See [powerupWireKind] for the
-/// id/kind split. Swaps to `assets/powerups/<id>.svg` once the artwork lands
-/// (POWERUPS.md).
-IconData _iconFor(String itemId) {
-  switch (itemId) {
-    case 'freeze_letter':
-      return Icons.ac_unit_rounded;
-    case 'fog':
-      return Icons.cloud_rounded;
-    case 'scramble':
-      return Icons.shuffle_rounded;
-    case 'word_steal':
-      return Icons.swipe_left_alt_rounded;
-    default:
-      return Icons.bolt_rounded;
-  }
+/// The hand-drawn powerup art, keyed by the STORE ITEM ID (the filename is the
+/// id: `assets/powerups/<id>.svg`, POWERUPS.md). The SVGs are full-color, so a
+/// locked/unowned powerup is dimmed rather than tinted.
+Widget _powerupIcon(String itemId, {required bool enabled}) {
+  final Widget art = SvgPicture.asset(
+    'assets/powerups/$itemId.svg',
+    width: 26,
+    height: 26,
+  );
+  return enabled ? art : Opacity(opacity: 0.4, child: art);
 }
 
 /// The owned-powerup bar. Tapping an owned powerup fires it at the opponent
@@ -135,11 +127,7 @@ class _PowerupButton extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                _iconFor(item.id),
-                color: enabled ? AppColors.padLabel : AppColors.padLabelSoft,
-                size: 22,
-              ),
+              _powerupIcon(item.id, enabled: enabled),
               const SizedBox(height: AppSpacing.xxs),
               if (owned > 0)
                 Text(

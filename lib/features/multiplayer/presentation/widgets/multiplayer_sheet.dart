@@ -7,6 +7,7 @@ import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/glyphs/pond_glyph.dart';
 import '../../../../shared/widgets/pond_action_button.dart';
 import '../../../../shared/widgets/pond_sheet.dart';
+import '../../../../shared/widgets/versus_mark.dart';
 import '../../application/resume_providers.dart';
 
 /// What the player picked on the multiplayer chooser sheet.
@@ -78,6 +79,7 @@ class _ResumeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final button = PondActionButton(
       glyph: PondGlyph.versus,
+      glyphOverride: const VersusMark(size: 22),
       label: count > 0 ? 'Resume games ($count)' : 'Resume games',
       onPressed: onPressed,
     );

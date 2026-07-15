@@ -5,9 +5,9 @@ import '../../../../app/play_flow.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
-import '../../../../shared/widgets/glyphs/pond_glyph.dart';
 import '../../../../shared/widgets/lily_pad.dart';
 import '../../../../shared/widgets/lily_pad_button.dart';
+import '../../../../shared/widgets/versus_mark.dart';
 
 /// The Home "Versus" pad: a coral lily pad that opens multiplayer matchmaking.
 /// Auth-gated (guests are signed in first) via [startMultiplayerFlow].
@@ -46,7 +46,7 @@ class _VersusContent extends StatelessWidget {
     return const Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        PondIcon(PondGlyph.versus, size: AppSizing.secondaryPadIcon),
+        VersusMark(size: AppSizing.secondaryPadIcon),
         SizedBox(height: AppSpacing.xxs),
         Text(
           'Versus',

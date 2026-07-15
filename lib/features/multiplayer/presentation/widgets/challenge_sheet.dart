@@ -8,6 +8,7 @@ import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/glyphs/pond_glyph.dart';
 import '../../../../shared/widgets/pond_action_button.dart';
 import '../../../../shared/widgets/pond_sheet.dart';
+import '../../../../shared/widgets/versus_mark.dart';
 import '../../../social/domain/friend.dart';
 import '../../application/match_providers.dart';
 import '../../domain/challenge_outcome.dart';
@@ -89,6 +90,7 @@ class _ChallengeSheetContentState
               children: [
                 PondActionButton(
                   glyph: PondGlyph.versus,
+                  glyphOverride: const VersusMark(size: 22),
                   label: 'Play now',
                   onPressed: () => _send('live'),
                 ),

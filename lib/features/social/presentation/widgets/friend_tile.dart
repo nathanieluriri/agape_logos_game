@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/spacing.dart';
-import '../../../../shared/widgets/glyphs/pond_glyph.dart';
+import '../../../../shared/widgets/versus_mark.dart';
 import '../../domain/friend.dart';
 import 'social_avatar_dot.dart';
 
@@ -64,7 +64,7 @@ class FriendTile extends StatelessWidget {
                 onTap: onChallenge,
                 child: const Padding(
                   padding: EdgeInsets.all(AppSpacing.xs),
-                  child: PondIcon(PondGlyph.versus, size: 22),
+                  child: VersusMark(size: 22),
                 ),
               ),
             ),

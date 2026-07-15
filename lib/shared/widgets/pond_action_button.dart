@@ -21,11 +21,16 @@ class PondActionButton extends StatefulWidget {
     required this.glyph,
     required this.label,
     required this.onPressed,
+    this.glyphOverride,
   });
 
   final PondGlyph glyph;
   final String label;
   final VoidCallback onPressed;
+
+  /// When set, this widget is shown in the glyph disc instead of the painted
+  /// [glyph] (used for the SVG VS mark). [glyph] stays the fallback.
+  final Widget? glyphOverride;
 
   @override
   State<PondActionButton> createState() => _PondActionButtonState();
@@ -86,7 +91,8 @@ class _PondActionButtonState extends State<PondActionButton> {
                         gradient: AppGradients.settingsInner,
                       ),
                       child: Center(
-                        child: PondIcon(widget.glyph, size: _glyphSize),
+                        child: widget.glyphOverride ??
+                            PondIcon(widget.glyph, size: _glyphSize),
                       ),
                     ),
                   ),
