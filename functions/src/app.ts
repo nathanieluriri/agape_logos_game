@@ -9,6 +9,7 @@ import {storeRouter} from "./routes/store";
 import {rewardsRouter} from "./routes/rewards";
 import {matchesRouter} from "./routes/matches";
 import {themesRouter} from "./routes/themes";
+import {devicesRouter} from "./routes/devices";
 import {errorHandler, notFound} from "./middleware/error";
 import {buildOpenApiDocument} from "./openapi/document";
 import {docsHtml} from "./openapi/docs_page";
@@ -39,6 +40,7 @@ export function createApp(): express.Express {
   app.use(rewardsRouter);
   app.use(matchesRouter);
   app.use(themesRouter);
+  app.use(devicesRouter);
   app.get("/openapi.json", (_req, res) => {
     res.json(buildOpenApiDocument());
   });

@@ -1,7 +1,9 @@
 import {onRequest} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
+import {onDocumentCreated} from "firebase-functions/v2/firestore";
 import {createApp} from "./app";
 import {sweepStaleMatches} from "./services/match_finalize";
+import {sendToUser} from "./services/messaging_service";
 
 // Scales to zero: no always-on cost. The first-login slowness was dominated by
 // the draw reading every puzzle id in a tier (~900 reads); that is now a bounded
@@ -40,5 +42,25 @@ export const matchSweep = onSchedule(
   },
   async () => {
     await sweepStaleMatches();
+  },
+);
+
+// Push when a friend request lands. The in-app listener already shows it live;
+// this exists for the app-CLOSED case, so it is best-effort and never throws.
+export const onFriendRequest = onDocumentCreated(
+  {region: "us-central1", document: "users/{uid}/friendRequests/{fromUid}"},
+  async (event) => {
+    const d = event.data?.data();
+    if (!d) return;
+    const uid = event.params.uid as string;
+    try {
+      await sendToUser(uid, {
+        title: "New friend request",
+        body: `${d.displayName ?? "Someone"} wants to be friends`,
+        data: {type: "friend_request", fromUid: String(d.fromUid ?? "")},
+      });
+    } catch (e) {
+      console.error(`friend-request push failed for ${uid}`, e);
+    }
   },
 );
