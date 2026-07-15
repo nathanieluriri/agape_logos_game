@@ -109,19 +109,34 @@ export async function respondChallenge(
   accept: boolean,
 ): Promise<{ok: true; status: string} | {ok: false; reason: "no_challenge"}> {
   const matchRef = db.collection("matches").doc(matchId);
-  const snap = await matchRef.get();
-  if (!snap.exists) return {ok: false, reason: "no_challenge"};
-  const m = snap.data() as MatchData;
-  if (!m.challenge || m.challenge.toUid !== uid) return {ok: false, reason: "no_challenge"};
-
-  const challengerUid = m.challenge.byUid;
   const inviteRef = db.collection("users").doc(uid).collection("challenges").doc(matchId);
+
+  // ONE-SHOT GUARD (atomic): a challenge is answerable only while the match is
+  // still "lobby" and only by its invitee. Clearing `challenge` and the invite
+  // doc HERE, inside the same transaction as the guard read, is what makes
+  // respond one-shot: a replay (or a concurrent second call) sees no challenge
+  // and cleanly returns no_challenge instead of re-driving the state machine
+  // (resetting an async deadline, cancelling a live game, or resurrecting a
+  // finished match). addParticipant + the rack draw + the mode-specific start
+  // below are NOT transaction-safe (pool queries), so they run after this guard
+  // has already made the challenge unanswerable a second time.
+  const m = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(matchRef);
+    if (!snap.exists) return null;
+    const data = snap.data() as MatchData;
+    if (data.status !== "lobby" || data.challenge?.toUid !== uid) return null;
+    tx.update(matchRef, {challenge: FieldValue.delete()});
+    tx.delete(inviteRef);
+    return data;
+  });
+  if (!m) return {ok: false, reason: "no_challenge"};
+
+  const challengerUid = m.challenge!.byUid;
   const responder = await getOrCreateProfile(uid);
 
   if (!accept) {
     await matchRef.update({status: "cancelled"});
     await releaseCode(m.code);
-    await inviteRef.delete();
     await notify(challengerUid, "Challenge declined", `${responder.displayName} declined your challenge`, {
       type: "challenge_declined", matchId, byUid: uid,
     });
@@ -130,7 +145,6 @@ export async function respondChallenge(
 
   // Draw the responder's rack (a DIFFERENT puzzle) through the shared join core.
   await addParticipant(uid, isGuest, matchId);
-  await inviteRef.delete();
 
   let status: string;
   if (m.settings.mode === "async") {

@@ -150,6 +150,88 @@ describe("challenges", () => {
     expect(again.status).toBe(201);
   });
 
+  test("replaying accept after it already succeeded is one-shot: no_challenge, deadline unchanged", async () => {
+    await seedPuzzle("AERT", ["A", "E", "R", "T"], ["TEAR", "RATE", "ATE"]);
+    await seedPuzzle("AEST", ["A", "E", "S", "T"], ["EATS", "SEAT", "TEA"]);
+    await seedPuzzle("AELS", ["A", "E", "L", "S"], ["SEAL", "ALES", "SEA"]);
+    const a = await mintUser();
+    const b = await mintUser();
+    await makeFriends(a, b);
+    const ch = await request(app).post("/matches/challenge")
+      .set(auth(a.idToken)).set("idempotency-key", "ch-5").send({toUid: b.uid, settings: {mode: "async"}});
+    const matchId = ch.body.matchId as string;
+
+    const first = await request(app).post(`/matches/${matchId}/respond`)
+      .set(auth(b.idToken)).send({accept: true});
+    expect(first.status).toBe(200);
+    expect(first.body.status).toBe("active");
+    const afterFirst = (await admin.firestore().collection("matches").doc(matchId).get()).data() as
+      {status: string; startedAt: number; endsAt: number};
+
+    // Simulate hours passing, then replay the exact same accept request.
+    const replay = await request(app).post(`/matches/${matchId}/respond`)
+      .set(auth(b.idToken)).send({accept: true});
+    expect(replay.status).toBe(404);
+    expect(replay.body.error).toBe("no_challenge");
+
+    // The 6h deadline must NOT have been reset by the replay.
+    const afterReplay = (await admin.firestore().collection("matches").doc(matchId).get()).data() as
+      {status: string; startedAt: number; endsAt: number};
+    expect(afterReplay.status).toBe("active");
+    expect(afterReplay.startedAt).toBe(afterFirst.startedAt);
+    expect(afterReplay.endsAt).toBe(afterFirst.endsAt);
+  });
+
+  test("replaying with decline after accept does not cancel the live match", async () => {
+    await seedPuzzle("AERT", ["A", "E", "R", "T"], ["TEAR", "RATE", "ATE"]);
+    await seedPuzzle("AEST", ["A", "E", "S", "T"], ["EATS", "SEAT", "TEA"]);
+    await seedPuzzle("AELS", ["A", "E", "L", "S"], ["SEAL", "ALES", "SEA"]);
+    const a = await mintUser();
+    const b = await mintUser();
+    await makeFriends(a, b);
+    const ch = await request(app).post("/matches/challenge")
+      .set(auth(a.idToken)).set("idempotency-key", "ch-6").send({toUid: b.uid, settings: {mode: "async"}});
+    const matchId = ch.body.matchId as string;
+
+    const accept = await request(app).post(`/matches/${matchId}/respond`)
+      .set(auth(b.idToken)).send({accept: true});
+    expect(accept.status).toBe(200);
+
+    const declineReplay = await request(app).post(`/matches/${matchId}/respond`)
+      .set(auth(b.idToken)).send({accept: false});
+    expect(declineReplay.status).toBe(404);
+    expect(declineReplay.body.error).toBe("no_challenge");
+
+    const m = (await admin.firestore().collection("matches").doc(matchId).get()).data() as {status: string};
+    expect(m.status).toBe("active");
+  });
+
+  test("respond from a non-invitee (challenger or a third party) is no_challenge", async () => {
+    await seedPuzzle("AERT", ["A", "E", "R", "T"], ["TEAR", "RATE", "ATE"]);
+    const a = await mintUser();
+    const b = await mintUser();
+    const c = await mintUser();
+    await makeFriends(a, b);
+    const ch = await request(app).post("/matches/challenge")
+      .set(auth(a.idToken)).set("idempotency-key", "ch-7").send({toUid: b.uid, settings: {mode: "async"}});
+    const matchId = ch.body.matchId as string;
+
+    const byChallenger = await request(app).post(`/matches/${matchId}/respond`)
+      .set(auth(a.idToken)).send({accept: true});
+    expect(byChallenger.status).toBe(404);
+    expect(byChallenger.body.error).toBe("no_challenge");
+
+    const byThirdParty = await request(app).post(`/matches/${matchId}/respond`)
+      .set(auth(c.idToken)).send({accept: true});
+    expect(byThirdParty.status).toBe(404);
+    expect(byThirdParty.body.error).toBe("no_challenge");
+
+    // The real invitee can still answer; the guard didn't consume the challenge.
+    const real = await request(app).post(`/matches/${matchId}/respond`)
+      .set(auth(b.idToken)).send({accept: true});
+    expect(real.status).toBe(200);
+  });
+
   test("GET /me/matches/active lists an accepted async match", async () => {
     await seedPuzzle("AERT", ["A", "E", "R", "T"], ["TEAR", "RATE", "ATE"]);
     const a = await mintUser();

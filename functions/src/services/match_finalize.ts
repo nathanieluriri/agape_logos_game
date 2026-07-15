@@ -124,6 +124,12 @@ export async function sweepStaleMatches(
       if (m.settings.mode === "async") continue;
       await d.ref.update({status: "cancelled"});
       await releaseCode(m.code);
+      // A never-accepted challenge leaves an invite doc in the invitee's
+      // /challenges list; without this it lingers as UI cruft pointing at a
+      // now-cancelled match forever.
+      if (m.challenge) {
+        await db.collection("users").doc(m.challenge.toUid).collection("challenges").doc(d.id).delete();
+      }
       cancelled++;
     }
   }
@@ -143,6 +149,7 @@ export async function sweepStaleMatches(
       if (!m.challenge) continue; // only unaccepted challenges use this TTL
       await d.ref.update({status: "cancelled"});
       await releaseCode(m.code);
+      await db.collection("users").doc(m.challenge.toUid).collection("challenges").doc(d.id).delete();
       cancelled++;
     }
   }
