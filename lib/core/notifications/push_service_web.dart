@@ -61,7 +61,13 @@ class _WebPushService implements PushService {
     await _refreshSub?.cancel();
     _refreshSub = null;
     if (kWebPushVapidKey.isEmpty) return;
-    await _registrar.unregister(_token);
+    // Recover the token when the in-memory copy was lost (a reopened tab with a
+    // restored session that never re-registered this run). Without this, signing
+    // out leaves the old token registered and a shared device keeps getting the
+    // previous user's pushes. Mirrors the Android impl.
+    final token = _token ??
+        await FirebaseMessaging.instance.getToken(vapidKey: kWebPushVapidKey);
+    await _registrar.unregister(token);
     _token = null;
   }
 }
