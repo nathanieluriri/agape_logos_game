@@ -2,16 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../shared/widgets/glyphs/pond_glyph.dart';
 import '../../domain/friend.dart';
 import 'social_avatar_dot.dart';
 
 /// One accepted friend: avatar, display name, @handle. Tapping opens the
-/// friend's public profile.
+/// friend's public profile; the trailing versus glyph sends a challenge.
 class FriendTile extends StatelessWidget {
-  const FriendTile({super.key, required this.friend, required this.onTap});
+  const FriendTile({
+    super.key,
+    required this.friend,
+    required this.onTap,
+    required this.onChallenge,
+  });
 
   final Friend friend;
   final VoidCallback onTap;
+  final VoidCallback onChallenge;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +56,19 @@ class FriendTile extends StatelessWidget {
                 ],
               ),
             ),
+            Semantics(
+              button: true,
+              label: 'Challenge ${friend.displayName}',
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onChallenge,
+                child: const Padding(
+                  padding: EdgeInsets.all(AppSpacing.xs),
+                  child: PondIcon(PondGlyph.versus, size: 22),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
             const Icon(Icons.chevron_right, color: AppColors.padLabelSoft),
           ],
         ),

@@ -10,6 +10,7 @@ import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_stage.dart';
 import '../../../../core/notifications/push_providers.dart';
 import '../../../auth/application/auth_providers.dart';
+import '../../../multiplayer/presentation/widgets/challenge_sheet.dart';
 import '../../application/social_providers.dart';
 import '../../social_config.dart';
 import '../widgets/friend_request_tile.dart';
@@ -146,6 +147,7 @@ class _FriendsList extends ConsumerWidget {
                 itemBuilder: (context, i) => FriendTile(
                   friend: list[i],
                   onTap: () => context.push(publicProfileRoute(list[i].uid)),
+                  onChallenge: () => showChallengeSheet(context, list[i]),
                 ),
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
 import 'package:agape_logos_game/features/multiplayer/data/match_remote.dart';
+import 'package:agape_logos_game/features/multiplayer/domain/challenge_outcome.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/powerup_bar.dart';
 import 'package:agape_logos_game/features/store/application/store_providers.dart';
 import 'package:agape_logos_game/features/store/domain/store_item.dart';
@@ -30,6 +31,13 @@ class _FakeRemote implements MatchRemote {
 
   @override
   Future<void> settle(String matchId) async {}
+
+  @override
+  Future<ChallengeOutcome> challenge(String toUid, {required String mode}) async =>
+      const ChallengeSent('m1');
+
+  @override
+  Future<void> respondChallenge(String matchId, {required bool accept}) async {}
 }
 
 class _FakeInventory extends InventoryController {

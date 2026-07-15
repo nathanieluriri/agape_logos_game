@@ -2,6 +2,7 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
 import 'package:agape_logos_game/features/multiplayer/data/match_remote.dart';
+import 'package:agape_logos_game/features/multiplayer/domain/challenge_outcome.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_event.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_player.dart';
@@ -38,6 +39,13 @@ class _FakeRemote implements MatchRemote {
       true;
   @override
   Future<void> leave(String matchId) async {}
+
+  @override
+  Future<ChallengeOutcome> challenge(String toUid, {required String mode}) async =>
+      const ChallengeSent('m1');
+
+  @override
+  Future<void> respondChallenge(String matchId, {required bool accept}) async {}
 }
 
 MatchPlayer _p(String uid, {int score = 0}) => MatchPlayer(

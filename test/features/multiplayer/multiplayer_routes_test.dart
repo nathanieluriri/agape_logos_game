@@ -1,6 +1,7 @@
 import 'package:agape_logos_game/app/router/app_router.dart';
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
 import 'package:agape_logos_game/features/multiplayer/data/match_remote.dart';
+import 'package:agape_logos_game/features/multiplayer/domain/challenge_outcome.dart';
 import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +26,13 @@ class _FakeRemote implements MatchRemote {
 
   @override
   Future<void> settle(String matchId) async {}
+
+  @override
+  Future<ChallengeOutcome> challenge(String toUid, {required String mode}) async =>
+      const ChallengeSent('m1');
+
+  @override
+  Future<void> respondChallenge(String matchId, {required bool accept}) async {}
 }
 
 void main() {

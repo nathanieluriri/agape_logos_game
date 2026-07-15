@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/network/api_client.dart';
+import '../domain/challenge_outcome.dart';
 
 /// Function-call transport for multiplayer (contract 8.7). Reads go through the
 /// Firestore listeners (see MatchFirestore); every WRITE is a Cloud Function
@@ -37,6 +38,12 @@ abstract interface class MatchRemote {
   /// status forever and the listener would never see the match start or end.
   /// The match page pokes this at exactly those two instants.
   Future<void> settle(String matchId);
+
+  /// POST /matches/challenge. mode is 'live' or 'async'.
+  Future<ChallengeOutcome> challenge(String toUid, {required String mode});
+
+  /// POST /matches/:id/respond. Accept or decline an incoming challenge.
+  Future<void> respondChallenge(String matchId, {required bool accept});
 }
 
 class HttpMatchRemote implements MatchRemote {
@@ -125,6 +132,36 @@ class HttpMatchRemote implements MatchRemote {
       method: 'GET',
     );
   }
+
+  @override
+  Future<ChallengeOutcome> challenge(String toUid, {required String mode}) async {
+    try {
+      final res = await _api.request<Map<String, dynamic>>(
+        '/matches/challenge',
+        method: 'POST',
+        data: <String, dynamic>{
+          'toUid': toUid,
+          'settings': <String, dynamic>{
+            'mode': mode,
+            'difficulty': 'medium',
+            'durationSec': 120,
+          },
+        },
+        headers: <String, String>{'idempotency-key': _key()},
+      );
+      final data = res.data ?? const <String, dynamic>{};
+      return ChallengeSent(data['matchId'] as String);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 409) return const ChallengeAlreadyOpen();
+      if (status == 404) return const ChallengeNotFriends();
+      return const ChallengeUnavailable();
+    }
+  }
+
+  @override
+  Future<void> respondChallenge(String matchId, {required bool accept}) =>
+      _post('/matches/$matchId/respond', <String, dynamic>{'accept': accept});
 
   Future<void> _post(
     String path,
