@@ -5,6 +5,7 @@ import {getOrCreateProfile} from "./profile_service";
 import {releaseCode} from "./match_codes";
 import {sendToUser} from "./messaging_service";
 import {addParticipant, applyStart, createMatch, kAsyncRoundMs} from "./match_service";
+import {settleMatch} from "./match_finalize";
 import type {MatchData} from "./match_types";
 import type {MatchSettings} from "../schemas/matches";
 
@@ -168,7 +169,17 @@ export async function respondChallenge(
 // GET /me/matches/active. The caller's in-flight matches, mapped to a compact
 // view for the resume-games screen. Reuses the participants+status index.
 export async function listActiveMatches(uid: string): Promise<ActiveMatchView[]> {
-  const matches = await openMatchesFor(uid);
+  const candidates = await openMatchesFor(uid);
+  // Settle each candidate first (the list is small, bounded by the one-open-
+  // challenge-per-pair guard): a stale 6h async match finalizes right here
+  // instead of lingering as "active" forever, and anything that settles to
+  // finished/cancelled is dropped from the resume list.
+  const OPEN = new Set(OPEN_STATUSES as readonly string[]);
+  const matches: MatchData[] = [];
+  for (const c of candidates) {
+    const s = await settleMatch(c.matchId);
+    if (s && OPEN.has(s.status)) matches.push(s);
+  }
   return matches.map((m) => {
     const opponentUid = m.participants.find((p) => p !== uid) ?? null;
     const opp = opponentUid ? m.players[opponentUid] : undefined;
