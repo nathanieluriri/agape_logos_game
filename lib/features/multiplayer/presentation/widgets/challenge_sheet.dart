@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design/tokens/colors.dart';
+import '../../../../core/design/tokens/durations.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/glyphs/pond_glyph.dart';
 import '../../../../shared/widgets/pond_action_button.dart';
@@ -75,16 +76,31 @@ class _ChallengeSheetContentState
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        PondActionButton(
-          glyph: PondGlyph.versus,
-          label: 'Play now',
-          onPressed: () => _send('live'),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        PondActionButton(
-          glyph: PondGlyph.book,
-          label: '6-hour game',
-          onPressed: () => _send('async'),
+        // Dim and swallow taps while a challenge is in flight, so the sheet
+        // reads as busy rather than silently ignoring repeat taps.
+        IgnorePointer(
+          ignoring: _busy,
+          child: AnimatedOpacity(
+            opacity: _busy ? 0.5 : 1,
+            duration: AppDurations.fast,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PondActionButton(
+                  glyph: PondGlyph.versus,
+                  label: 'Play now',
+                  onPressed: () => _send('live'),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                PondActionButton(
+                  glyph: PondGlyph.book,
+                  label: '6-hour game',
+                  onPressed: () => _send('async'),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
