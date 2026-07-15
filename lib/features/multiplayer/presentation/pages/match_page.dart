@@ -241,12 +241,16 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     // the screen is NORMAL and must NOT forfeit: the game keeps running
     // server-side and the player returns to it via Resume. Only a live match
     // treats a mid-match exit as a forfeit.
-    final isAsync = match?.settings.mode == MatchMode.async;
+    // Unknown mode (the doc has not loaded yet) counts as async here: with no
+    // match there is nothing to forfeit, and trapping the player behind a
+    // forfeit confirm during the load window is exactly the async-leave bug we
+    // are guarding against. Only a loaded LIVE match forfeits on exit.
+    final isAsync = match == null || match.settings.mode == MatchMode.async;
 
     return PopScope(
       // Live: intercept back (OS gesture included) and confirm the forfeit
-      // instead of silently dropping the player out of the match. Async: let
-      // back pop straight through; it just leaves the screen, no forfeit.
+      // instead of silently dropping the player out of the match. Async (or not
+      // yet loaded): let back pop straight through; it just leaves the screen.
       canPop: isAsync,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return; // async popped cleanly, or a live pop already ran.
