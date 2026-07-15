@@ -3,7 +3,13 @@ import {db} from "../firebase";
 import {wordScore} from "./match_scoring";
 import {settleMatch} from "./match_finalize";
 import {HttpError} from "../middleware/http_error";
-import type {MatchData} from "./match_types";
+import type {ActiveEffect, MatchData} from "./match_types";
+
+// Drops expired entries. expiresAt === 0 means "armed until consumed" and
+// never expires by time alone.
+function pruneEffects(list: ActiveEffect[] | undefined, now: number): ActiveEffect[] {
+  return (list ?? []).filter((e) => e.expiresAt === 0 || e.expiresAt > now);
+}
 
 export interface SubmitResult {
   accepted: boolean;
@@ -42,10 +48,18 @@ export async function submitWord(
     const now = Date.now();
     const curScore = m.players[uid]?.score ?? 0;
     const curWords = m.players[uid]?.wordsFound ?? 0;
-    const playable = m.status === "active" && now >= m.startedAt && now < m.endsAt;
+    // A time_boost extends THIS player's personal deadline past the shared
+    // endsAt; everyone else still stops at endsAt.
+    const myBonus = m.players[uid]?.endsAtBonusMs ?? 0;
+    const playable = m.status === "active" && now >= m.startedAt && now < m.endsAt + myBonus;
     if (!playable) return {accepted: false, score: curScore, wordsFound: curWords, reason: "not_active"};
     if (rack.foundWords.includes(word)) {
       return {accepted: false, score: curScore, wordsFound: curWords, reason: "duplicate"};
+    }
+
+    const myEffects = pruneEffects(m.activeEffects?.[uid], now);
+    if (myEffects.some((e) => e.kind === "letter_freeze" && word.includes(String(e.payload.letter ?? "")))) {
+      return {accepted: false, score: curScore, wordsFound: curWords, reason: "frozen"};
     }
 
     // Validate against the pool puzzle's PLAINTEXT answers, held server-side.
@@ -56,7 +70,8 @@ export async function submitWord(
     const valid = answers.some((a) => a.word.toUpperCase() === word);
     if (!valid) return {accepted: false, score: curScore, wordsFound: curWords, reason: "invalid"};
 
-    const pts = wordScore(word);
+    const mult = myEffects.some((e) => e.kind === "double_points") ? 2 : 1;
+    const pts = wordScore(word) * mult;
     // finishedAt marks finding the LAST answer; settleMatch ends the match early
     // once every participant is done. lastWordAt is the speed tiebreak.
     const done = rack.foundWords.length + 1 >= (rack.answerCount ?? Number.MAX_SAFE_INTEGER);

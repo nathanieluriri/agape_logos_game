@@ -35,13 +35,21 @@ describe("powerup + tier maps", () => {
       fog_bank: "fog",
       scramble: "scramble",
       word_steal: "word_steal",
+      shield: "shield",
+      time_boost: "time_boost",
+      double_points: "double_points",
+      combo_lock: "combo_lock",
     });
   });
-  test("durations match the contract (10s / 8s / instant / instant)", () => {
+  test("durations match the contract", () => {
     expect(POWERUP_DURATION_MS.letter_freeze).toBe(10000);
     expect(POWERUP_DURATION_MS.fog_bank).toBe(8000);
     expect(POWERUP_DURATION_MS.scramble).toBe(0);
     expect(POWERUP_DURATION_MS.word_steal).toBe(0);
+    expect(POWERUP_DURATION_MS.shield).toBe(0); // armed until consumed
+    expect(POWERUP_DURATION_MS.time_boost).toBe(0); // instant
+    expect(POWERUP_DURATION_MS.double_points).toBe(20000);
+    expect(POWERUP_DURATION_MS.combo_lock).toBe(20000);
   });
   test("difficulty maps to a pool tier", () => {
     expect(DIFFICULTY_TIER).toEqual({easy: "easy", medium: "medium", hard: "hard"});

@@ -21,6 +21,7 @@ import {challengeFriend, listActiveMatches, respondChallenge} from "../services/
 import {submitWord} from "../services/match_submit_service";
 import {firePowerup} from "../services/match_powerup_service";
 import {settleMatch} from "../services/match_finalize";
+import {HttpError} from "../middleware/http_error";
 
 export const matchesRouter = Router();
 
@@ -152,7 +153,17 @@ matchesRouter.post(
     const {id} = req.valid?.params as {id: string};
     const headers = req.valid?.headers as {"idempotency-key": string};
     const {kind} = req.valid?.body as {kind: PowerupKind};
-    res.status(200).json(await firePowerup(req.uid as string, id, kind, headers["idempotency-key"]));
+    try {
+      res.status(200).json(await firePowerup(req.uid as string, id, kind, headers["idempotency-key"]));
+    } catch (err) {
+      // word_steal vs an active combo_lock: a structured, spend-nothing 200,
+      // not a generic 409 error body.
+      if (err instanceof HttpError && err.message === "warded") {
+        res.status(200).json({ok: false, reason: "warded", serverNow: Date.now()});
+        return;
+      }
+      throw err;
+    }
   }),
 );
 
@@ -184,6 +195,6 @@ matchesRouter.get(
       res.status(403).json({error: "not a participant"});
       return;
     }
-    res.status(200).json(m);
+    res.status(200).json({...m, serverNow: Date.now()});
   }),
 );

@@ -12,6 +12,10 @@ export const PowerupKindSchema = z.enum([
   "fog_bank",
   "scramble",
   "word_steal",
+  "shield",
+  "time_boost",
+  "double_points",
+  "combo_lock",
 ]);
 export type PowerupKind = z.infer<typeof PowerupKindSchema>;
 

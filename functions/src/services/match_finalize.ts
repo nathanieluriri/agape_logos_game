@@ -1,5 +1,5 @@
 import {db} from "../firebase";
-import {computeWinner} from "./match_scoring";
+import {computeWinner, maxBonus} from "./match_scoring";
 import {releaseCode} from "./match_codes";
 import {HttpError} from "../middleware/http_error";
 import type {MatchData} from "./match_types";
@@ -83,7 +83,10 @@ export async function settleMatch(matchId: string): Promise<MatchData | null> {
     const done = await matchRef.get();
     return (done.data() as MatchData) ?? null;
   }
-  if (m.endsAt > 0 && now >= m.endsAt && (m.status === "active" || m.status === "countdown")) {
+  // A time_boost pushes an individual player's deadline past the shared
+  // endsAt; the match stays alive until the LATEST personal deadline passes.
+  const boostedEndsAt = m.endsAt > 0 ? m.endsAt + maxBonus(m) : m.endsAt;
+  if (boostedEndsAt > 0 && now >= boostedEndsAt && (m.status === "active" || m.status === "countdown")) {
     await finalizeMatch(matchId);
     const done = await matchRef.get();
     return (done.data() as MatchData) ?? null;
@@ -114,6 +117,10 @@ export async function sweepStaleMatches(
     .limit(limit)
     .get();
   for (const d of expired.docs) {
+    const m = d.data() as MatchData;
+    // The query only filters on the shared endsAt; a time_boost can push an
+    // individual player's personal deadline later, so re-check before ending.
+    if (now < m.endsAt + maxBonus(m)) continue;
     await finalizeMatch(d.id);
     finalized++;
   }

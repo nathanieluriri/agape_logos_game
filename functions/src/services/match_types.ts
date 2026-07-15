@@ -16,6 +16,21 @@ export interface MatchPlayerDoc {
   // finding the LAST answer (early finish). Absent until the first/last accept.
   lastWordAt?: number;
   finishedAt?: number;
+  // Extra time (millis) this player has earned via time_boost, added on top of
+  // the match's shared endsAt to compute their PERSONAL deadline.
+  endsAtBonusMs?: number;
+}
+
+// One live powerup effect. Listed under the uid it acts ON: an offensive
+// effect (fog_bank, letter_freeze) is filed under the TARGET's uid; a
+// defensive/self effect (shield, double_points, combo_lock) is filed under
+// the CASTER's uid. expiresAt === 0 means "armed until consumed" (shield).
+export interface ActiveEffect {
+  kind: string;
+  byUid: string;
+  startedAt: number;
+  expiresAt: number; // 0 = until consumed
+  payload: Record<string, unknown>;
 }
 
 // The stored matches/{matchId} document (plan 10 section 8.2) plus a server-only
@@ -37,6 +52,8 @@ export interface MatchData {
   usedPuzzleIds?: string[];
   // The SHARED puzzle both players race on (same rack = fair max words/score).
   puzzleId?: string;
+  // Live powerup effects, keyed by the uid each effect acts ON.
+  activeEffects?: Record<string, ActiveEffect[]>;
   winner: string | null;
   // Present only on challenge matches: who challenged whom, and when. The
   // invitee joins as a participant only on ACCEPT (see challenge_service).

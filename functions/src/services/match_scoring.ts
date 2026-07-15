@@ -39,16 +39,38 @@ export const POWERUP_ITEM_ID: Record<PowerupKind, string> = {
   fog_bank: "fog",
   scramble: "scramble",
   word_steal: "word_steal",
+  shield: "shield",
+  time_boost: "time_boost",
+  double_points: "double_points",
+  combo_lock: "combo_lock",
 };
 
-// Effect lifetime in millis per kind (0 = instant). The server stamps
-// expiresAt = now + this so both clients agree on when a freeze/fog ends.
+// Effect lifetime in millis per kind (0 = instant, or "until consumed" for
+// shield). The server stamps expiresAt = now + this so both clients agree on
+// when a timed effect ends.
 export const POWERUP_DURATION_MS: Record<PowerupKind, number> = {
   letter_freeze: 10000,
   fog_bank: 8000,
   scramble: 0,
   word_steal: 0,
+  shield: 0,
+  time_boost: 0,
+  double_points: 20000,
+  combo_lock: 20000,
 };
+
+// The 4 kinds that act on the OPPONENT; everything else acts on the caster.
+export const OFFENSIVE_KINDS: ReadonlySet<PowerupKind> =
+  new Set(["letter_freeze", "fog_bank", "scramble", "word_steal"]);
+
+// Millis a fired time_boost adds to the caster's personal deadline.
+export const TIME_BOOST_MS = 30000;
+
+// The max endsAtBonusMs across participants: how much later than the shared
+// endsAt the match can still be alive (someone's personal deadline).
+export function maxBonus(m: {participants: string[]; players: Record<string, {endsAtBonusMs?: number}>}): number {
+  return Math.max(0, ...m.participants.map((p) => m.players[p]?.endsAtBonusMs ?? 0));
+}
 
 // Match difficulty -> pool tier for the rack draw (plan 10 section 8.2). The
 // pool's "expert" tier is reserved.
