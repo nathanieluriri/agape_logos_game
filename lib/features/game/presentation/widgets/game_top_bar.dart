@@ -7,6 +7,7 @@ import '../../../../core/design/tokens/typography.dart';
 import '../../../../shared/widgets/coin_pill.dart';
 import '../../../../shared/widgets/glyphs/pond_glyph.dart';
 import '../../../../shared/widgets/pond_icon_button.dart';
+import '../../../../shared/widgets/sync_status_badge.dart';
 
 /// Game header: back, dictionary, centered level title, coins.
 class GameTopBar extends StatelessWidget {
@@ -16,12 +17,17 @@ class GameTopBar extends StatelessWidget {
     required this.coins,
     required this.onBack,
     required this.onDictionary,
+    this.syncStatus = SyncBadgeStatus.none,
   });
 
   final int level;
   final int coins;
   final VoidCallback onBack;
   final VoidCallback onDictionary;
+
+  /// Delivery state of the level/coins on show: both derive from the same
+  /// offline queue, so one status drives the badge beside each.
+  final SyncBadgeStatus syncStatus;
 
   /// Glyph size on the top-bar discs.
   static const double _glyphSize = 20;
@@ -47,16 +53,25 @@ class GameTopBar extends StatelessWidget {
           ),
           Expanded(
             child: Center(
-              child: Text(
-                'Level $level',
-                style: AppTypography.heading.copyWith(
-                  fontSize: 20,
-                  color: AppColors.pillText,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Level $level',
+                    style: AppTypography.heading.copyWith(
+                      fontSize: 20,
+                      color: AppColors.pillText,
+                    ),
+                  ),
+                  if (syncStatus != SyncBadgeStatus.none) ...[
+                    const SizedBox(width: AppSpacing.xs),
+                    SyncStatusBadge(status: syncStatus),
+                  ],
+                ],
               ),
             ),
           ),
-          CoinPill(amount: coins),
+          CoinPill(amount: coins, syncStatus: syncStatus),
         ],
       ),
     );

@@ -54,6 +54,26 @@ class PendingMutationsDao extends DatabaseAccessor<AppDatabase>
         ),
       );
 
+  /// Rows of the given [kinds] that have not reached the server yet
+  /// (pending or in-flight). Used to compute the optimistic wallet delta and
+  /// to decide whether a purchase should flush the queue first.
+  Future<List<PendingMutation>> unsynced(List<String> kinds) =>
+      (select(pendingMutations)
+            ..where((t) => t.status.isIn(const ['pending', 'inFlight']))
+            ..where((t) => t.kind.isIn(kinds)))
+          .get();
+
+  /// Watches every not-yet-confirmed row of the given [kinds]: pending,
+  /// in-flight, AND failed. Drives the wallet sync badge (clock / tick / alert)
+  /// so it reacts the instant a mutation is enqueued, delivered, or gives up.
+  Stream<List<PendingMutation>> watchOutstanding(List<String> kinds) =>
+      (select(pendingMutations)
+            ..where(
+              (t) => t.status.isIn(const ['pending', 'inFlight', 'failed']),
+            )
+            ..where((t) => t.kind.isIn(kinds)))
+          .watch();
+
   /// Watches permanently-failed rows of [kind] (max retries exhausted or a
   /// non-retryable 4xx). Used to surface a "progress didn't save" notice only
   /// when the cloud will never learn about a local completion.
@@ -61,6 +81,12 @@ class PendingMutationsDao extends DatabaseAccessor<AppDatabase>
       (select(pendingMutations)
             ..where((t) => t.status.equals('failed') & t.kind.equals(kind)))
           .watch();
+
+  /// Drops every queued mutation. Called on sign-out: a queued row can only
+  /// replay under the CURRENT auth token, so keeping another account's rows
+  /// would mint their winnings to the wrong wallet (and inflate the pending
+  /// coin delta shown to whoever signs in next).
+  Future<void> clearAll() => delete(pendingMutations).go();
 
   /// Re-arms failed rows of [kind] for another attempt (user tapped Retry):
   /// status -> pending, retryCount -> 0, nextAttemptAt -> 0.

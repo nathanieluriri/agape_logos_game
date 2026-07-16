@@ -34,6 +34,19 @@ class PurchaseInsufficientCoins extends PurchaseOutcome {
   final int coins;
 }
 
+/// The wallet was short on the server, but winnings that cover (or shrink) the
+/// gap are still travelling in the offline queue, so the balance on screen is
+/// ahead of the server's. Nothing was charged. The caller should explain that
+/// the petals are still syncing and invite a retry in a moment, rather than
+/// telling the player they can't afford something they can see they can.
+class PurchaseCoinsSyncing extends PurchaseOutcome {
+  const PurchaseCoinsSyncing({required this.cost, required this.coins});
+
+  /// The server's view of the item cost and wallet at the time of the attempt.
+  final int cost;
+  final int coins;
+}
+
 /// The item id was rejected by the server (unknown / delisted).
 class PurchaseUnknownItem extends PurchaseOutcome {
   const PurchaseUnknownItem();

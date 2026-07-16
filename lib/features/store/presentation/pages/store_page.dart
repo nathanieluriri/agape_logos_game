@@ -11,8 +11,10 @@ import '../../../../shared/widgets/pond_loader.dart';
 import '../../../../shared/widgets/pond_page_header.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_stage.dart';
+import '../../../../shared/widgets/sync_status_badge.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../../profile/application/profile_providers.dart';
+import '../../../profile/application/wallet_sync_providers.dart';
 import '../../application/store_providers.dart';
 import '../../domain/store_item.dart';
 import '../widgets/store_item_card.dart';
@@ -79,7 +81,11 @@ class _StoreBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Kick the entry sync: flush queued winnings + refetch the balance so the
+    // wallet the server checks matches the wallet on screen. Fire-and-forget.
+    ref.watch(storeEntrySyncProvider);
     final coins = ref.watch(coinsProvider);
+    final syncStatus = ref.watch(walletSyncBadgeProvider);
     final catalog = ref.watch(storeCatalogProvider);
     final inventory = ref.watch(inventoryControllerProvider).value ?? const {};
 
@@ -88,7 +94,7 @@ class _StoreBody extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: _CoinBalance(coins: coins),
+          child: _CoinBalance(coins: coins, syncStatus: syncStatus),
         ),
         const SizedBox(height: AppSpacing.md),
         catalog.when(
@@ -152,9 +158,18 @@ class _Catalog extends StatelessWidget {
 }
 
 class _CoinBalance extends StatelessWidget {
-  const _CoinBalance({required this.coins});
+  const _CoinBalance({
+    required this.coins,
+    this.syncStatus = SyncBadgeStatus.none,
+  });
 
   final int coins;
+
+  /// Delivery state of [coins]: a ticking clock while winnings are still
+  /// local-only, a green tick right after the server confirms them. Shown here
+  /// because this is exactly where an in-transit balance used to read as
+  /// "not enough petals".
+  final SyncBadgeStatus syncStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +188,10 @@ class _CoinBalance extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
+        if (syncStatus != SyncBadgeStatus.none) ...[
+          const SizedBox(width: AppSpacing.xs),
+          SyncStatusBadge(status: syncStatus),
+        ],
       ],
     );
   }

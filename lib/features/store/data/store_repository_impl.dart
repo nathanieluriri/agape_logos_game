@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 
 import '../../../core/storage/app_database.dart';
+import '../../profile/data/pending_wallet.dart';
 import '../domain/purchase_outcome.dart';
 import '../domain/store_item.dart';
 import '../domain/store_repository.dart';
@@ -38,8 +39,16 @@ class StoreRepositoryImpl implements StoreRepository {
       itemId: itemId,
       quantity: quantity,
     );
+    // Server responses carry the server's wallet, which excludes any winnings
+    // still travelling in the offline queue. Write through server + pending
+    // delta so a purchase during a sync window can't clobber the optimistic
+    // balance (and a 402's snapshot self-heals any drift the same way).
     if (outcome is PurchaseSuccess) {
-      await _db.cachedProfileDao.setCoins(uid, outcome.coins);
+      final int delta = await pendingCoinDelta(_db);
+      await _db.cachedProfileDao.setCoins(uid, outcome.coins + delta);
+    } else if (outcome is PurchaseInsufficientCoins) {
+      final int delta = await pendingCoinDelta(_db);
+      await _db.cachedProfileDao.setCoins(uid, outcome.coins + delta);
     }
     return outcome;
   }

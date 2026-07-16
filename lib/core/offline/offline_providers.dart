@@ -22,3 +22,11 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
     reconcilers: ref.watch(mutationReconcilersProvider),
   );
 });
+
+/// Fire-and-forget "sync now" seam for features that just enqueued a mutation
+/// (e.g. a level win). Defaults to a no-op so tests and previews need no sync
+/// wiring; `bootstrap()` overrides it with the real engine flush. Callers
+/// don't await it: delivery failures simply re-arm the engine's backoff.
+final syncKickProvider = Provider<Future<void> Function()>(
+  (ref) => () async {},
+);

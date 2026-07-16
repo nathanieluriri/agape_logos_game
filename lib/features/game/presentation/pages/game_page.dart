@@ -6,6 +6,7 @@ import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_loader.dart';
 import '../../../profile/application/profile_providers.dart';
+import '../../../profile/application/wallet_sync_providers.dart';
 import '../../../puzzles/application/puzzle_providers.dart';
 import '../../../tutorial/presentation/widgets/tutorial_overlay.dart';
 import '../../application/game_controller.dart';
@@ -173,6 +174,7 @@ class _TopBarSlot extends ConsumerWidget {
     return GameTopBar(
       level: level,
       coins: coins,
+      syncStatus: ref.watch(walletSyncBadgeProvider),
       onBack: () => context.pop(),
       onDictionary: () {
         final session = _session(ref);

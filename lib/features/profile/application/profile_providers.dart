@@ -84,6 +84,12 @@ class ProfileController extends AsyncNotifier<Profile?> {
 
   Future<void> clear() async {
     await ref.read(profileRepositoryProvider).clear();
+    // Also drop the offline mutation queue. This is the single choke point
+    // every sign-out passes through (bootstrap's auth listener calls it on
+    // uid -> null): a queued row can only replay under the CURRENT auth
+    // token, so another account's queued winnings must never survive to mint
+    // into, or inflate the pending coin delta of, whoever signs in next.
+    await ref.read(appDatabaseProvider).pendingMutationsDao.clearAll();
     state = const AsyncData(null);
   }
 }

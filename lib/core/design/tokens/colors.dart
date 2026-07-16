@@ -109,6 +109,14 @@ abstract final class AppColors {
   static const plusButtonDeep = Color(0xFF58C4AD);
   static const plusButtonBorder = Color(0xB3CEF5E9);
 
+  // Wallet/progress sync badge (the tiny clock / tick beside petals & level).
+  /// Soft cream clock while an update is local-only (still syncing).
+  static const syncPending = Color(0xB3FDFAF0);
+  /// Fresh leaf-green tick shown briefly once the server confirms.
+  static const syncConfirmed = Color(0xFF9BE8A8);
+  /// Amber alert when a queued update permanently failed to reach the cloud.
+  static const syncFailed = Color(0xFFFFC46B);
+
   // Wordmark + play affordance.
   static const wordmark = Color(0xFFFDFBF3);
 
