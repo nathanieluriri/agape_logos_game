@@ -47,6 +47,7 @@ class _FogShaderOverlayState extends State<FogShaderOverlay> {
   Timer? _timer;
   Duration _elapsed = Duration.zero;
   bool _reduceMotion = false;
+  ui.FragmentShader? _shader;
 
   @override
   void initState() {
@@ -132,7 +133,17 @@ class _FogShaderOverlayState extends State<FogShaderOverlay> {
   void dispose() {
     _stopTicker();
     _stopTimer();
+    _shader?.dispose();
     super.dispose();
+  }
+
+  /// Lazily creates and caches the single reusable [ui.FragmentShader]
+  /// instance for this overlay's lifetime, so `paint` never allocates a new
+  /// shader handle per frame. Returns null while [fogProgram] hasn't
+  /// compiled.
+  ui.FragmentShader? _ensureShader() {
+    _shader ??= fogProgram?.fragmentShader();
+    return _shader;
   }
 
   /// 0..1 fade: ramps up over the first [_fade], holds at 1, ramps down over
@@ -159,9 +170,10 @@ class _FogShaderOverlayState extends State<FogShaderOverlay> {
       child = const ColoredBox(color: AppColors.fogTint);
     } else {
       final intensity = _intensity();
+      final shader = _ensureShader();
       if (intensity <= 0) {
         child = const SizedBox.shrink();
-      } else if (fogProgram == null) {
+      } else if (shader == null) {
         // Shader failed to compile: flat scrim, still ticker-driven fade
         // timing here since this branch only runs when motion is allowed.
         child = const ColoredBox(color: AppColors.fogTint);
@@ -169,7 +181,7 @@ class _FogShaderOverlayState extends State<FogShaderOverlay> {
         child = RepaintBoundary(
           child: CustomPaint(
             painter: _FogPainter(
-              program: fogProgram!,
+              shader: shader,
               seconds: _elapsed.inMilliseconds / 1000.0,
               intensity: intensity,
             ),
@@ -187,18 +199,21 @@ class _FogShaderOverlayState extends State<FogShaderOverlay> {
 
 class _FogPainter extends CustomPainter {
   _FogPainter({
-    required this.program,
+    required this.shader,
     required this.seconds,
     required this.intensity,
   });
 
-  final ui.FragmentProgram program;
+  /// Single shader instance owned and disposed by
+  /// [_FogShaderOverlayState], reused across every frame instead of being
+  /// reallocated per paint.
+  final ui.FragmentShader shader;
   final double seconds;
   final double intensity;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final shader = program.fragmentShader()
+    shader
       ..setFloat(0, size.width)
       ..setFloat(1, size.height)
       ..setFloat(2, seconds)
