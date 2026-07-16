@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/design/motion/curves.dart';
 import '../../../../core/design/tokens/colors.dart';
@@ -15,14 +16,16 @@ import '../../../../core/haptics/haptics.dart';
 class WheelActionButton extends StatefulWidget {
   const WheelActionButton({
     super.key,
-    required this.icon,
+    this.icon,
+    this.iconAsset,
     required this.semanticLabel,
     required this.onTap,
     this.badge,
     this.enabled = true,
-  });
+  }) : assert(icon != null || iconAsset != null, 'need an icon or an asset');
 
-  final IconData icon;
+  final IconData? icon;
+  final String? iconAsset;
   final String semanticLabel;
   final VoidCallback onTap;
   final int? badge;
@@ -104,12 +107,24 @@ class _WheelActionButtonState extends State<WheelActionButton> {
                   child: Container(
                     alignment: Alignment.center,
                     decoration: widget.enabled ? _enabledDisc : _disabledDisc,
-                    child: Icon(
-                      widget.icon,
-                      color: widget.enabled
-                          ? AppColors.wordmark
-                          : AppColors.padLabelSoft,
-                    ),
+                    child: widget.iconAsset != null
+                        ? SvgPicture.asset(
+                            widget.iconAsset!,
+                            width: 24,
+                            height: 24,
+                            colorFilter: ColorFilter.mode(
+                              widget.enabled
+                                  ? AppColors.wordmark
+                                  : AppColors.padLabelSoft,
+                              BlendMode.srcIn,
+                            ),
+                          )
+                        : Icon(
+                            widget.icon,
+                            color: widget.enabled
+                                ? AppColors.wordmark
+                                : AppColors.padLabelSoft,
+                          ),
                   ),
                 ),
                 if (widget.badge != null && widget.badge! > 0)

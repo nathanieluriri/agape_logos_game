@@ -609,6 +609,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     final order = _orderOf(rack, playState);
     final wheelLetters = _wheelLettersOf(rack, playState);
     final found = _foundOf(rack, playState);
+    final revealed = playState.revealed;
     final targets = _targetsOf(rack);
     final catalog = ref.watch(storeCatalogProvider).value ?? const <StoreItem>[];
     final inventory =
@@ -647,7 +648,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
               context,
               targets: targets,
               found: found,
-              revealed: const {},
+              revealed: revealed,
             ),
             onForfeit: isAsync
                 ? () async {
@@ -674,7 +675,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
             child: WordBoard(
               targets: targets,
               found: found,
-              revealed: const {},
+              revealed: revealed,
               center: true,
             ),
             builder: (_, now, board) => FogOverlay(
@@ -761,23 +762,34 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                       ),
                     ),
                     const SizedBox(width: AppSpacing.lg),
-                    // Live only: the wheel-row flag forfeits, gating on the same
-                    // confirm as back. Async matches instead surface their forfeit
-                    // affordance in the HUD (MatchHud's sword icon, since leaving
-                    // an async match by itself is normal and must not forfeit);
-                    // this flag is hidden for async so the gap keeps the wheel
-                    // centered.
-                    if (isAsync)
-                      const SizedBox(width: AppSizing.actionButton)
-                    else
-                      WheelActionButton(
-                        icon: Icons.flag_outlined,
-                        semanticLabel: 'Leave match',
-                        onTap: () async {
-                          final leave = await _confirmForfeit();
-                          if (leave && mounted) _leaveMatch();
-                        },
-                      ),
+                    // Hint always shows (client-only, no cost). Live matches
+                    // additionally stack the forfeit flag below it, gating on the
+                    // same confirm as back; async matches instead surface their
+                    // forfeit affordance in the HUD (MatchHud's sword icon, since
+                    // leaving an async match by itself is normal and must not
+                    // forfeit), so the gap keeps the wheel centered.
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        WheelActionButton(
+                          iconAsset: 'assets/powerups/hint.svg',
+                          semanticLabel: 'Hint',
+                          onTap: () => controller.hint(rack, found),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        if (isAsync)
+                          const SizedBox(width: AppSizing.actionButton)
+                        else
+                          WheelActionButton(
+                            icon: Icons.flag_outlined,
+                            semanticLabel: 'Leave match',
+                            onTap: () async {
+                              final leave = await _confirmForfeit();
+                              if (leave && mounted) _leaveMatch();
+                            },
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),

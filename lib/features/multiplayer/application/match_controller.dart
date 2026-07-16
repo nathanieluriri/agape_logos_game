@@ -16,6 +16,7 @@ class MatchPlayState {
     this.rackOrder = const [],
     this.selection = const [],
     this.pendingFound = const {},
+    this.revealed = const {},
     this.appliedEventIds = const {},
   });
 
@@ -23,6 +24,7 @@ class MatchPlayState {
   final List<int> rackOrder;
   final List<int> selection;
   final Set<String> pendingFound;
+  final Map<String, int> revealed;
   final Set<String> appliedEventIds;
 
   MatchPlayState copyWith({
@@ -30,12 +32,14 @@ class MatchPlayState {
     List<int>? rackOrder,
     List<int>? selection,
     Set<String>? pendingFound,
+    Map<String, int>? revealed,
     Set<String>? appliedEventIds,
   }) => MatchPlayState(
     rackLength: rackLength ?? this.rackLength,
     rackOrder: rackOrder ?? this.rackOrder,
     selection: selection ?? this.selection,
     pendingFound: pendingFound ?? this.pendingFound,
+    revealed: revealed ?? this.revealed,
     appliedEventIds: appliedEventIds ?? this.appliedEventIds,
   );
 }
@@ -110,6 +114,22 @@ class MatchPlayController extends Notifier<MatchPlayState> {
     Haptics.instance.streakImpact();
     state = state.copyWith(pendingFound: {...state.pendingFound, word});
     return word;
+  }
+
+  /// Client-only hint: reveal one more letter of the first unfound target that
+  /// is not already fully revealed. Local visual aid only (mirrors the
+  /// single-player reveal machinery); no server call, no cost, no cap.
+  void hint(MatchRack rack, Set<String> found) {
+    for (final answer in rack.targets) {
+      final word = answer.word.toUpperCase();
+      if (found.contains(word)) continue;
+      final shown = state.revealed[word] ?? 0;
+      if (shown >= word.length) continue;
+      state = state.copyWith(
+        revealed: {...state.revealed, word: shown + 1},
+      );
+      return;
+    }
   }
 
   void shuffle() {
