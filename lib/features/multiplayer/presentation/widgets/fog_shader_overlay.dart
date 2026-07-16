@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -12,11 +13,14 @@ import 'fog_shader.dart';
 /// [IgnorePointer], so every touch falls straight through to the wheel beneath
 /// and the player can still blind-play through the fog.
 ///
-/// Self-ticking: it runs a [Ticker] only while [fogUntil] is in the future,
-/// animating the shader's time and a fade in/out intensity, then stops and
-/// renders nothing. Reduced motion (or a shader that failed to compile) falls
-/// back to the flat [AppColors.fogTint] scrim, same "you cannot read the board"
-/// outcome with no motion and no shader cost.
+/// Self-ticking: while [fogUntil] is in the future and the platform allows
+/// animation, it runs a [Ticker], animating the shader's time and a fade
+/// in/out intensity, then stops and renders nothing. Under reduced motion
+/// (`MediaQuery.disableAnimations`) or a shader that failed to compile, it
+/// falls back to the flat [AppColors.fogTint] scrim instead: same "you cannot
+/// read the board" outcome, but under reduced motion there is no per-frame
+/// cost at all, just a single one-shot [Timer] that fires when [fogUntil] is
+/// reached to drop the scrim.
 class FogShaderOverlay extends StatefulWidget {
   const FogShaderOverlay({
     super.key,
@@ -40,18 +44,31 @@ class FogShaderOverlay extends StatefulWidget {
 
 class _FogShaderOverlayState extends State<FogShaderOverlay> {
   Ticker? _ticker;
+  Timer? _timer;
   Duration _elapsed = Duration.zero;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
     super.initState();
-    _syncTicker();
+    _sync();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (reduceMotion != _reduceMotion) {
+      _reduceMotion = reduceMotion;
+      _sync();
+    }
   }
 
   @override
   void didUpdateWidget(FogShaderOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _syncTicker();
+    _sync();
   }
 
   bool get _active {
@@ -59,21 +76,33 @@ class _FogShaderOverlayState extends State<FogShaderOverlay> {
     return until != null && widget.now().isBefore(until);
   }
 
-  void _syncTicker() {
-    if (_active) {
-      _ticker ??= Ticker((elapsed) {
-        if (!mounted) return;
-        if (!_active) {
-          setState(() {});
-          _stopTicker();
-          return;
-        }
-        setState(() => _elapsed = elapsed);
-      })
-        ..start();
-    } else {
+  /// Chooses the ticking strategy for the current active/reduced-motion
+  /// state: an animated per-frame [Ticker], a single one-shot [Timer], or
+  /// neither while inactive.
+  void _sync() {
+    if (!_active) {
       _stopTicker();
+      _stopTimer();
+    } else if (_reduceMotion) {
+      _stopTicker();
+      _scheduleTimer();
+    } else {
+      _stopTimer();
+      _startTicker();
     }
+  }
+
+  void _startTicker() {
+    _ticker ??= Ticker((elapsed) {
+      if (!mounted) return;
+      if (!_active) {
+        setState(() {});
+        _stopTicker();
+        return;
+      }
+      setState(() => _elapsed = elapsed);
+    })
+      ..start();
   }
 
   void _stopTicker() {
@@ -81,9 +110,28 @@ class _FogShaderOverlayState extends State<FogShaderOverlay> {
     _ticker = null;
   }
 
+  /// Schedules a single `setState` at the moment [fogUntil] is reached, so
+  /// the flat reduced-motion scrim drops on time without any per-frame work.
+  void _scheduleTimer() {
+    _stopTimer();
+    final until = widget.fogUntil;
+    if (until == null) return;
+    final delay = until.difference(widget.now());
+    _timer = Timer(delay.isNegative ? Duration.zero : delay, () {
+      _timer = null;
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
   @override
   void dispose() {
     _stopTicker();
+    _stopTimer();
     super.dispose();
   }
 
@@ -102,27 +150,33 @@ class _FogShaderOverlayState extends State<FogShaderOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    final intensity = _active ? _intensity() : 0.0;
-
     Widget child;
-    if (intensity <= 0) {
+    if (!_active) {
       child = const SizedBox.shrink();
-    } else if (reduceMotion || fogProgram == null) {
-      // Flat scrim fallback: no ticker cost, no shader.
+    } else if (_reduceMotion) {
+      // Flat scrim while active: no ticker running, no per-frame cost. A
+      // single one-shot Timer (see _scheduleTimer) drops this at fogUntil.
       child = const ColoredBox(color: AppColors.fogTint);
     } else {
-      child = RepaintBoundary(
-        child: CustomPaint(
-          painter: _FogPainter(
-            program: fogProgram!,
-            seconds: _elapsed.inMilliseconds / 1000.0,
-            intensity: intensity,
+      final intensity = _intensity();
+      if (intensity <= 0) {
+        child = const SizedBox.shrink();
+      } else if (fogProgram == null) {
+        // Shader failed to compile: flat scrim, still ticker-driven fade
+        // timing here since this branch only runs when motion is allowed.
+        child = const ColoredBox(color: AppColors.fogTint);
+      } else {
+        child = RepaintBoundary(
+          child: CustomPaint(
+            painter: _FogPainter(
+              program: fogProgram!,
+              seconds: _elapsed.inMilliseconds / 1000.0,
+              intensity: intensity,
+            ),
+            size: Size.infinite,
           ),
-          size: Size.infinite,
-        ),
-      );
+        );
+      }
     }
 
     // IgnorePointer(ignoring: true): the fog never absorbs a touch, so the
