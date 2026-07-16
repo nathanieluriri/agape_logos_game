@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/design/motion/curves.dart';
+import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/durations.dart';
 import '../../../../core/design/tokens/gradients.dart';
 import '../../../../core/design/tokens/shadows.dart';
@@ -12,7 +13,7 @@ import 'powerup_wheel.dart';
 
 /// Two round buttons, stacked above the shuffle button: offense (swords) and
 /// defense (shield), each opening the matching [PowerupWheel] category. Same
-/// cream-disc chrome family as the shuffle FAB, drawn with hand-painted
+/// teal-disc chrome family as the shuffle FAB, drawn with hand-painted
 /// [PondIcon] glyphs (no [Icons]).
 class PowerupSideButtons extends StatelessWidget {
   const PowerupSideButtons({
@@ -70,9 +71,12 @@ class _RoundGlyphButton extends StatefulWidget {
 }
 
 class _RoundGlyphButtonState extends State<_RoundGlyphButton> {
+  /// Halo ring thickness around the inner disc (matches the shuffle FAB).
+  static const double _haloPadding = 5;
+
   static const _discDecoration = BoxDecoration(
     shape: BoxShape.circle,
-    gradient: AppGradients.wheelPad,
+    gradient: AppGradients.settingsInner,
     boxShadow: AppShadows.pill,
   );
 
@@ -102,9 +106,16 @@ class _RoundGlyphButtonState extends State<_RoundGlyphButton> {
             child: Container(
               width: _RoundGlyphButton._size,
               height: _RoundGlyphButton._size,
-              alignment: Alignment.center,
-              decoration: _discDecoration,
-              child: PondIcon(widget.glyph, size: 22),
+              padding: const EdgeInsets.all(_haloPadding),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.settingsHalo,
+              ),
+              child: Container(
+                alignment: Alignment.center,
+                decoration: _discDecoration,
+                child: PondIcon(widget.glyph, size: 22),
+              ),
             ),
           ),
         ),
