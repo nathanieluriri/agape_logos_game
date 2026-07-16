@@ -22,6 +22,28 @@ abstract class MatchRack with _$MatchRack {
 
   const MatchRack._();
 
+  /// Test-only convenience factory: builds an already-DECRYPTED rack (each
+  /// answer's `word` equals its own plaintext, so `decrypted` is true) with no
+  /// found words. Real racks arrive with encrypted answer tokens and go
+  /// through the listener's decryption step; this skips that for unit tests
+  /// that only need a playable rack shape.
+  @visibleForTesting
+  factory MatchRack.test({
+    required List<String> letters,
+    required List<String> answers,
+  }) => MatchRack(
+    uid: 'test-uid',
+    letters: letters,
+    letterKey: 'test-letter-key',
+    rackSize: letters.length,
+    answers: [
+      for (final word in answers)
+        PuzzleAnswer(word: word, length: word.length, definition: null),
+    ],
+    answerCount: answers.length,
+    foundWords: const [],
+  );
+
   /// True once every answer token has been decrypted to plaintext (each
   /// `word.length` then equals its declared `length`). While false the board
   /// must render nothing sensitive: the ciphertext is not a real word.

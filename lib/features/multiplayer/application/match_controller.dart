@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/haptics/haptics.dart';
 import '../domain/match_rack.dart';
 
 /// Local, client-only play state for a match. The rack letters, decrypted
@@ -95,10 +96,18 @@ class MatchPlayController extends Notifier<MatchPlayState> {
     state = state.copyWith(selection: const []);
     if (!rack.decrypted || word.isEmpty) return null;
     final isAnswer = rack.answers.any((a) => a.word.toUpperCase() == word);
-    if (!isAnswer) return null;
-    if (alreadyFound.contains(word) || state.pendingFound.contains(word)) {
+    if (!isAnswer) {
+      // Invalid word: distinct error buzz so a miss is felt, not silent.
+      Haptics.instance.mistakeImpact();
       return null;
     }
+    if (alreadyFound.contains(word) || state.pendingFound.contains(word)) {
+      // Already found: acknowledge the trace with a light tick.
+      Haptics.instance.selectionClick();
+      return null;
+    }
+    // A fresh, valid word: solid celebratory landing.
+    Haptics.instance.streakImpact();
     state = state.copyWith(pendingFound: {...state.pendingFound, word});
     return word;
   }

@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/audio/audio_providers.dart';
 import '../../../../core/audio/sfx_keys.dart';
 import '../../../../core/design/tokens/colors.dart';
+import '../../../../core/haptics/haptics.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/animated_app_icon.dart';
@@ -242,6 +243,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
 
     PowerupCastFlyout.show(context, kind, from: releaseGlobal);
     _playSfxQuiet(SfxKeys.powerupCast);
+    Haptics.instance.mediumImpact();
 
     final result = await ref
         .read(matchServiceProvider)
@@ -263,15 +265,18 @@ class _MatchPageState extends ConsumerState<MatchPage> {
 
     if (result.reason == 'warded') {
       _playSfxQuiet(SfxKeys.powerupBlocked);
+      Haptics.instance.mistakeImpact();
       showPondSnack(context, 'Warded!');
       return;
     }
     if (!result.ok) {
+      Haptics.instance.mistakeImpact();
       showPondSnack(context, 'Could not fire that powerup');
       return;
     }
     if (result.reason == 'blocked') {
       _playSfxQuiet(SfxKeys.powerupBlocked);
+      Haptics.instance.mistakeImpact();
       showPondSnack(context, 'Blocked!');
     }
   }
@@ -316,7 +321,15 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   void _advanceBannerQueue() {
     if (_activeBanner != null || _bannerQueue.isEmpty || !mounted) return;
     final next = _bannerQueue.removeAt(0);
-    _playSfxQuiet(next.blocked ? SfxKeys.powerupBlocked : SfxKeys.powerupIncoming);
+    _playSfxQuiet(
+      next.blocked ? SfxKeys.powerupBlocked : SfxKeys.powerupIncoming,
+    );
+    // A real hit lands hard; a blocked one gives the distinct error buzz.
+    if (next.blocked) {
+      Haptics.instance.mistakeImpact();
+    } else {
+      Haptics.instance.heavyImpact();
+    }
     setState(() => _activeBanner = next);
   }
 
