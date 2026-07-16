@@ -22,6 +22,7 @@ import '../core/storage/app_database.dart';
 import '../core/storage/storage_providers.dart';
 import '../features/auth/application/auth_providers.dart';
 import '../features/auth/domain/auth_user.dart';
+import '../features/multiplayer/presentation/widgets/fog_shader.dart';
 import '../features/profile/application/profile_providers.dart';
 import '../firebase_options.dart';
 import 'app.dart';
@@ -72,6 +73,7 @@ Future<void> bootstrap() async {
   // never blocks bootstrap.
   Haptics.instance = haptics;
   unawaited(haptics.init());
+  unawaited(warmUpFogShader());
 
   runZonedGuarded(
     () {

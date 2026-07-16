@@ -33,7 +33,7 @@ import '../../domain/match_rack.dart';
 import '../../domain/match_settings.dart';
 import '../../domain/powerup_kind.dart';
 import '../widgets/active_effect_chips.dart';
-import '../widgets/fog_overlay.dart';
+import '../widgets/fog_shader_overlay.dart';
 import '../widgets/frozen_letter_overlay.dart';
 import '../widgets/match_hud.dart';
 import '../widgets/match_load_error.dart';
@@ -49,19 +49,18 @@ import '../widgets/powerup_wheel.dart';
 const Duration kMatchTick = Duration(milliseconds: 500);
 
 /// Rebuilds only its own subtree on the match tick, handing the builder the
-/// current wall clock. [child] is passed through untouched, so a subtree that
-/// does not depend on the clock (the word board under the fog) is not rebuilt.
+/// current wall clock. Used for leaf widgets that show a live time (the
+/// active-effect chips, the frozen-letter overlay) so a clock tick never
+/// rebuilds the board or the wheel around them.
 class _Ticking extends StatefulWidget {
-  const _Ticking({required this.builder, required this.now, this.child});
+  const _Ticking({required this.builder, required this.now});
 
-  final Widget Function(BuildContext context, int nowMillis, Widget? child)
-  builder;
+  final Widget Function(BuildContext context, int nowMillis) builder;
 
   /// Server-adjusted clock reader (`ref.read(serverClockProvider).now`), so a
   /// device clock that is skewed behind the server still ends a timed effect
   /// (fog, freeze) on time.
   final DateTime Function() now;
-  final Widget? child;
 
   @override
   State<_Ticking> createState() => _TickingState();
@@ -87,8 +86,7 @@ class _TickingState extends State<_Ticking> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      widget.builder(context, _now, widget.child);
+  Widget build(BuildContext context) => widget.builder(context, _now);
 }
 
 class MatchPage extends ConsumerStatefulWidget {
@@ -664,25 +662,18 @@ class _MatchPageState extends ConsumerState<MatchPage> {
             alignment: Alignment.centerLeft,
             child: _Ticking(
               now: () => ref.read(serverClockProvider).now(),
-              builder: (_, now, __) =>
+              builder: (_, now) =>
                   ActiveEffectChips(effects: effects, nowMillis: now),
             ),
           ),
         ),
         Expanded(
-          child: _Ticking(
-            now: () => ref.read(serverClockProvider).now(),
+          child: RepaintBoundary(
             child: WordBoard(
               targets: targets,
               found: found,
               revealed: revealed,
               center: true,
-            ),
-            builder: (_, now, board) => FogOverlay(
-              active:
-                  effects.fogUntil != null &&
-                  effects.fogUntil!.millisecondsSinceEpoch > now,
-              child: board!,
             ),
           ),
         ),
@@ -747,7 +738,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                           Positioned.fill(
                             child: _Ticking(
                               now: () => ref.read(serverClockProvider).now(),
-                              builder: (_, now, __) => FrozenLetterOverlay(
+                              builder: (_, now) => FrozenLetterOverlay(
                                 frozenSlots: _frozenSlots(
                                   effects,
                                   wheelLetters,
@@ -821,6 +812,12 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     return Stack(
       children: [
         playColumn,
+        Positioned.fill(
+          child: FogShaderOverlay(
+            fogUntil: effects.fogUntil,
+            now: () => ref.read(serverClockProvider).now(),
+          ),
+        ),
         Positioned.fill(
           child: PowerupTutorialOverlay(
             offenseKey: powerupOffenseButtonKey,

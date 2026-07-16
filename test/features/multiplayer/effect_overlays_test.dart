@@ -1,5 +1,4 @@
 import 'package:agape_logos_game/features/multiplayer/application/server_clock.dart';
-import 'package:agape_logos_game/features/multiplayer/presentation/widgets/fog_overlay.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/frozen_letter_overlay.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/match_hud.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/match_timer.dart';
@@ -28,17 +27,6 @@ void main() {
       ),
     ));
     expect(find.byIcon(Icons.ac_unit_rounded), findsNothing);
-  });
-
-  testWidgets('fog overlay adds a BackdropFilter when active', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(
-        body: FogOverlay(active: true, child: Text('board')),
-      ),
-    ));
-    await tester.pump();
-    expect(find.byType(BackdropFilter), findsOneWidget);
-    expect(find.text('board'), findsOneWidget);
   });
 
   testWidgets('match timer formats remaining m:ss under an hour',

@@ -64,6 +64,8 @@ flutter:
     - family: ZenSerif
       fonts:
         - asset: assets/fonts/ZenSerif-Regular.ttf
+  shaders:
+    - assets/shaders/fog.frag
 
 # App launcher icon generation.
 #
