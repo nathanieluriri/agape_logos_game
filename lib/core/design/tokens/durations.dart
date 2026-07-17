@@ -92,4 +92,25 @@ abstract final class AppDurations {
   /// How long the incoming-powerup banner holds at center, after dropping in
   /// and before flying away, so "{caster} cast {powerup}!" has time to read.
   static const Duration powerupBannerHold = Duration(milliseconds: 1500);
+
+  /// The fog front rolling down over the board (and lifting back out).
+  static const Duration fogRoll = Duration(milliseconds: 2500);
+
+  /// A powerup's land animation on the board (frost creep, shield bloom,
+  /// ward sweep, aura ignite).
+  static const Duration effectLand = Duration(milliseconds: 600);
+
+  /// A timed effect's expiry animation (ice shatter, ward dissolve,
+  /// shield pop).
+  static const Duration effectExpire = Duration(milliseconds: 400);
+
+  /// The scramble swirl: letters lift, loop the wheel once, and settle.
+  static const Duration scrambleSwirl = Duration(milliseconds: 900);
+
+  /// A stolen word's flight off the board (victim) or into the score
+  /// (caster).
+  static const Duration stealFlight = Duration(milliseconds: 800);
+
+  /// The match timer digits rolling up to the boosted deadline.
+  static const Duration timeBoostClimb = Duration(milliseconds: 800);
 }

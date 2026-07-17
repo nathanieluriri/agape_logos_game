@@ -14,4 +14,8 @@ abstract final class AppCurves {
 
   /// A block dropping and bouncing into its slot as the splash mark assembles.
   static const Curve landing = Curves.bounceOut;
+
+  /// Fast start, long glide to rest: the timer digits climbing to the
+  /// boosted deadline.
+  static const Curve climb = Curves.easeOutQuart;
 }

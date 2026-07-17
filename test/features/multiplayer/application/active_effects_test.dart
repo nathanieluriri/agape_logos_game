@@ -228,6 +228,64 @@ void main() {
     expect(container.read(activeEffectsProvider('m1')).warded, isTrue);
   });
 
+  test('stack counts reflect the number of live entries per kind', () async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchStreamProvider('m1').overrideWith(
+          (ref) => Stream.value(
+            // Two live fog entries and two armed shields on me.
+            _matchWith({
+              'me': [
+                MatchActiveEffect(
+                  kind: MatchEffectKind.fogBank,
+                  byUid: 'opp',
+                  startedAt: 0,
+                  expiresAt: now + 8000,
+                  payload: const {},
+                ),
+                MatchActiveEffect(
+                  kind: MatchEffectKind.fogBank,
+                  byUid: 'opp',
+                  startedAt: 0,
+                  expiresAt: now + 15000,
+                  payload: const {},
+                ),
+                const MatchActiveEffect(
+                  kind: MatchEffectKind.shield,
+                  byUid: 'me',
+                  startedAt: 0,
+                  expiresAt: 0,
+                  payload: {},
+                ),
+                const MatchActiveEffect(
+                  kind: MatchEffectKind.shield,
+                  byUid: 'me',
+                  startedAt: 0,
+                  expiresAt: 0,
+                  payload: {},
+                ),
+              ],
+            }),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.listen(matchStreamProvider('m1'), (_, __) {});
+    await container.pump();
+
+    final fx = container.read(activeEffectsProvider('m1'));
+    expect(fx.fog, isTrue);
+    expect(fx.fogStacks, 2);
+    // The chip countdown keeps the FURTHEST expiry.
+    expect(fx.fogUntil!.millisecondsSinceEpoch, now + 15000);
+    expect(fx.shieldArmed, isTrue);
+    expect(fx.shieldCharges, 2);
+    expect(fx.freezeStacks, 0);
+  });
+
   test('a lapsed combo_lock leaves warded false', () async {
     final container = ProviderContainer(
       overrides: [

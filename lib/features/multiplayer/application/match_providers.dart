@@ -102,6 +102,11 @@ class MatchActiveEffects {
     this.warded = false,
     this.wardUntil,
     this.shieldArmed = false,
+    this.fogStacks = 0,
+    this.freezeStacks = 0,
+    this.doublePointsStacks = 0,
+    this.wardStacks = 0,
+    this.shieldCharges = 0,
   });
 
   final bool fog;
@@ -123,6 +128,16 @@ class MatchActiveEffects {
   final bool warded;
   final DateTime? wardUntil;
   final bool shieldArmed;
+
+  /// Live entry counts per kind, so stacked casts (Project B) render as
+  /// intensity. A live effect implies its count is >= 1; 0 means not active.
+  final int fogStacks;
+  final int freezeStacks;
+  final int doublePointsStacks;
+  final int wardStacks;
+
+  /// Number of armed-until-consumed shields.
+  final int shieldCharges;
 
   static const empty = MatchActiveEffects();
 }
@@ -152,6 +167,11 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
   var warded = false;
   DateTime? wardUntil;
   var shieldArmed = false;
+  var fogCount = 0;
+  var freezeCount = 0;
+  var doubleCount = 0;
+  var wardCount = 0;
+  var shieldCount = 0;
 
   for (final e in match.effectsFor(uid, nowMs: nowMs)) {
     final expiresAt = e.armedUntilConsumed
@@ -160,6 +180,7 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
     switch (e.kind) {
       case MatchEffectKind.fogBank:
         fog = true;
+        fogCount++;
         if (expiresAt != null &&
             (fogUntil == null || expiresAt.isAfter(fogUntil))) {
           fogUntil = expiresAt;
@@ -170,6 +191,7 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
         if (letter != null && letter.isNotEmpty) {
           frozenLetter = letter;
           frozenLetterCp = letter.runes.first;
+          freezeCount++;
           if (expiresAt != null &&
               (freezeUntil == null || expiresAt.isAfter(freezeUntil))) {
             freezeUntil = expiresAt;
@@ -178,6 +200,7 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
         break;
       case MatchEffectKind.doublePoints:
         doublePoints = true;
+        doubleCount++;
         if (expiresAt != null &&
             (doublePointsUntil == null ||
                 expiresAt.isAfter(doublePointsUntil))) {
@@ -185,10 +208,14 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
         }
         break;
       case MatchEffectKind.shield:
-        if (e.armedUntilConsumed) shieldArmed = true;
+        if (e.armedUntilConsumed) {
+          shieldArmed = true;
+          shieldCount++;
+        }
         break;
       case MatchEffectKind.comboLock:
         warded = true;
+        wardCount++;
         if (expiresAt != null &&
             (wardUntil == null || expiresAt.isAfter(wardUntil))) {
           wardUntil = expiresAt;
@@ -210,6 +237,11 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
     warded: warded,
     wardUntil: wardUntil,
     shieldArmed: shieldArmed,
+    fogStacks: fogCount,
+    freezeStacks: freezeCount,
+    doublePointsStacks: doubleCount,
+    wardStacks: wardCount,
+    shieldCharges: shieldCount,
   );
 });
 
