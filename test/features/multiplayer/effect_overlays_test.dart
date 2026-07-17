@@ -42,10 +42,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.ac_unit_rounded), findsOneWidget);
 
-    // The slot thaws: the disc must still be on screen mid-shatter...
+    // The slot thaws: the disc must still be on screen mid-shatter, and
+    // actually visible (a pinned-at-zero icon would still satisfy a bare
+    // findsOneWidget, so assert the rendered size too).
     await tester.pumpWidget(overlay(const {}));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byIcon(Icons.ac_unit_rounded), findsOneWidget);
+    final sizeAt100ms =
+        tester.widget<Icon>(find.byIcon(Icons.ac_unit_rounded)).size!;
+    expect(sizeAt100ms, greaterThan(0));
+
+    // ...and keeps shrinking as the shatter progresses...
+    await tester.pump(const Duration(milliseconds: 200));
+    final sizeAt300ms =
+        tester.widget<Icon>(find.byIcon(Icons.ac_unit_rounded)).size!;
+    expect(sizeAt300ms, lessThan(sizeAt100ms));
 
     // ...and gone once the shatter window has fully elapsed.
     await tester.pump(const Duration(milliseconds: 600));

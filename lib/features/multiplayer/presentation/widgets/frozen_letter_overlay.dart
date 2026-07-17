@@ -74,7 +74,9 @@ class _FrozenLetterOverlayState extends State<FrozenLetterOverlay> {
                   width: node,
                   height: node,
                   child: _FrostDisc(
-                    // Keyed per slot so a shatter never restarts a creep.
+                    // Keyed per slot so the disc's identity (and its
+                    // _shattering membership) survives across rebuilds; the
+                    // creep/shatter phase itself is keyed separately below.
                     key: ValueKey<int>(slot),
                     leaving: !live.contains(slot),
                     reduceMotion: reduceMotion,
@@ -107,7 +109,16 @@ class _FrostDisc extends StatelessWidget {
       return _frostBody(creep: 1, shatter: 0);
     }
     if (leaving) {
+      // Phase-keyed: without this, flipping `leaving` reuses the creep
+      // TweenAnimationBuilder's element (same type, no key). Both phases'
+      // tweens end at 1, so ImplicitlyAnimatedWidgetState's forEachTween
+      // sees no target change and never restarts the controller: the
+      // shatter's t stays pinned at the creep's already-settled 1, and
+      // `_frostBody(creep: 1, shatter: 1)` (fade == 0) paints nothing for
+      // the whole exit window. A distinct key per phase forces a fresh
+      // element/controller so the shatter actually sweeps 0 -> 1.
       return TweenAnimationBuilder<double>(
+        key: const ValueKey<bool>(true),
         tween: Tween(begin: 0, end: 1),
         duration: AppDurations.effectExpire,
         curve: AppCurves.exit,
@@ -115,6 +126,7 @@ class _FrostDisc extends StatelessWidget {
       );
     }
     return TweenAnimationBuilder<double>(
+      key: const ValueKey<bool>(false),
       tween: Tween(begin: 0, end: 1),
       duration: AppDurations.effectLand,
       curve: AppCurves.enter,
