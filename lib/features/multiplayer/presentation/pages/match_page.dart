@@ -43,6 +43,7 @@ import '../widgets/powerup_info_sheet.dart';
 import '../widgets/powerup_side_buttons.dart';
 import '../widgets/powerup_tutorial_overlay.dart';
 import '../widgets/powerup_wheel.dart';
+import '../widgets/shield_bubble_overlay.dart';
 import '../widgets/word_steal_flyout.dart';
 
 /// How often anything on the match page consults the wall clock. Not a motion
@@ -795,6 +796,12 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                                 size: _wheelSize,
                                 stacks: effects.freezeStacks,
                               ),
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: ShieldBubbleOverlay(
+                              armed: effects.shieldArmed,
+                              charges: effects.shieldCharges,
                             ),
                           ),
                         ],
