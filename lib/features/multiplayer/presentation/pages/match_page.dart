@@ -821,6 +821,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
         Positioned.fill(
           child: FogShaderOverlay(
             fogUntil: effects.fogUntil,
+            stacks: effects.fogStacks,
             now: () => ref.read(serverClockProvider).now(),
           ),
         ),

@@ -4,6 +4,7 @@
 uniform vec2 uResolution;
 uniform float uTime;
 uniform float uIntensity;
+uniform float uStacks;
 
 out vec4 fragColor;
 
@@ -39,16 +40,40 @@ float fbm(vec2 p) {
 
 void main() {
   vec2 uv = FlutterFragCoord().xy / uResolution;
-  // Two drifting noise fields at different speeds/scales give a roiling,
-  // volumetric feel rather than a flat tint.
-  vec2 q = uv * 3.0;
-  float drift = fbm(q + vec2(uTime * 0.06, uTime * 0.03));
-  float roil = fbm(q * 1.7 - vec2(uTime * 0.04, uTime * 0.05));
-  float density = clamp(drift * 0.7 + roil * 0.5, 0.0, 1.0);
 
-  // Soft, slightly blue-white fog. Alpha rides the noise so it billows, and
-  // uIntensity drives the whole fade in/out.
-  vec3 fog = vec3(0.91, 0.95, 0.97);
-  float alpha = (0.55 + 0.4 * density) * uIntensity;
+  // Domain warp: curl the sampling space so the sheets read as mist
+  // tendrils rather than blobby noise.
+  vec2 q = uv * 3.0;
+  vec2 warp = vec2(
+    fbm(q + vec2(uTime * 0.15, 0.0)),
+    fbm(q + vec2(0.0, uTime * 0.12)));
+  vec2 p = q + 1.4 * warp;
+
+  // Three parallax sheets: different scales, speeds, and directions, so
+  // gaps open and close between layers.
+  float a = fbm(p + vec2(uTime * 0.20, uTime * 0.09));
+  float b = fbm(p * 1.7 - vec2(uTime * 0.14, uTime * 0.17));
+  float c = fbm(p * 0.6 + vec2(-uTime * 0.11, uTime * 0.05));
+  float density = clamp(a * 0.55 + b * 0.45 + c * 0.35, 0.0, 1.0);
+
+  // Descending front: uIntensity 0..1 sweeps a ragged front line from the
+  // top edge past the bottom (1.6 overshoots so full cover holds even where
+  // the noisy edge bulges). The same envelope runs in reverse on expiry, so
+  // the fog lifts back out the way it came in.
+  float front = uIntensity * 1.6;
+  float edge = uv.y + 0.25 * (a - 0.5);
+  float cover = 1.0 - smoothstep(front - 0.28, front, edge);
+
+  // Steep contrast remap: thin gaps stay hazy-readable, billows go dense.
+  float body = smoothstep(0.35, 0.75, density);
+  // Stacked casts raise the alpha floor so glimpse gaps get rarer.
+  float alphaFloor = clamp(0.15 + 0.10 * (uStacks - 1.0), 0.0, 0.55);
+  float alpha = mix(alphaFloor, 0.95, body) * cover;
+
+  // Depth cue: dense mist catches light, thin mist cools toward the pond.
+  vec3 thinTint = vec3(0.78, 0.88, 0.90);
+  vec3 denseTint = vec3(0.96, 0.98, 1.00);
+  vec3 fog = mix(thinTint, denseTint, body);
+
   fragColor = vec4(fog * alpha, alpha);
 }

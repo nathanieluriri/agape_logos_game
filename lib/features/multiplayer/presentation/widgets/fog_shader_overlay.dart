@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/durations.dart';
+import '../../../../core/design/tokens/sizing.dart';
 import 'fog_shader.dart';
 
 /// Full-screen premium fog for the match screen. Mounted at the page root so it
@@ -26,6 +28,7 @@ class FogShaderOverlay extends StatefulWidget {
     super.key,
     required this.fogUntil,
     required this.now,
+    this.stacks = 1,
   });
 
   /// Server-clock instant the fog lifts. Null means no fog.
@@ -35,8 +38,14 @@ class FogShaderOverlay extends StatefulWidget {
   /// on time.
   final DateTime Function() now;
 
+  /// Live fog-cast count (Task 2 stacks contract). A live effect implies a
+  /// count of at least 1; `build` floors this at 1 (`math.max`) so a stray 0
+  /// slipping through a fog=true/count-plumbing race never zeroes the alpha
+  /// floor.
+  final int stacks;
+
   /// Fade the fog in over this window at the start, and out over it at the end.
-  static const Duration _fade = AppDurations.normal;
+  static const Duration _fade = AppDurations.fogRoll;
 
   @override
   State<FogShaderOverlay> createState() => _FogShaderOverlayState();
@@ -178,14 +187,31 @@ class _FogShaderOverlayState extends State<FogShaderOverlay> {
         // timing here since this branch only runs when motion is allowed.
         child = const ColoredBox(color: AppColors.fogTint);
       } else {
+        final coverFraction = (intensity * 1.6).clamp(0.0, 1.0);
         child = RepaintBoundary(
-          child: CustomPaint(
-            painter: _FogPainter(
-              shader: shader,
-              seconds: _elapsed.inMilliseconds / 1000.0,
-              intensity: intensity,
-            ),
-            size: Size.infinite,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ClipRect(
+                clipper: _FogBandClipper(fraction: coverFraction),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(
+                    sigmaX: AppSizing.fogBlurSigma,
+                    sigmaY: AppSizing.fogBlurSigma,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+              CustomPaint(
+                painter: _FogPainter(
+                  shader: shader,
+                  seconds: _elapsed.inMilliseconds / 1000.0,
+                  intensity: intensity,
+                  stacks: math.max(1, widget.stacks).toDouble(),
+                ),
+                size: Size.infinite,
+              ),
+            ],
           ),
         );
       }
@@ -202,6 +228,7 @@ class _FogPainter extends CustomPainter {
     required this.shader,
     required this.seconds,
     required this.intensity,
+    required this.stacks,
   });
 
   /// Single shader instance owned and disposed by
@@ -210,6 +237,7 @@ class _FogPainter extends CustomPainter {
   final ui.FragmentShader shader;
   final double seconds;
   final double intensity;
+  final double stacks;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -217,11 +245,30 @@ class _FogPainter extends CustomPainter {
       ..setFloat(0, size.width)
       ..setFloat(1, size.height)
       ..setFloat(2, seconds)
-      ..setFloat(3, intensity);
+      ..setFloat(3, intensity)
+      ..setFloat(4, stacks);
     canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
   }
 
   @override
   bool shouldRepaint(_FogPainter old) =>
-      old.seconds != seconds || old.intensity != intensity;
+      old.seconds != seconds ||
+      old.intensity != intensity ||
+      old.stacks != stacks;
+}
+
+/// Clips the backdrop blur to the fogged band: from the top edge down to the
+/// shader's front line (matching its 1.6 overshoot), so the blur rolls in and
+/// lifts out with the mist instead of popping.
+class _FogBandClipper extends CustomClipper<Rect> {
+  const _FogBandClipper({required this.fraction});
+
+  final double fraction;
+
+  @override
+  Rect getClip(Size size) =>
+      Rect.fromLTWH(0, 0, size.width, size.height * fraction);
+
+  @override
+  bool shouldReclip(_FogBandClipper old) => old.fraction != fraction;
 }
