@@ -27,16 +27,33 @@ class _ShieldBubbleOverlayState extends State<ShieldBubbleOverlay> {
   /// True while the falling-edge pop is still on screen.
   bool _popping = false;
 
+  /// Bumped on every falling edge; a re-arm also bumps it so a delayed
+  /// callback from a stale pop can recognize it is no longer current and
+  /// skip clearing `_popping` out from under a newer pop (overlapping
+  /// disarm/re-arm/disarm within one pop window would otherwise let the
+  /// first callback truncate the second pop early).
+  int _popSeq = 0;
+
   @override
   void didUpdateWidget(ShieldBubbleOverlay old) {
     super.didUpdateWidget(old);
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     if (old.armed && !widget.armed && !reduceMotion) {
+      // Falling edge: consumed or expired. Start (or restart) the pop.
+      _popSeq++;
+      final seq = _popSeq;
       setState(() => _popping = true);
       Future<void>.delayed(AppDurations.effectExpire, () {
-        if (mounted) setState(() => _popping = false);
+        if (mounted && _popSeq == seq) setState(() => _popping = false);
       });
+    } else if (!old.armed && widget.armed) {
+      // Rising edge: re-armed, possibly mid-pop from a prior disarm. Kill
+      // the stale pop instantly (invalidating any in-flight delayed
+      // callback via the bumped sequence) so build() renders the bloom, not
+      // a dissolving bubble for a shield that is once again active.
+      _popSeq++;
+      if (_popping) setState(() => _popping = false);
     }
   }
 
@@ -48,7 +65,35 @@ class _ShieldBubbleOverlayState extends State<ShieldBubbleOverlay> {
     final charges = math.max(1, widget.charges);
 
     Widget bubble;
-    if (_popping) {
+    // `widget.armed` wins over `_popping`: a re-arm clears `_popping` in
+    // didUpdateWidget (rising edge, above), but that setState and this
+    // build can interleave with an in-flight delayed pop-clear callback, so
+    // build() itself must also prefer the armed branch whenever both are
+    // momentarily true rather than trust `_popping` alone.
+    if (widget.armed) {
+      if (reduceMotion) {
+        bubble = CustomPaint(
+          size: Size.infinite,
+          painter: _ShieldPainter(bloom: 1, pop: 0, charges: charges),
+        );
+      } else {
+        // Bloom runs once on mount of the armed state; TweenAnimationBuilder
+        // holds the final static frame afterwards with no ticker.
+        bubble = TweenAnimationBuilder<double>(
+          key: const ValueKey<bool>(false),
+          tween: Tween(begin: 0, end: 1),
+          duration: AppDurations.effectLand,
+          curve: AppCurves.pop,
+          builder: (_, t, _) => CustomPaint(
+            size: Size.infinite,
+            painter: _ShieldPainter(bloom: t, pop: 0, charges: charges),
+          ),
+        );
+      }
+    } else {
+      // Not armed: the early return above guarantees `_popping` is true
+      // here.
+      //
       // Phase-keyed: without a distinct key, flipping `_popping` reuses the
       // bloom TweenAnimationBuilder's element (same type, same
       // Tween(begin: 0, end: 1) shape). The bloom phase's tween has already
@@ -66,24 +111,6 @@ class _ShieldBubbleOverlayState extends State<ShieldBubbleOverlay> {
         builder: (_, t, _) => CustomPaint(
           size: Size.infinite,
           painter: _ShieldPainter(bloom: 1, pop: t, charges: charges),
-        ),
-      );
-    } else if (reduceMotion) {
-      bubble = CustomPaint(
-        size: Size.infinite,
-        painter: _ShieldPainter(bloom: 1, pop: 0, charges: charges),
-      );
-    } else {
-      // Bloom runs once on mount of the armed state; TweenAnimationBuilder
-      // holds the final static frame afterwards with no ticker.
-      bubble = TweenAnimationBuilder<double>(
-        key: const ValueKey<bool>(false),
-        tween: Tween(begin: 0, end: 1),
-        duration: AppDurations.effectLand,
-        curve: AppCurves.pop,
-        builder: (_, t, _) => CustomPaint(
-          size: Size.infinite,
-          painter: _ShieldPainter(bloom: t, pop: 0, charges: charges),
         ),
       );
     }
