@@ -99,6 +99,42 @@ void main() {
     expect(find.text('1h 01m'), findsOneWidget);
   });
 
+  testWidgets('a deadline extension climbs to the new time with a +Ns tag',
+      (tester) async {
+    Widget timer(int endsAt) => MaterialApp(
+      home: Scaffold(body: MatchTimer(endsAt: endsAt, nowMillis: 5000)),
+    );
+    await tester.pumpWidget(timer(95000)); // 1:30 remaining
+    expect(find.text('1:30'), findsOneWidget);
+
+    await tester.pumpWidget(timer(125000)); // boosted to 2:00
+    await tester.pump(const Duration(milliseconds: 200));
+    // Mid-climb: neither endpoint is showing, and the boost tag is.
+    expect(find.text('1:30'), findsNothing);
+    expect(find.text('2:00'), findsNothing);
+    expect(find.text('+30s'), findsOneWidget);
+
+    // Settled: the new time, tag gone.
+    await tester.pumpAndSettle();
+    expect(find.text('2:00'), findsOneWidget);
+    expect(find.text('+30s'), findsNothing);
+  });
+
+  testWidgets('reduced motion snaps straight to the boosted time',
+      (tester) async {
+    Widget timer(int endsAt) => MediaQuery(
+      data: const MediaQueryData(disableAnimations: true),
+      child: MaterialApp(
+        home: Scaffold(body: MatchTimer(endsAt: endsAt, nowMillis: 5000)),
+      ),
+    );
+    await tester.pumpWidget(timer(95000));
+    await tester.pumpWidget(timer(125000));
+    await tester.pump();
+    expect(find.text('2:00'), findsOneWidget);
+    expect(find.text('+30s'), findsNothing);
+  });
+
   testWidgets(
     'MatchHud ticks against the server clock, not the raw device clock',
     (tester) async {
