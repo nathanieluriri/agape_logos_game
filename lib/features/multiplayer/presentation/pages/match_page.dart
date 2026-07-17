@@ -725,17 +725,22 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                             letters: wheelLetters,
                             selected: playState.selection,
                             ids: order,
-                            onTouch: (slot) => controller.touchLetter(
-                              slot,
-                              frozen: _frozenSlots(
+                            onTouch: (slot) {
+                              final frozen = _frozenSlots(
                                 effects,
                                 wheelLetters,
                                 ref
                                     .read(serverClockProvider)
                                     .now()
                                     .millisecondsSinceEpoch,
-                              ),
-                            ),
+                              );
+                              if (frozen.contains(slot)) {
+                                // The ice refuses the finger: a dull thunk
+                                // instead of the selection click.
+                                Haptics.instance.mistakeImpact();
+                              }
+                              controller.touchLetter(slot, frozen: frozen);
+                            },
                             onEnd: () {
                               final word = controller.endSelection(rack, found);
                               if (word != null) _submit(word);
@@ -752,6 +757,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                                 ),
                                 letterCount: wheelLetters.length,
                                 size: _wheelSize,
+                                stacks: effects.freezeStacks,
                               ),
                             ),
                           ),

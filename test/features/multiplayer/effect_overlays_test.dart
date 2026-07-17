@@ -29,6 +29,47 @@ void main() {
     expect(find.byIcon(Icons.ac_unit_rounded), findsNothing);
   });
 
+  testWidgets('a lapsed frost disc lingers to shatter, then leaves the tree',
+      (tester) async {
+    Widget overlay(Set<int> slots) => MaterialApp(
+      home: Scaffold(
+        body: FrozenLetterOverlay(
+          frozenSlots: slots, letterCount: 4, size: const Size(260, 260),
+        ),
+      ),
+    );
+    await tester.pumpWidget(overlay(const {1}));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.ac_unit_rounded), findsOneWidget);
+
+    // The slot thaws: the disc must still be on screen mid-shatter...
+    await tester.pumpWidget(overlay(const {}));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byIcon(Icons.ac_unit_rounded), findsOneWidget);
+
+    // ...and gone once the shatter window has fully elapsed.
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byIcon(Icons.ac_unit_rounded), findsNothing);
+  });
+
+  testWidgets('reduced motion drops a thawed disc immediately', (tester) async {
+    Widget overlay(Set<int> slots) => MediaQuery(
+      data: const MediaQueryData(disableAnimations: true),
+      child: MaterialApp(
+        home: Scaffold(
+          body: FrozenLetterOverlay(
+            frozenSlots: slots, letterCount: 4, size: const Size(260, 260),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpWidget(overlay(const {1}));
+    expect(find.byIcon(Icons.ac_unit_rounded), findsOneWidget);
+    await tester.pumpWidget(overlay(const {}));
+    await tester.pump();
+    expect(find.byIcon(Icons.ac_unit_rounded), findsNothing);
+  });
+
   testWidgets('match timer formats remaining m:ss under an hour',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(
