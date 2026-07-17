@@ -124,4 +124,43 @@ void main() {
 
     expect(find.textContaining('h '), findsOneWidget);
   });
+
+  testWidgets('double points shows the x2 badge on the score pip',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: MatchHud(
+          myScore: 10, myWords: 2,
+          opponentName: 'O', opponentWords: 1, opponentConnected: true,
+          endsAt: DateTime.now().add(const Duration(minutes: 2)),
+          onDictionary: () {},
+          doublePoints: true,
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('x2'), findsOneWidget);
+  });
+
+  testWidgets('a score gain under double points floats a doubled pop',
+      (tester) async {
+    Widget hud(int score) => MaterialApp(
+      home: Scaffold(
+        body: MatchHud(
+          myScore: score, myWords: 2,
+          opponentName: 'O', opponentWords: 1, opponentConnected: true,
+          endsAt: DateTime.now().add(const Duration(minutes: 2)),
+          onDictionary: () {},
+          doublePoints: true,
+        ),
+      ),
+    );
+    await tester.pumpWidget(hud(10));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(hud(24));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('+14 x2'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('+14 x2'), findsNothing);
+  });
 }

@@ -705,6 +705,8 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                     if (leave && mounted) _leaveMatch();
                   }
                 : null,
+            doublePoints: effects.doublePoints,
+            doubleStacks: effects.doublePointsStacks,
           ),
         ),
         Padding(
