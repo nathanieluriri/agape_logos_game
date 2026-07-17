@@ -52,6 +52,14 @@ class FogShaderOverlay extends StatefulWidget {
 }
 
 class _FogShaderOverlayState extends State<FogShaderOverlay> {
+  /// Fixed-sigma blur, built once for the whole app: the sigma never animates
+  /// (animating it is the classic BackdropFilter jank), so the filter handle
+  /// is shared across every fog frame instead of reallocated per build.
+  static final ui.ImageFilter _blur = ui.ImageFilter.blur(
+    sigmaX: AppSizing.fogBlurSigma,
+    sigmaY: AppSizing.fogBlurSigma,
+  );
+
   Ticker? _ticker;
   Timer? _timer;
   Duration _elapsed = Duration.zero;
@@ -195,10 +203,7 @@ class _FogShaderOverlayState extends State<FogShaderOverlay> {
               ClipRect(
                 clipper: _FogBandClipper(fraction: coverFraction),
                 child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(
-                    sigmaX: AppSizing.fogBlurSigma,
-                    sigmaY: AppSizing.fogBlurSigma,
-                  ),
+                  filter: _blur,
                   child: const SizedBox.expand(),
                 ),
               ),
