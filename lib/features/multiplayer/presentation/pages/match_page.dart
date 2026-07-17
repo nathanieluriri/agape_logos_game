@@ -143,6 +143,11 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   // animating anything; only events that arrive AFTER that snapshot animate.
   bool _eventsSeeded = false;
 
+  // Task 5: bumped each time an incoming scramble reorders the wheel, so the
+  // LetterWheel animates that reorder as a swirl instead of the plain glide
+  // it uses for a self-initiated shuffle.
+  int _scrambleSwirlTick = 0;
+
   @override
   void initState() {
     super.initState();
@@ -391,6 +396,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
       for (final e in events) {
         if (e.kind == MatchEventKind.scramble) {
           ctrl.applyScramble(e.id);
+          setState(() => _scrambleSwirlTick++);
         } else if (e.kind == MatchEventKind.wordSteal) {
           final w = e.stolenWord;
           if (w != null) ctrl.applyWordSteal(e.id, w);
@@ -725,6 +731,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                             letters: wheelLetters,
                             selected: playState.selection,
                             ids: order,
+                            swirlTick: _scrambleSwirlTick,
                             onTouch: (slot) {
                               final frozen = _frozenSlots(
                                 effects,
