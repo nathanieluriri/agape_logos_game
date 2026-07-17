@@ -43,6 +43,7 @@ import '../widgets/powerup_info_sheet.dart';
 import '../widgets/powerup_side_buttons.dart';
 import '../widgets/powerup_tutorial_overlay.dart';
 import '../widgets/powerup_wheel.dart';
+import '../widgets/word_steal_flyout.dart';
 
 /// How often anything on the match page consults the wall clock. Not a motion
 /// token: this is a polling interval, not an animation.
@@ -286,6 +287,17 @@ class _MatchPageState extends ConsumerState<MatchPage> {
       Haptics.instance.mistakeImpact();
       showPondSnack(context, 'Blocked!');
     }
+    if (result.ok && result.reason == null && kind == 'word_steal') {
+      // The claimed word flies into my score pip (top left). The rack sync
+      // delivers the word itself; the flight is generic on this side.
+      final size = MediaQuery.sizeOf(context);
+      WordStealFlyout.show(
+        context,
+        label: '+1 word',
+        from: Offset(size.width / 2, AppSpacing.xl * 3),
+        to: const Offset(AppSpacing.xl, AppSpacing.xl),
+      );
+    }
   }
 
   void _playSfxQuiet(String key) {
@@ -404,7 +416,19 @@ class _MatchPageState extends ConsumerState<MatchPage> {
           }
         } else if (e.kind == MatchEventKind.wordSteal) {
           final w = e.stolenWord;
-          if (w != null) ctrl.applyWordSteal(e.id, w);
+          if (w != null) {
+            ctrl.applyWordSteal(e.id, w);
+            // Replayed emission: only a genuinely new steal animates the flight.
+            if (!_seenEventIds.contains(e.id)) {
+              final size = MediaQuery.sizeOf(context);
+              WordStealFlyout.show(
+                context,
+                label: w.toUpperCase(),
+                from: Offset(size.width / 2, size.height * 0.35),
+                to: Offset(size.width - AppSpacing.xl * 2, AppSpacing.xl),
+              );
+            }
+          }
         }
         _handleIncomingEvent(e);
       }

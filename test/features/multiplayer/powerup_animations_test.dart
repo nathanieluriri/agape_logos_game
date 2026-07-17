@@ -340,6 +340,66 @@ void main() {
         await tester.pump();
       },
     );
+
+    // Regression: same doc-query replay hazard as the scramble case above,
+    // but for word_steal. `ctrl.applyWordSteal` already dedupes the rack
+    // side effect internally; this pins down that the VISUAL flyout also
+    // fires at most once per event id, not once per stream emission.
+    testWidgets(
+      'a replayed word-steal event does not re-fire the flyout',
+      (tester) async {
+        final events = StreamController<List<MatchEvent>>();
+        addTearDown(events.close);
+        final steal = MatchEvent(
+          id: 'w1',
+          at: DateTime.now().millisecondsSinceEpoch,
+          byUid: 'opp',
+          targetUid: 'me',
+          kind: MatchEventKind.wordSteal,
+          payload: const {'word': 'lotus'},
+          expiresAt: 0,
+        );
+
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+            matchServiceProvider.overrideWithValue(_FakeRemote()),
+            matchStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_active())),
+            myRackStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_rack())),
+            matchEventsStreamProvider('m1').overrideWith((ref) => events.stream),
+            storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+          ],
+          child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+        ));
+        await tester.pump(); // match + rack streams emit
+        await tester.pump(); // rack sync + rebuild
+
+        // Seed: the first snapshot is historical, not new.
+        events.add(const []);
+        await tester.pump();
+
+        // A genuinely new steal: fires the flyout.
+        events.add([steal]);
+        await tester.pump();
+        expect(find.text('LOTUS'), findsOneWidget);
+
+        // The doc query re-emits the SAME event while the first flyout is
+        // still mid-flight. A second flyout stacked on top would still read
+        // as one 'LOTUS' text via findsOneWidget below only if the dedup
+        // gate held; the buggy version inserts a second overlay entry here.
+        events.add([steal]);
+        await tester.pump();
+        expect(find.text('LOTUS'), findsOneWidget);
+
+        // Let the flyout finish (AppDurations.stealFlight = 800ms); it
+        // self-removes.
+        await tester.pump(const Duration(milliseconds: 800));
+        await tester.pumpAndSettle();
+        expect(find.text('LOTUS'), findsNothing);
+      },
+    );
   });
 
   group('ActiveEffectChips', () {
