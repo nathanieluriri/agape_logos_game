@@ -6,13 +6,16 @@ import 'package:flutter/material.dart';
 import '../../../../core/design/motion/curves.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/durations.dart';
+import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/spacing.dart';
 
 /// The combo_lock ward: a soft luminous ring around the whole play area that
 /// deflects incoming attacks for its window. Rising edge: the ring draws
 /// itself in. Live: a STATIC stroke (no ticker); a one-shot [Timer] fades it
 /// at [wardUntil] (same pattern as the fog overlay's reduced-motion path).
-/// A [pingTick] increment plays one ripple pulse (an attack just bounced).
+/// A [pingTick] increment plays one ripple pulse (an attack just bounced) as
+/// an INDEPENDENT layer on top of the base ring, which never remounts or
+/// re-animates while a ping starts or ends.
 /// Distinct from the shield: the shield is a one-shot bubble on the wheel,
 /// the ward is a timed perimeter around everything.
 class WardRingOverlay extends StatefulWidget {
@@ -39,10 +42,21 @@ class WardRingOverlay extends StatefulWidget {
   State<WardRingOverlay> createState() => _WardRingOverlayState();
 }
 
+/// True when [warded] is currently in effect: not expired per [now].
+bool _isLive(bool warded, DateTime? until, DateTime now) =>
+    warded && until != null && now.isBefore(until);
+
 class _WardRingOverlayState extends State<WardRingOverlay> {
   Timer? _expiry;
   bool _fadingOut = false;
   bool _pinging = false;
+
+  /// True once the draw-in has fully swept and settled. While true, the base
+  /// ring renders as a plain, non-animated `CustomPaint` (no
+  /// `TweenAnimationBuilder`, no ticker) - a ping starting or ending never
+  /// touches this branch, so the base ring paints byte-identically
+  /// throughout a ping instead of re-running the draw-in.
+  bool _settled = false;
 
   /// Bumped every time [_armExpiry] runs (rising edge or any [wardUntil]
   /// change) and again when the expiry [Timer] actually starts a fade. Only
@@ -60,22 +74,25 @@ class _WardRingOverlayState extends State<WardRingOverlay> {
   /// cleanly instead of the earlier one's callback truncating it.
   int _pingSeq = 0;
 
-  bool get _live {
-    final until = widget.wardUntil;
-    return widget.warded && until != null && widget.now().isBefore(until);
-  }
+  bool get _live => _isLive(widget.warded, widget.wardUntil, widget.now());
 
   @override
   void initState() {
     super.initState();
-    _armExpiry();
+    _armExpiry(risingEdge: true);
   }
 
   @override
   void didUpdateWidget(WardRingOverlay old) {
     super.didUpdateWidget(old);
     if (old.wardUntil != widget.wardUntil || old.warded != widget.warded) {
-      _armExpiry();
+      final now = widget.now();
+      final wasLive = _isLive(old.warded, old.wardUntil, now);
+      final isLive = _isLive(widget.warded, widget.wardUntil, now);
+      // Only a genuine rising edge (not live -> live) replays the draw-in;
+      // extending an already-live ward's wardUntil (stacking another cast)
+      // must leave the settled ring exactly where it is.
+      _armExpiry(risingEdge: !wasLive && isLive);
     }
     if (widget.pingTick != old.pingTick && _live) {
       final reduceMotion =
@@ -91,13 +108,14 @@ class _WardRingOverlayState extends State<WardRingOverlay> {
     }
   }
 
-  void _armExpiry() {
+  void _armExpiry({required bool risingEdge}) {
     _expiry?.cancel();
     _expiry = null;
     _fadingOut = false;
     _fadeSeq++; // Invalidate any in-flight fade-clear callback from before.
     _pinging = false;
     _pingSeq++; // Invalidate any in-flight ping-clear callback from before.
+    if (risingEdge) _settled = false;
     final until = widget.wardUntil;
     if (!widget.warded || until == null) return;
     final delay = until.difference(widget.now());
@@ -126,81 +144,103 @@ class _WardRingOverlayState extends State<WardRingOverlay> {
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final stacks = math.max(1, widget.stacks);
 
-    Widget ring;
+    Widget base;
     if (_fadingOut && !reduceMotion) {
-      ring = TweenAnimationBuilder<double>(
+      base = TweenAnimationBuilder<double>(
         key: const ValueKey<String>('ward-out'),
         tween: Tween(begin: 1, end: 0),
         duration: AppDurations.effectExpire,
         curve: AppCurves.exit,
         builder: (_, sweep, _) => CustomPaint(
           size: Size.infinite,
-          painter: _WardPainter(sweep: sweep, ping: 0, stacks: stacks),
+          painter: _WardPainter(sweep: sweep, stacks: stacks),
         ),
       );
     } else if (reduceMotion) {
-      ring = CustomPaint(
+      base = CustomPaint(
         size: Size.infinite,
         painter: _WardPainter(
           sweep: _fadingOut ? 0 : 1,
-          ping: 0,
           stacks: stacks,
         ),
       );
-    } else if (_pinging) {
-      // Phase-keyed by the actual tick value: a plain constant key would
-      // still restart the ripple correctly on the FIRST flip into this
-      // branch, but two pings in a row (widget.pingTick advancing again
-      // while `_pinging` is already true) would rebuild the SAME element in
-      // place with an unchanged Tween(begin:0,end:1) shape, so
-      // forEachTween would see no target change and the second ping would
-      // never actually restart the sweep. Keying by the tick forces a
-      // fresh element every time.
-      ring = TweenAnimationBuilder<double>(
-        key: ValueKey<String>('ward-ping-${widget.pingTick}'),
-        tween: Tween(begin: 0, end: 1),
-        duration: AppDurations.effectExpire,
-        curve: AppCurves.exit,
-        builder: (_, ping, _) => CustomPaint(
-          size: Size.infinite,
-          painter: _WardPainter(sweep: 1, ping: ping, stacks: stacks),
-        ),
+    } else if (_settled) {
+      // Fully drawn and at rest: a plain, non-animated CustomPaint - no
+      // TweenAnimationBuilder, no ticker, no per-frame cost. A deflect ping
+      // is a SEPARATE layer stacked on top (below), so this branch never
+      // changes while a ping starts or ends: the base ring stays
+      // byte-identical (sweep == 1) throughout.
+      base = CustomPaint(
+        size: Size.infinite,
+        painter: _WardPainter(sweep: 1, stacks: stacks),
       );
     } else {
-      // Draw-in on arrival; TweenAnimationBuilder rests at the static final
-      // frame with no ticker once the sweep completes. Phase-keyed: without
-      // a distinct key here, flipping in from the fade-out or ping branch
-      // above (same TweenAnimationBuilder<double> type at this slot) would
-      // reuse that element in place instead of mounting a fresh one, and
-      // the fade-out/ping branches share the same Tween shape family, so
-      // forEachTween would see no target change and the sweep would stay
-      // pinned at whatever value it last held instead of drawing in.
-      ring = TweenAnimationBuilder<double>(
+      // Draw-in on arrival; only entered right after `_armExpiry` has reset
+      // `_settled = false` on a genuine rising edge. `onEnd` flips to the
+      // static settled branch once the sweep completes, so the ring never
+      // keeps a ticker running once fully drawn - and, because the settled
+      // branch above is gated purely on `_settled` (not on which branch was
+      // active last), a ping starting or ending later can never flip back
+      // into this draw-in branch and replay the sweep.
+      base = TweenAnimationBuilder<double>(
         key: const ValueKey<String>('ward-in'),
         tween: Tween(begin: 0, end: 1),
         duration: AppDurations.effectLand,
         curve: AppCurves.enter,
+        onEnd: () {
+          if (mounted) setState(() => _settled = true);
+        },
         builder: (_, sweep, _) => CustomPaint(
           size: Size.infinite,
-          painter: _WardPainter(sweep: sweep, ping: 0, stacks: stacks),
+          painter: _WardPainter(sweep: sweep, stacks: stacks),
         ),
       );
     }
-    return IgnorePointer(child: RepaintBoundary(child: ring));
+
+    // The deflect echo: an independent layer painted on top of the base
+    // ring, never the base ring's own element. Phase-keyed by the actual
+    // tick value: a plain constant key would still restart the ripple
+    // correctly on the FIRST ping, but two pings in a row (widget.pingTick
+    // advancing again while `_pinging` is already true) would rebuild the
+    // SAME element in place with an unchanged Tween(begin:0,end:1) shape, so
+    // forEachTween would see no target change and the second ping would
+    // never actually restart. Keying by the tick forces a fresh element
+    // every time. Never mounted under reduced motion.
+    final showEcho = _pinging && !reduceMotion;
+
+    return IgnorePointer(
+      child: RepaintBoundary(
+        child: Stack(
+          // Always a Stack, even with a single child: keeping the tree
+          // shape constant (base always at the same slot) means the echo
+          // layer appearing/disappearing never disturbs the base layer's
+          // element, which is the whole point of this structure.
+          fit: StackFit.expand,
+          children: [
+            base,
+            if (showEcho)
+              TweenAnimationBuilder<double>(
+                key: ValueKey<String>('ward-ping-${widget.pingTick}'),
+                tween: Tween(begin: 0, end: 1),
+                duration: AppDurations.effectExpire,
+                curve: AppCurves.exit,
+                builder: (_, ping, _) => CustomPaint(
+                  size: Size.infinite,
+                  painter: _WardEchoPainter(ping: ping),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
-/// [sweep] 0..1 draws the ring's arc length; [ping] 0..1 pulses a brighter,
-/// slightly expanded echo ring outward.
+/// Paints the base ring only. [sweep] 0..1 draws the ring's arc length.
 class _WardPainter extends CustomPainter {
-  const _WardPainter({
-    required this.sweep,
-    required this.ping,
-    required this.stacks,
-  });
+  const _WardPainter({required this.sweep, required this.stacks});
 
   final double sweep;
-  final double ping;
   final int stacks;
 
   @override
@@ -208,7 +248,10 @@ class _WardPainter extends CustomPainter {
     if (sweep <= 0) return;
     final rect = Offset.zero & size;
     final inset = rect.deflate(AppSpacing.sm);
-    final rrect = RRect.fromRectAndRadius(inset, const Radius.circular(28));
+    final rrect = RRect.fromRectAndRadius(
+      inset,
+      const Radius.circular(AppRadii.lg),
+    );
     final alpha = (0.55 + 0.15 * (stacks - 1)).clamp(0.0, 0.85);
     final stroke = Paint()
       ..style = PaintingStyle.stroke
@@ -241,19 +284,41 @@ class _WardPainter extends CustomPainter {
         }
       }
     }
-    // Deflect ping: a brighter echo expanding just outside the ring.
-    if (ping > 0 && ping < 1) {
-      canvas.drawRRect(
-        rrect.inflate(10 * ping),
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2
-          ..color = AppColors.accent.withValues(alpha: 0.8 * (1 - ping)),
-      );
-    }
   }
 
   @override
   bool shouldRepaint(_WardPainter old) =>
-      old.sweep != sweep || old.ping != ping || old.stacks != stacks;
+      old.sweep != sweep || old.stacks != stacks;
+}
+
+/// Paints the deflect echo only: a brighter ring expanding just outside the
+/// base ring's outline as [ping] runs 0..1. Kept as its own painter (rather
+/// than a second field on [_WardPainter]) so the echo is a genuinely
+/// independent paint layer that never causes the base ring to repaint or
+/// remount when a ping starts or ends.
+class _WardEchoPainter extends CustomPainter {
+  const _WardEchoPainter({required this.ping});
+
+  final double ping;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (ping <= 0 || ping >= 1) return;
+    final rect = Offset.zero & size;
+    final inset = rect.deflate(AppSpacing.sm);
+    final rrect = RRect.fromRectAndRadius(
+      inset,
+      const Radius.circular(AppRadii.lg),
+    );
+    canvas.drawRRect(
+      rrect.inflate(10 * ping),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = AppColors.accent.withValues(alpha: 0.8 * (1 - ping)),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_WardEchoPainter old) => old.ping != ping;
 }

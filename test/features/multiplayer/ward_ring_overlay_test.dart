@@ -9,13 +9,18 @@ void main() {
     matching: find.byType(CustomPaint),
   );
 
+  // The base ring and the deflect echo are now two INDEPENDENT paint layers
+  // (a Stack: [base, if (pinging) echo]), so a single CustomPaint lookup no
+  // longer works while a ping is live. `paints` returns them in tree order:
+  // index 0 is always the base ring; index 1 (when present) is the echo.
+  List<CustomPaint> paints(WidgetTester tester) =>
+      tester.widgetList<CustomPaint>(paintFinder()).toList();
+
   double sweepValue(WidgetTester tester) =>
-      (tester.widget<CustomPaint>(paintFinder()).painter as dynamic).sweep
-          as double;
+      (paints(tester).first.painter as dynamic).sweep as double;
 
   double pingValue(WidgetTester tester) =>
-      (tester.widget<CustomPaint>(paintFinder()).painter as dynamic).ping
-          as double;
+      (paints(tester).last.painter as dynamic).ping as double;
 
   testWidgets(
     'ring draws itself in on the rising edge and drops itself at wardUntil',
@@ -90,6 +95,7 @@ void main() {
       // First ping.
       await tester.pumpWidget(host(1));
       await tester.pump(const Duration(milliseconds: 150));
+      expect(paints(tester).length, 2); // base + echo.
       final pingAt150ms = pingValue(tester);
       expect(pingAt150ms, greaterThan(0.0));
       expect(pingAt150ms, lessThan(1.0));
@@ -97,6 +103,7 @@ void main() {
       // Let the first ping's window fully elapse and clear.
       await tester.pump(AppDurations.effectExpire);
       await tester.pumpAndSettle();
+      expect(paints(tester).length, 1); // echo layer gone.
 
       // A second, later ping tick must re-run the pulse from scratch, not
       // stay pinned at whatever the first ping's (now-disposed) element
@@ -150,10 +157,11 @@ void main() {
       // 400ms, so push on to 350ms since ping 1 started / 250ms since ping
       // 2 started), while still inside ping 2's own effectExpire window.
       // Without the generation counter, the stale callback would clear
-      // `_pinging` here and the widget would fall back to the draw-in
-      // branch, whose painter always reports ping == 0 - a directly
-      // observable difference from the fix.
+      // `_pinging` here and the echo layer would disappear entirely (base
+      // ring only, 1 CustomPaint) - a directly observable difference from
+      // the fix.
       await tester.pump(const Duration(milliseconds: 250));
+      expect(paints(tester).length, 2);
       final stillMidSecond = pingValue(tester);
       expect(stillMidSecond, greaterThan(0.0));
       expect(stillMidSecond, lessThan(1.0));
@@ -162,6 +170,100 @@ void main() {
       // pending.
       await tester.pump(const Duration(seconds: 11));
       await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'the settled base ring stays byte-identical through a ping: no '
+    're-draw once it ends',
+    (tester) async {
+      final until = DateTime.now().add(const Duration(seconds: 10));
+      Widget host(int tick) => MaterialApp(
+        home: Scaffold(
+          body: WardRingOverlay(
+            warded: true, wardUntil: until, now: DateTime.now, pingTick: tick,
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(host(0));
+      await tester.pumpAndSettle();
+      expect(sweepValue(tester), 1.0);
+      expect(paints(tester).length, 1); // settled base only, no echo.
+
+      // Ping: the echo layers on top, the base is still there underneath.
+      await tester.pumpWidget(host(1));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(paints(tester).length, 2);
+      expect(sweepValue(tester), 1.0); // base untouched by the ping.
+
+      // Push exactly to the end of the ping's own window - the instant the
+      // echo clears - and check IMMEDIATELY, in the same pump, WITHOUT a
+      // trailing pumpAndSettle: a pumpAndSettle here would silently fast
+      // -forward through any accidental base re-animation and hide exactly
+      // the defect this test exists to catch (reviewer-observed: sweep
+      // drops to ~0.007 right after a ping ends, then spends 600ms visibly
+      // redrawing before settling back to 1).
+      await tester.pump(AppDurations.effectExpire);
+      expect(sweepValue(tester), 1.0);
+      expect(paints(tester).length, 1);
+
+      // And it must STAY at 1, not just a coincidental single-frame read -
+      // across a further pump that would have been mid-redraw under the bug
+      // (the draw-in's effectLand window is 600ms).
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(sweepValue(tester), 1.0);
+      expect(paints(tester).length, 1);
+
+      // Drain the ward's own far-off expiry timer.
+      await tester.pump(const Duration(seconds: 11));
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'reduced motion renders the static ring instantly, a ping tick shows '
+    'no echo, and expiry drops the ring without a fade',
+    (tester) async {
+      var current = DateTime.now();
+      final until = current.add(const Duration(seconds: 2));
+      Widget host(int tick) => MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: MaterialApp(
+          home: Scaffold(
+            body: WardRingOverlay(
+              warded: true,
+              wardUntil: until,
+              now: () => current,
+              pingTick: tick,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(host(0));
+      // No TweenAnimationBuilder involved: the static ring is already at
+      // its fully-drawn value on the very first frame, never mid-draw.
+      expect(paints(tester).length, 1);
+      expect(sweepValue(tester), 1.0);
+
+      // A ping tick under reduced motion never sets `_pinging`
+      // (didUpdateWidget gates it on `!reduceMotion`), so no echo layer
+      // ever appears.
+      await tester.pumpWidget(host(1));
+      await tester.pump();
+      expect(paints(tester).length, 1);
+
+      // The one-shot expiry timer fires and drops the ring; under reduced
+      // motion there is no TweenAnimationBuilder-driven fade - the flat
+      // sweep flips straight to 0 rather than easing through it.
+      current = until.add(const Duration(milliseconds: 1));
+      await tester.pump(const Duration(seconds: 2));
+      expect(sweepValue(tester), 0.0);
+
+      // Past the (still unconditionally armed) fade-clear delay: gone.
+      await tester.pump(const Duration(seconds: 1));
+      expect(paintFinder(), findsNothing);
     },
   );
 }
