@@ -142,6 +142,49 @@ void main() {
     expect(find.text('x2'), findsOneWidget);
   });
 
+  testWidgets(
+      'double points badge scale-in actually animates (not a static '
+      'AnimatedScale(scale: 1))', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: MatchHud(
+          myScore: 10, myWords: 2,
+          opponentName: 'O', opponentWords: 1, opponentConnected: true,
+          endsAt: DateTime.now().add(const Duration(minutes: 2)),
+          onDictionary: () {},
+          doublePoints: true,
+        ),
+      ),
+    ));
+
+    final badgeFinder = find.descendant(
+      of: find.byKey(const ValueKey('double-points-badge')),
+      matching: find.byType(Transform),
+    );
+    // Read the matrix's raw diagonal entry, not Matrix4.getMaxScaleOnAxis():
+    // that helper is a raster/texture-resolution utility that floors its
+    // result at 1.0 (never reports "less resolution needed"), so it can't
+    // distinguish an in-progress sub-1.0 scale-in from the settled value.
+    double badgeScale() =>
+        tester.widget<Transform>(badgeFinder).transform.storage[0];
+
+    // Mounting IS activation (the badge only exists in the tree while
+    // active), so the very first frame starts the tween. Probe partway
+    // through AppDurations.fast (180ms): AppCurves.pop (easeOutBack) has
+    // already overshot past the 1.0 end value by its true midpoint (90ms),
+    // so 45ms is used instead to land solidly between the 0.6 start and the
+    // 1.0 rest value while still being clearly mid-animation, not an
+    // endpoint.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 45));
+    final midScale = badgeScale();
+    expect(midScale, greaterThan(0.6));
+    expect(midScale, lessThan(1.0));
+
+    await tester.pumpAndSettle();
+    expect(badgeScale(), 1.0);
+  });
+
   testWidgets('a score gain under double points floats a doubled pop',
       (tester) async {
     Widget hud(int score) => MaterialApp(

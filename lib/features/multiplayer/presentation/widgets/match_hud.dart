@@ -225,10 +225,17 @@ class _MyScorePipState extends State<_MyScorePip> {
         ),
         if (active) ...[
           const SizedBox(width: AppSpacing.xxs),
-          AnimatedScale(
-            scale: 1,
+          // Keyed constant: this subtree only exists while active (it lives
+          // inside `if (active)`), so mounting IS activation. The tween runs
+          // exactly once per activation and holds at 1.0 afterward, no
+          // ticker left running.
+          TweenAnimationBuilder<double>(
+            key: const ValueKey('double-points-badge'),
+            tween: Tween(begin: 0.6, end: 1),
             duration: reduceMotion ? Duration.zero : AppDurations.fast,
             curve: AppCurves.pop,
+            builder: (_, scale, child) =>
+                Transform.scale(scale: scale, child: child),
             child: Text(
               'x$multiplier',
               style: const TextStyle(
