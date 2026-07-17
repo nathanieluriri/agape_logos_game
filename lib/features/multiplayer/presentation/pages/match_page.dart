@@ -44,6 +44,7 @@ import '../widgets/powerup_side_buttons.dart';
 import '../widgets/powerup_tutorial_overlay.dart';
 import '../widgets/powerup_wheel.dart';
 import '../widgets/shield_bubble_overlay.dart';
+import '../widgets/ward_ring_overlay.dart';
 import '../widgets/word_steal_flyout.dart';
 
 /// How often anything on the match page consults the wall clock. Not a motion
@@ -149,6 +150,10 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   // LetterWheel animates that reorder as a swirl instead of the plain glide
   // it uses for a self-initiated shuffle.
   int _scrambleSwirlTick = 0;
+
+  // Task 8: bumped each time my ward deflects an attack (a `warded` event
+  // targeting me), so WardRingOverlay pulses its echo ring.
+  int _wardPingTick = 0;
 
   @override
   void initState() {
@@ -328,6 +333,10 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     final wireKind = blocked
         ? (e.originalKind ?? '')
         : matchEventKindToWire(e.kind);
+    if (e.kind == MatchEventKind.warded) {
+      // My ward just deflected an attack: pulse the ring.
+      setState(() => _wardPingTick++);
+    }
     if (wireKind.isEmpty) return; // unknown/warded: nothing to show
     final data = IncomingBannerData(
       casterName: match?.playerFor(e.byUid)?.displayName ?? 'Opponent',
@@ -867,6 +876,15 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     return Stack(
       children: [
         playColumn,
+        Positioned.fill(
+          child: WardRingOverlay(
+            warded: effects.warded,
+            wardUntil: effects.wardUntil,
+            now: () => ref.read(serverClockProvider).now(),
+            pingTick: _wardPingTick,
+            stacks: effects.wardStacks,
+          ),
+        ),
         Positioned.fill(
           child: FogShaderOverlay(
             fogUntil: effects.fogUntil,
