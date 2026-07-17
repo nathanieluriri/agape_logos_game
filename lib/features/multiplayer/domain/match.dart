@@ -150,6 +150,19 @@ abstract class Match with _$Match {
         nowMs >= startedAt;
   }
 
+  /// Like [playableAt], but against [uid]'s effective deadline (`endsAt` plus
+  /// their banked time_boost bonus). Raw `endsAt` would strand a boosted
+  /// player on the timeout screen while their personal clock still runs.
+  bool playableFor(String uid, int nowMs) {
+    if (endsAt > 0 && nowMs >= deadlineFor(uid)) return false;
+    if (status == MatchStatus.active) {
+      return startedAt <= 0 || nowMs >= startedAt;
+    }
+    return status == MatchStatus.countdown &&
+        startedAt > 0 &&
+        nowMs >= startedAt;
+  }
+
   /// Still counting down to the shared start instant.
   bool countingDownAt(int nowMs) =>
       status == MatchStatus.countdown && startedAt > 0 && nowMs < startedAt;

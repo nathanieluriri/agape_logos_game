@@ -160,23 +160,26 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     if (!mounted) return;
     final int now = DateTime.now().millisecondsSinceEpoch;
     final Match? match = ref.read(matchStreamProvider(widget.matchId)).value;
+    final String? myUid = ref.read(currentUserProvider)?.uid;
     if (match == null) {
       _now = now;
       return;
     }
-    _settleAtBoundaries(match, now);
-    final bool gateMoved = _gate(match, _now) != _gate(match, now);
+    _settleAtBoundaries(match, now, myUid);
+    final bool gateMoved = _gate(match, _now, myUid) != _gate(match, now, myUid);
     _now = now;
     if (gateMoved) setState(() {});
   }
 
   /// What the page shows at [now]: the phase, plus the countdown numeral while
-  /// there is one. The page rebuilds only when this changes.
-  (int, int) _gate(Match m, int now) {
+  /// there is one. The page rebuilds only when this changes. Playability is
+  /// per-player: a banked time_boost keeps MY board open past raw endsAt.
+  (int, int) _gate(Match m, int now, String? myUid) {
     if (m.status == MatchStatus.lobby || m.countingDownAt(now)) {
       return (0, m.countdownSecondsAt(now));
     }
-    if (!m.playableAt(now) && m.status != MatchStatus.finished) return (1, 0);
+    final playable = myUid == null ? m.playableAt(now) : m.playableFor(myUid, now);
+    if (!playable && m.status != MatchStatus.finished) return (1, 0);
     return (2, 0);
   }
 
@@ -192,14 +195,15 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   /// round is over it never finalizes, leaving both players stranded until the
   /// scheduled sweeper eventually cancels it. Poke the settling GET once as each
   /// boundary passes, and let the listener deliver the new doc.
-  void _settleAtBoundaries(Match m, int now) {
+  void _settleAtBoundaries(Match m, int now, String? myUid) {
     final bool startDue =
         m.status == MatchStatus.countdown &&
         m.startedAt > 0 &&
         now >= m.startedAt;
+    final int myDeadline = myUid == null ? m.endsAt : m.deadlineFor(myUid);
     final bool endDue =
         m.endsAt > 0 &&
-        now >= m.endsAt &&
+        now >= myDeadline &&
         m.status != MatchStatus.finished &&
         m.status != MatchStatus.cancelled;
 
@@ -412,7 +416,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     final failed =
         (matchAsync.hasError && match == null) ||
         (rackAsync.hasError && rack == null);
-    if (match != null) _settleAtBoundaries(match, _now);
+    if (match != null) _settleAtBoundaries(match, _now, myUid);
     final effects = ref.watch(activeEffectsProvider(matchId));
     final playState = ref.watch(matchPlayControllerProvider);
 
@@ -591,7 +595,9 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     // Time is up but the server has not finalized yet (it finalizes on the next
     // settle). Hold rather than leave a dead board on screen; the finished
     // listener navigates to the result as soon as the doc lands.
-    if (!match.playableAt(_now) && match.status != MatchStatus.finished) {
+    final playable =
+        myUid == null ? match.playableAt(_now) : match.playableFor(myUid, _now);
+    if (!playable && match.status != MatchStatus.finished) {
       return const _MatchInterlude(label: "Time's up");
     }
     if (!rack.decrypted) {
