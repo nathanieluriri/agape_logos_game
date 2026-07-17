@@ -2,6 +2,9 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/home/presentation/pages/home_page.dart';
+import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
+import 'package:agape_logos_game/features/rewards/application/rewards_providers.dart';
+import 'package:agape_logos_game/features/rewards/domain/reward_status.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +37,13 @@ class _FakeAuthRepository implements AuthRepository {
   Future<String?> idToken() async => null;
 }
 
+/// Keeps the home reward pad from reaching the network in these tests: the pad
+/// reads `GET /rewards`, so we stub the controller to a null (hidden) status.
+class _StubRewards extends RewardStatusController {
+  @override
+  Future<RewardStatus?> build() async => null;
+}
+
 GoRouter _buildRouter() => GoRouter(
       routes: [
         GoRoute(path: '/', builder: (_, __) => const HomePage()),
@@ -41,26 +51,36 @@ GoRouter _buildRouter() => GoRouter(
           path: '/game',
           builder: (_, __) => const Scaffold(body: Text('GAME PLACEHOLDER')),
         ),
+        GoRoute(
+          path: '/dictionary',
+          builder: (_, __) =>
+              const Scaffold(body: Text('DICTIONARY PLACEHOLDER')),
+        ),
       ],
     );
 
 void main() {
-  testWidgets('shows the Withdraw pad and no progress or bonus', (tester) async {
+  testWidgets('shows the Dictionary pad and no progress or bonus', (tester) async {
     const user = AuthUser(uid: 'u1');
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
           ambientEnabledProvider.overrideWithValue(false),
+          rewardStatusControllerProvider.overrideWith(_StubRewards.new),
           currentUserProvider.overrideWithValue(user),
+          // Backend-derived values stubbed so the widget test stays DB-free.
+          coinsProvider.overrideWithValue(0),
+          nextLevelProvider.overrideWithValue(26),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
     );
     await tester.pump();
 
-    expect(find.text('ZEN WORD'), findsOneWidget);
-    expect(find.bySemanticsLabel('Withdraw'), findsOneWidget);
+    expect(find.text('NAT WORD'), findsOneWidget);
+    expect(find.bySemanticsLabel('Dictionary'), findsOneWidget);
+    expect(find.bySemanticsLabel('Withdraw'), findsNothing);
     expect(find.bySemanticsLabel('Bonus Gift'), findsNothing);
     expect(find.textContaining('Completed'), findsNothing);
   });
@@ -72,7 +92,11 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
           ambientEnabledProvider.overrideWithValue(false),
+          rewardStatusControllerProvider.overrideWith(_StubRewards.new),
           currentUserProvider.overrideWithValue(user),
+          // Backend-derived values stubbed so the widget test stays DB-free.
+          coinsProvider.overrideWithValue(0),
+          nextLevelProvider.overrideWithValue(26),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
@@ -93,6 +117,9 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(null)),
           ambientEnabledProvider.overrideWithValue(false),
+          rewardStatusControllerProvider.overrideWith(_StubRewards.new),
+          coinsProvider.overrideWithValue(0),
+          nextLevelProvider.overrideWithValue(26),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
@@ -113,7 +140,11 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(_FakeAuthRepository(user)),
           ambientEnabledProvider.overrideWithValue(false),
+          rewardStatusControllerProvider.overrideWith(_StubRewards.new),
           currentUserProvider.overrideWithValue(user),
+          // Backend-derived values stubbed so the widget test stays DB-free.
+          coinsProvider.overrideWithValue(0),
+          nextLevelProvider.overrideWithValue(26),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),

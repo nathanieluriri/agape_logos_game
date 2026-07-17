@@ -3,7 +3,10 @@ import 'package:agape_logos_game/core/storage/app_database.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
+import 'package:agape_logos_game/features/rewards/application/rewards_providers.dart';
+import 'package:agape_logos_game/features/rewards/domain/reward_status.dart';
 import 'package:agape_logos_game/features/settings/application/settings_providers.dart';
+import 'package:agape_logos_game/features/social/application/social_providers.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +21,24 @@ const _row = GameSettingsRow(
   music: true,
   notifications: true,
   haptics: true,
+  tutorialSeen: false,
+  powerupTutorialSeen: true,
 );
+
+/// Home embeds the reward pad (which reads `GET /rewards`); stub it to a hidden
+/// status so this route test stays network-free.
+class _StubRewards extends RewardStatusController {
+  @override
+  Future<RewardStatus?> build() async => null;
+}
+
+/// Settings embeds the Public profile switch, which reads `GET /me` on build.
+/// Stub it so this route test stays network-free (a real Dio request leaves a
+/// pending timer past teardown).
+class _StubPrivacy extends ProfilePrivacyController {
+  @override
+  Future<bool> build() async => false;
+}
 
 class _FakeAuth implements AuthRepository {
   @override
@@ -51,6 +71,8 @@ void main() {
         settingsProvider.overrideWith((ref) => Stream.value(_row)),
         authRepositoryProvider.overrideWithValue(_FakeAuth()),
         ambientEnabledProvider.overrideWithValue(false),
+        rewardStatusControllerProvider.overrideWith(_StubRewards.new),
+        profilePrivacyControllerProvider.overrideWith(_StubPrivacy.new),
       ],
       child: MaterialApp.router(routerConfig: appRouter),
     ));

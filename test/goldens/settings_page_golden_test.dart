@@ -5,12 +5,14 @@
 // The PNGs land next to this file. Settings are injected via a fixed-row
 // `settingsProvider` override (the live Drift stream would deadlock under
 // fake-async; that path is covered by the DAO/controller unit tests).
+import 'package:agape_logos_game/app/pond_shell.dart';
 import 'package:agape_logos_game/core/storage/app_database.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/settings/application/settings_providers.dart';
 import 'package:agape_logos_game/features/settings/presentation/pages/settings_page.dart';
+import 'package:agape_logos_game/features/social/application/social_providers.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,7 +24,15 @@ const _row = GameSettingsRow(
   music: true,
   notifications: true,
   haptics: true,
+  tutorialSeen: false,
+  powerupTutorialSeen: true,
 );
+
+/// Deterministic, network-free Public profile switch (defaults to private).
+class _StubPrivacy extends ProfilePrivacyController {
+  @override
+  Future<bool> build() async => false;
+}
 
 class _FakeAuth implements AuthRepository {
   _FakeAuth(this._user);
@@ -61,10 +71,17 @@ Widget _app(AuthUser? user) => ProviderScope(
         settingsProvider.overrideWith((ref) => Stream.value(_row)),
         authRepositoryProvider.overrideWithValue(_FakeAuth(user)),
         ambientEnabledProvider.overrideWithValue(false),
+        // The Public profile switch reads `GET /me` on build. Stub it so the
+        // golden is deterministic and the test stays network-free.
+        profilePrivacyControllerProvider.overrideWith(_StubPrivacy.new),
       ],
-      child: const MaterialApp(
+      child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: SettingsPage(),
+        // The page is transparent: the pond lives in the app shell, so the
+        // golden must mount the shell layer the same way `AgapeApp` does.
+        builder: (context, child) =>
+            PondShell(child: child ?? const SizedBox.shrink()),
+        home: const SettingsPage(),
       ),
     );
 

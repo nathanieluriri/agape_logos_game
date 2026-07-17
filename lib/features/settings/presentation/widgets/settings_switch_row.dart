@@ -1,10 +1,12 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../shared/widgets/pond_switch.dart';
 
-/// A labeled switch row inside a [SettingsSection]. The switch uses the app
-/// theme's default styling (no deprecated color overrides).
+/// A labeled toggle row inside a [SettingsSection]. The whole row is the tap
+/// target; the pond switch swims to match. Label and switch merge into one
+/// semantics node so screen readers hear the visible text plus the state.
 class SettingsSwitchRow extends StatelessWidget {
   const SettingsSwitchRow({
     super.key,
@@ -19,23 +21,31 @@ class SettingsSwitchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.padLabel,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+    return MergeSemantics(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onChanged(!value),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
           ),
-          Switch(value: value, onChanged: onChanged),
-        ],
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: AppColors.padLabel,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              PondSwitch(value: value, onChanged: onChanged),
+            ],
+          ),
+        ),
       ),
     );
   }

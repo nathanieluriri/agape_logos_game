@@ -33,7 +33,8 @@ Future<void> signInWithGoogleCredential(FirebaseAuth auth) async {
   final String? idToken = account.authentication.idToken;
   if (idToken == null) throw AuthFailure.unknown;
 
-  final OAuthCredential credential =
-      GoogleAuthProvider.credential(idToken: idToken);
+  final OAuthCredential credential = GoogleAuthProvider.credential(
+    idToken: idToken,
+  );
   await auth.signInWithCredential(credential);
 }

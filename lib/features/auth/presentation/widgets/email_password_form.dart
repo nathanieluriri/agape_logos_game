@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../shared/widgets/pond_text_field.dart';
 
-/// Email + password fields with validation. Stateless: the parent owns the
-/// controllers and form key so it controls submission.
+/// Email + password fields with validation, styled as pond text inputs.
+/// Stateless: the parent owns the controllers and form key so it controls
+/// submission.
 class EmailPasswordForm extends StatelessWidget {
   const EmailPasswordForm({
     super.key,
@@ -35,19 +37,19 @@ class EmailPasswordForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextFormField(
+          PondTextField(
             controller: emailController,
+            label: 'Email',
             keyboardType: TextInputType.emailAddress,
             autofillHints: const [AutofillHints.email],
-            decoration: const InputDecoration(labelText: 'Email'),
             validator: _validateEmail,
           ),
           const SizedBox(height: AppSpacing.md),
-          TextFormField(
+          PondTextField(
             controller: passwordController,
+            label: 'Password',
             obscureText: true,
             autofillHints: const [AutofillHints.password],
-            decoration: const InputDecoration(labelText: 'Password'),
             validator: _validatePassword,
           ),
         ],

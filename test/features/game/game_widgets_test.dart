@@ -6,18 +6,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('FormedWordPill shows the word and hides when empty', (tester) async {
+  testWidgets('FormedWordPill shows each letter and hides when empty',
+      (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(body: Center(child: FormedWordPill(word: 'FIT'))),
     ));
-    await tester.pump();
-    expect(find.text('FIT'), findsOneWidget);
+    // Let the per-letter pops settle.
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('F'), findsOneWidget);
+    expect(find.text('I'), findsOneWidget);
+    expect(find.text('T'), findsOneWidget);
 
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(body: Center(child: FormedWordPill(word: ''))),
     ));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('FIT'), findsNothing); // previous word gone
+    expect(find.text('F'), findsNothing); // previous word gone
     expect(find.byType(FormedWordPill), findsOneWidget);
   });
 

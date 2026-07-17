@@ -38,3 +38,16 @@ export function attachDefinitions(
     })),
   };
 }
+
+/**
+ * Enforces the rule that EVERY answer carries a definition. Returns the puzzle
+ * unchanged when all answers have a non-empty definition; returns null when any
+ * answer is missing or blank, signalling the caller to drop the whole puzzle
+ * (never ship a rack that hides a common word the player could spell).
+ */
+export function requireAllDefined(puzzle: Puzzle): Puzzle | null {
+  const allDefined = puzzle.answers.every(
+    (a) => a.definition != null && a.definition.trim().length > 0,
+  );
+  return allDefined ? puzzle : null;
+}

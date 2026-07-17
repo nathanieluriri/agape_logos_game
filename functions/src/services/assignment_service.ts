@@ -1,7 +1,17 @@
 import {db} from "../firebase";
+import {deriveAnswerKey, encryptAnswerFields} from "../crypto/answer_cipher";
 import {Tier, TIER_ORDER} from "../generation/config";
 import {Rng} from "../generation/random";
 import {selectUnseen} from "./select_unseen";
+
+// Read a few extra candidates so excluding already-assigned puzzles still
+// leaves enough. Keeps a draw at O(n) reads instead of O(pool size).
+const OVERSAMPLE = 3;
+
+/** Random lower bound in [0,1) for the range window. Pure, for tests. */
+export function pickWindow(_count: number, rng: Rng): number {
+  return Math.min(0.999999, Math.max(0, rng()));
+}
 
 export interface PuzzleDoc {
   tier: string;
@@ -13,15 +23,29 @@ export interface PuzzleDoc {
   answerCount: number;
 }
 
+// Wire form sent to clients: answers are encrypted per-user. Only the length
+// stays in the clear (the board renders blanks from it).
+export interface WireAnswer {
+  length: number;
+  enc: string;
+}
+export type WirePuzzle = Omit<PuzzleDoc, "answers"> & {answers: WireAnswer[]};
+
 export interface DrawTierResult {
   requested: number;
   assigned: number;
-  puzzles: PuzzleDoc[];
+  puzzles: WirePuzzle[];
 }
 
 export interface DrawResult {
   byTier: Partial<Record<Tier, DrawTierResult>>;
   shortfall: boolean;
+}
+
+// Encrypts a puzzle's answers with the caller's per-user key. Derive the key
+// once per request and reuse it across the batch.
+export function encryptPuzzle(key: Buffer, p: PuzzleDoc): WirePuzzle {
+  return {...p, answers: p.answers.map((a) => encryptAnswerFields(key, a))};
 }
 
 const defaultRng: Rng = () => Math.random();
@@ -47,17 +71,76 @@ export async function fetchPuzzles(ids: string[]): Promise<PuzzleDoc[]> {
     .map((s) => toPuzzle(s.data() as Record<string, unknown>));
 }
 
+async function drawTierCandidates(
+  tier: Tier,
+  n: number,
+  assignedIds: Set<string>,
+  rng: Rng,
+): Promise<string[]> {
+  const want = n * OVERSAMPLE;
+  const start = pickWindow(n, rng);
+  const col = db.collection("puzzles").where("tier", "==", tier);
+
+  const ids: string[] = [];
+  try {
+    // Forward window from a random point.
+    const forward = await col
+      .where("random", ">=", start)
+      .orderBy("random")
+      .limit(want)
+      .select()
+      .get();
+    for (const d of forward.docs) {
+      if (!assignedIds.has(d.id)) ids.push(d.id);
+    }
+    if (ids.length >= n) return ids.slice(0, n);
+    // Wrap around: read from the start of the tier to top up.
+    const wrap = await col
+      .where("random", "<", start)
+      .orderBy("random")
+      .limit(want)
+      .select()
+      .get();
+    for (const d of wrap.docs) {
+      if (ids.length >= n) break;
+      if (!assignedIds.has(d.id)) ids.push(d.id);
+    }
+    if (ids.length >= n) return ids.slice(0, n);
+  } catch (e) {
+    // The windowed query needs the composite index (puzzles: tier, random). If it
+    // is missing or still BUILDING, Firestore throws FAILED_PRECONDITION. Never
+    // let that fail a draw: fall through to the tier scan below.
+    // eslint-disable-next-line no-console
+    console.warn(`windowed draw unavailable for tier=${tier}, scanning`, e);
+    ids.length = 0;
+  }
+
+  // Fallback, for two cases:
+  //  1. A Firestore range filter SKIPS documents that lack the field, so any
+  //     puzzle written before `random` existed (or before backfill:random ran)
+  //     is invisible to the windowed query.
+  //  2. The composite index is missing or still building (the catch above).
+  // Either way a draw must still return puzzles. Costs one full tier read, and
+  // only when the window came up short or unavailable.
+  const all = await col.select().get();
+  const {chosen} = selectUnseen(all.docs.map((d) => d.id), assignedIds, n, rng);
+  return chosen;
+}
+
 interface DrawRecordTier {
   requested: number;
   puzzleIds: string[];
 }
 
-async function replayDraw(tiers: Record<string, DrawRecordTier>): Promise<DrawResult> {
+async function replayDraw(
+  key: Buffer,
+  tiers: Record<string, DrawRecordTier>,
+): Promise<DrawResult> {
   const byTier: Partial<Record<Tier, DrawTierResult>> = {};
   let shortfall = false;
   for (const tier of Object.keys(tiers) as Tier[]) {
     const rec = tiers[tier];
-    const puzzles = await fetchPuzzles(rec.puzzleIds);
+    const puzzles = (await fetchPuzzles(rec.puzzleIds)).map((p) => encryptPuzzle(key, p));
     byTier[tier] = {requested: rec.requested, assigned: rec.puzzleIds.length, puzzles};
     if (rec.puzzleIds.length < rec.requested) shortfall = true;
   }
@@ -73,11 +156,12 @@ export async function draw(
   idempotencyKey: string,
   rng: Rng = defaultRng,
 ): Promise<DrawResult> {
+  const key = deriveAnswerKey(uid);
   const drawRef = db.collection("users").doc(uid).collection("draws").doc(idempotencyKey);
   const existing = await drawRef.get();
   if (existing.exists) {
     const tiers = (existing.data()?.tiers ?? {}) as Record<string, DrawRecordTier>;
-    return replayDraw(tiers);
+    return replayDraw(key, tiers);
   }
 
   const assignedSnap = await db
@@ -92,15 +176,14 @@ export async function draw(
   for (const tier of TIER_ORDER) {
     const n = counts[tier] ?? 0;
     if (n <= 0) continue;
-    const tierSnap = await db.collection("puzzles").where("tier", "==", tier).select().get();
-    const tierIds = tierSnap.docs.map((d) => d.id);
-    const {chosen, shortfall: sf} = selectUnseen(tierIds, assignedIds, n, rng);
+    const chosen = await drawTierCandidates(tier, n, assignedIds, rng);
+    const sf = n - chosen.length;
     chosen.forEach((id) => {
       assignedIds.add(id);
       chosenAll.push({id, tier});
     });
     if (sf > 0) shortfall = true;
-    const puzzles = await fetchPuzzles(chosen);
+    const puzzles = (await fetchPuzzles(chosen)).map((p) => encryptPuzzle(key, p));
     byTier[tier] = {requested: n, assigned: chosen.length, puzzles};
     tiersRecord[tier] = {requested: n, puzzleIds: chosen};
   }
@@ -124,17 +207,26 @@ export async function draw(
 
 export async function getAssigned(
   uid: string,
-  status: "incomplete" | "all",
-): Promise<{puzzles: (PuzzleDoc & {completed: boolean})[]}> {
+  status: "incomplete" | "completed" | "all",
+): Promise<{puzzles: (WirePuzzle & {completed: boolean})[]}> {
+  const key = deriveAnswerKey(uid);
   const col = db.collection("users").doc(uid).collection("assignments");
-  const snap = status === "incomplete"
-    ? await col.where("completed", "==", false).get()
-    : await col.get();
+  let snap;
+  if (status === "incomplete") {
+    snap = await col.where("completed", "==", false).get();
+  } else if (status === "completed") {
+    snap = await col.where("completed", "==", true).get();
+  } else {
+    snap = await col.get();
+  }
   const completedById = new Map(
     snap.docs.map((d) => [d.id, (d.data().completed as boolean) ?? false]),
   );
   const puzzles = await fetchPuzzles([...completedById.keys()]);
   return {
-    puzzles: puzzles.map((p) => ({...p, completed: completedById.get(p.letterKey) ?? false})),
+    puzzles: puzzles.map((p) => ({
+      ...encryptPuzzle(key, p),
+      completed: completedById.get(p.letterKey) ?? false,
+    })),
   };
 }

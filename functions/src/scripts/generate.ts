@@ -1,24 +1,27 @@
 import {
   Tier,
-  COMMON_FREQUENCY_CUTOFF,
+  MAX_FREQUENCY_CUTOFF,
+  BLOCKLIST_FILE,
   DEFINITION_CONCURRENCY,
-  DEFINITION_MAX_RETRIES,
   GEN_VERSION,
   VALIDITY_FILE,
   FREQUENCY_FILE,
   DEFINITIONS_CACHE_FILE,
+  WORDNET_DEFS_FILE,
+  DICT_SUPPLEMENT_FILE,
 } from "../generation/config";
 import {WordData, loadWordDataFromFiles} from "../generation/word_data";
+import {loadBlocklist} from "../generation/profanity";
 import {AnagramIndex, buildAnagramIndex} from "../generation/anagram_index";
 import {generateTierBatch, RawPuzzle} from "../generation/generator";
-import {attachDefinitions} from "../generation/puzzle";
+import {attachDefinitions, requireAllDefined, Puzzle} from "../generation/puzzle";
 import {
   FetchFn,
   DefinitionCache,
   loadDefinitionCache,
   saveDefinitionCache,
   resolveDefinitions,
-  dictionaryApiFetch,
+  loadLocalDictionary,
 } from "../generation/definitions";
 import {Rng, mulberry32} from "../generation/random";
 import {
@@ -80,25 +83,47 @@ export async function runGeneration(
   const defs = await resolveDefinitions(words, deps.cache, deps.fetchFn, deps.concurrency);
   saveDefinitionCache(deps.cachePath, deps.cache);
 
-  const puzzles = raw.map((p) => attachDefinitions(p, defs, deps.genVersion));
+  const puzzles: Puzzle[] = [];
+  for (const p of raw) {
+    // Every answer must carry a definition; drop the whole puzzle otherwise so
+    // no common word is left spellable-but-unlisted.
+    const clean = requireAllDefined(attachDefinitions(p, defs, deps.genVersion));
+    if (clean) puzzles.push(clean);
+  }
   await writePuzzles(puzzles);
   await updateLibraryMeta(await getStats());
+
+  // Report what actually landed in the pool (after the definition filter), so a
+  // tier whose words lacked definitions shows the resulting shortfall.
+  for (const plan of plans) {
+    const written = puzzles.filter((p) => p.tier === plan.tier).length;
+    perTier[plan.tier] = {
+      written,
+      shortfall: Math.max(0, plan.count - written),
+    };
+  }
 
   return {written: puzzles.length, perTier};
 }
 
 export function defaultDeps(): GenerateDeps {
+  // One bundled local dictionary, used both to gate the common-word vocabulary
+  // (only defined words count) and to define the answers. Fully offline.
+  const dict = loadLocalDictionary(WORDNET_DEFS_FILE, DICT_SUPPLEMENT_FILE);
   const wordData = loadWordDataFromFiles(
     VALIDITY_FILE,
     FREQUENCY_FILE,
-    COMMON_FREQUENCY_CUTOFF,
+    MAX_FREQUENCY_CUTOFF,
+    loadBlocklist(BLOCKLIST_FILE),
+    (w) => dict.define(w) !== null,
   );
   // Seed the rng from the wall clock so successive runs explore new anchors.
   const seed = Date.now() & 0xffffffff;
   return {
     wordData,
     index: buildAnagramIndex(wordData.commonWords),
-    fetchFn: dictionaryApiFetch(DEFINITION_MAX_RETRIES),
+    // Definitions come from the same in-memory dictionary. No network.
+    fetchFn: async (word: string): Promise<string | null> => dict.define(word),
     cache: loadDefinitionCache(DEFINITIONS_CACHE_FILE),
     cachePath: DEFINITIONS_CACHE_FILE,
     concurrency: DEFINITION_CONCURRENCY,

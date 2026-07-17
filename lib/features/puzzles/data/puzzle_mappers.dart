@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart' show Value;
+
 import '../../../core/storage/app_database.dart';
 import '../domain/puzzle.dart';
 
@@ -38,6 +40,7 @@ CachedPuzzlesCompanion puzzleToCompanion(
   Puzzle p, {
   required int orderIndex,
   required int assignedAt,
+  required bool encrypted,
 }) {
   return CachedPuzzlesCompanion.insert(
     puzzleId: p.letterKey,
@@ -46,9 +49,12 @@ CachedPuzzlesCompanion puzzleToCompanion(
     rackSize: p.rackSize,
     lettersJson: jsonEncode(p.letters),
     anchor: p.anchor,
+    // For encrypted puzzles each answer's `word` holds its ciphertext token, so
+    // the stored JSON is ciphertext at rest; the read seam decrypts it.
     answersJson: jsonEncode(p.answers.map((a) => a.toJson()).toList()),
     answerCount: p.answerCount,
     orderIndex: orderIndex,
     assignedAt: assignedAt,
+    encrypted: Value(encrypted),
   );
 }

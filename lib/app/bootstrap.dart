@@ -3,11 +3,16 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/audio/audio_providers.dart';
 import '../core/audio/audio_service.dart';
+import '../core/haptics/haptic_providers.dart';
+import '../core/haptics/haptic_service.dart';
+import '../core/haptics/haptics.dart';
 import '../core/logging/app_logger.dart';
 import '../core/network/network_providers.dart';
+import '../core/notifications/push_providers.dart';
 import '../core/offline/http_mutation_sender.dart';
 import '../core/offline/offline_providers.dart';
 import '../core/offline/sync_engine.dart';
@@ -16,6 +21,9 @@ import '../core/offline/sync_scheduler_factory.dart';
 import '../core/storage/app_database.dart';
 import '../core/storage/storage_providers.dart';
 import '../features/auth/application/auth_providers.dart';
+import '../features/auth/domain/auth_user.dart';
+import '../features/multiplayer/presentation/widgets/fog_shader.dart';
+import '../features/profile/application/profile_providers.dart';
 import '../firebase_options.dart';
 import 'app.dart';
 import 'background_entrypoint.dart';
@@ -37,9 +45,13 @@ Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   configureLogging();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Navigation is imperative (context.push / pushReplacement everywhere). By
+  // default go_router does NOT update the browser address bar for imperative
+  // calls, so on web the URL stayed on "/" no matter which screen was open.
+  // Opting in makes the address bar (and back/forward history) track the route.
+  GoRouter.optionURLReflectsImperativeAPIs = true;
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final AppDatabase db = AppDatabase();
 
@@ -47,12 +59,21 @@ Future<void> bootstrap() async {
   // from the first frame. Best-effort: a read failure (e.g. web before the
   // Drift WASM runtime is added) leaves audio unmuted rather than crashing.
   final FlameAudioService audio = FlameAudioService();
+  final FlutterHapticService haptics = FlutterHapticService();
   try {
     final settings = await db.gameSettingsDao.watch().first;
     audio.setMuted(!settings.soundEffects);
+    haptics.setMuted(!settings.haptics);
   } catch (e, s) {
     logger.warning('Could not restore sound setting', e, s);
   }
+  // Share the (mute-restored) instance with the ambient holder the provider-free
+  // pond buttons call, then probe haptic capabilities up front so the first
+  // button tap does not pay for the platform-channel round trip. Best-effort:
+  // never blocks bootstrap.
+  Haptics.instance = haptics;
+  unawaited(haptics.init());
+  unawaited(warmUpFogShader());
 
   runZonedGuarded(
     () {
@@ -61,10 +82,12 @@ Future<void> bootstrap() async {
           overrides: [
             appDatabaseProvider.overrideWithValue(db),
             audioServiceProvider.overrideWithValue(audio),
+            hapticServiceProvider.overrideWithValue(haptics),
             // Attach the current user's ID token to outgoing sync requests
             // without core/network importing the auth feature.
             authTokenProvider.overrideWith(
-              (ref) => () => ref.read(authRepositoryProvider).idToken(),
+              (ref) =>
+                  () => ref.read(authRepositoryProvider).idToken(),
             ),
             mutationSenderProvider.overrideWith((ref) {
               final HttpMutationSender sender = HttpMutationSender(
@@ -117,5 +140,38 @@ class _BootstrapGateState extends ConsumerState<_BootstrapGate> {
   }
 
   @override
-  Widget build(BuildContext context) => const AgapeApp();
+  Widget build(BuildContext context) {
+    // Provision and cache the server profile whenever the signed-in account
+    // changes. Fires for every sign-in method (Google, email, guest) and on a
+    // restored session; the first GET /me creates the server document. On
+    // sign-out (uid -> null) the cached profile is dropped.
+    ref.listen<AsyncValue<AuthUser?>>(authStateProvider, (prev, next) {
+      final String? uid = next.asData?.value?.uid;
+      final String? prevUid = prev?.asData?.value?.uid;
+      if (uid == null) {
+        if (prevUid != null) {
+          unawaited(ref.read(profileControllerProvider.notifier).clear());
+          // Stop this device receiving the signed-out user's pushes.
+          unawaited(ref.read(pushServiceProvider).unregister());
+        }
+      } else if (uid != prevUid) {
+        unawaited(
+          ref
+              .read(profileControllerProvider.notifier)
+              .load(uid, firebaseDisplayName: next.asData?.value?.displayName),
+        );
+        // Register the FCM token IF permission was already granted. Never prompts
+        // here (prompt: false) so a restored session shows no dialog at launch;
+        // the Friends page owns the first, deliberate permission request.
+        unawaited(
+          ref.read(pushServiceProvider).registerForUser(uid, prompt: false),
+        );
+        // The startup flush ran before Firebase restored the user, so any
+        // offline win mutation was skipped as transient. Now that the user is
+        // restored, ask the scheduler to flush so the queue reaches the server.
+        unawaited(_scheduler?.requestFlush() ?? Future<void>.value());
+      }
+    });
+    return const AgapeApp();
+  }
 }

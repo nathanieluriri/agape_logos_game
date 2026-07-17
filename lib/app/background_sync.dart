@@ -54,8 +54,10 @@ void callbackDispatcher() {
     );
     try {
       final ApiClient api = ApiClient(dio);
-      final HttpMutationSender sender =
-          HttpMutationSender(api: api, auth: auth);
+      final HttpMutationSender sender = HttpMutationSender(
+        api: api,
+        auth: auth,
+      );
       final SyncEngine engine = SyncEngine(
         db: db,
         connectivity: ConnectivityService(),

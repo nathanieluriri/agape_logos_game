@@ -18,10 +18,20 @@ class GameSettingsDao extends DatabaseAccessor<AppDatabase>
         mode: InsertMode.insertOrIgnore,
       );
 
-  /// Watches the single settings row, seeding defaults first.
-  Stream<GameSettingsRow> watch() async* {
-    await ensureDefault();
-    yield* (select(gameSettings)..where((t) => t.id.equals(0))).watchSingle();
+  /// Watches the single settings row, seeding defaults on demand.
+  ///
+  /// The first emission is never gated on the seed write completing: we watch
+  /// the row nullably and, whenever it is missing, seed and re-read. This keeps
+  /// the stream from stalling in a loading state when it is driven through a
+  /// Riverpod `StreamProvider` (a leading `await` before the first `yield`
+  /// could otherwise leave the provider perpetually loading).
+  Stream<GameSettingsRow> watch() {
+    final selectRow = select(gameSettings)..where((t) => t.id.equals(0));
+    return selectRow.watchSingleOrNull().asyncMap((row) async {
+      if (row != null) return row;
+      await ensureDefault();
+      return (select(gameSettings)..where((t) => t.id.equals(0))).getSingle();
+    });
   }
 
   Future<void> setSoundEffects(bool value) =>
@@ -32,6 +42,10 @@ class GameSettingsDao extends DatabaseAccessor<AppDatabase>
       _set(GameSettingsCompanion(notifications: Value(value)));
   Future<void> setHaptics(bool value) =>
       _set(GameSettingsCompanion(haptics: Value(value)));
+  Future<void> setTutorialSeen(bool value) =>
+      _set(GameSettingsCompanion(tutorialSeen: Value(value)));
+  Future<void> setPowerupTutorialSeen(bool value) =>
+      _set(GameSettingsCompanion(powerupTutorialSeen: Value(value)));
 
   Future<void> _set(GameSettingsCompanion change) async {
     await ensureDefault();

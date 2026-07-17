@@ -13,6 +13,22 @@ Zen word game: offline-first, optimistic, **Android + Web only** (no iOS/desktop
 - Enforced via `.claude/settings.json` (`includeCoAuthoredBy: false`, `attribution.commit`/`pr` = `""`).
 - `docs/` is **gitignored** (design specs/plans live there locally).
 
+## 🚀 `firebase deploy --only functions` fails with "Cannot determine backend specification. Timeout after 10000"
+
+The module tree is heavy enough that Firebase's export-discovery step blows its default 10s budget while
+loading `index.ts` (firebase-admin init + the full router/service graph). It is NOT a code error.
+
+- Fix: raise the discovery timeout for the deploy. PowerShell: `$env:FUNCTIONS_DISCOVERY_TIMEOUT = "60"; firebase deploy --only functions --project agape-logos`. Run firebase from PowerShell, not bash (the space-path breaks the CLI).
+
+## 🔑 Push / PR fails with "Repository not found" - switch the gh account first
+
+Two GitHub accounts are logged in. Only **`nathanieluriri`** can see this repo; `nuriri-elo`
+gets `Repository not found` (which reads like the repo is gone, but it is an auth problem).
+
+- Fix: `gh auth switch -u nathanieluriri`, then retry. Verify with `git ls-remote --heads origin`.
+- If `gh auth status` shows other accounts, try each before giving up. Only if **every** account
+  fails is the remote genuinely missing - then stop and report, do not create or re-point a remote.
+
 ## ✍️ Writing style - HARD RULE (never violate)
 
 - **Never use em dashes** (the long dash, Unicode U+2014) anywhere: prose, code comments,
@@ -42,7 +58,13 @@ Zen word game: offline-first, optimistic, **Android + Web only** (no iOS/desktop
    models, or json. Generated `*.g.dart` / `*.freezed.dart` **are committed**.
 2. `flutter analyze` - must be **clean** (No issues found).
 3. `flutter test` - must **pass**.
-4. `flutter build apk --release` - must **succeed** (primary gate).
+4. `flutter build apk --release --no-tree-shake-icons` - must **succeed** (primary gate).
+   The flag ships the full MaterialIcons font (~1.6MB): Shorebird patches cannot add
+   glyphs to the release APK's tree-shaken font subset, so any `Icons.*` reference added
+   after a release renders blank on patched installs without it. Use the same flag on
+   `shorebird release` / `shorebird patch`. New UI glyphs should prefer the hand-painted
+   `PondIcon`/`PondGlyph` family (`lib/shared/widgets/glyphs/`), which has no font
+   dependency at all.
 
 ## Plan execution (workflow preference - never violate)
 
@@ -64,6 +86,7 @@ lib/
   features/<feature>/{domain,data,application,presentation/{pages,widgets}}
   shared/widgets/           # reusable cross-feature widgets
   game/                     # Flame game/components/systems
+  preview/                  # @Preview design harness (flutter widget-preview start)
 ```
 
 ### Separation & composition rules (mandatory)
@@ -117,23 +140,77 @@ Three **call policies** (`core/offline/call_policy.dart`) - pick one per reposit
   shared widget.
 - Audio behind `AudioService` (`flame_audio` impl); SFX keys centralized; respect global mute.
 
-## Non-goals / don't do yet
+## Web build gotcha: the stale plugin registrant (silently kills Firestore)
 
-No real screens, levels, game logic, API endpoints, theme aesthetics, or art. The
-`level_results` feature is a deletable sample proving the optimistic path. There is no
-backend yet, so the injected `MutationSender` is a placeholder returning `transient`
-(keeps optimistic writes durably queued, never lost), and auto-flush is gated behind
-`kBackendSyncEnabled` (in `app/bootstrap.dart`). Double-send safety ultimately rests on
-the per-mutation **idempotency key** (at-least-once delivery); single-flight + the
-`inFlight` claim just minimize duplicates.
+`flutter build web` reuses a generated `web_plugin_registrant.dart` under
+`.dart_tool/flutter_build/<hash>/`, and it does **not** always regenerate when a plugin is
+added. A copy that predates `cloud_firestore` omits `FirebaseFirestoreWeb.registerWith`,
+so `FirebaseFirestore.instance` silently falls back to the Android **method-channel**
+implementation. On web that dies inside the Pigeon codec with
+`Unsupported operation: Int64 accessor not supported by dart2js` (JS has no 64-bit ints),
+which `runZonedGuarded` swallows: no listener ever opens, no error reaches the UI, and
+every Firestore-backed screen (all of multiplayer) just spins forever. `flutter run`
+uses a different, correct registrant, so **this reproduces only in a release build**.
+
+- Symptom to recognize: `firebase-firestore*.js` is never fetched and there is zero
+  `firestore.googleapis.com` traffic, while auth and the HTTP API work fine.
+- Fix / prevention: `flutter clean` before `flutter build web --release`. Verify with
+  `grep -ci firestore .dart_tool/flutter_build/*/web_plugin_registrant.dart` (must be > 0).
+
+## Current state (playable core loop)
+
+The game is live end to end on Android: Play gates on Firebase auth (email, Google, or
+guest via `startPlayFlow`), puzzles are drawn from the deployed Cloud Function
+(`kApiBaseUrl` in `core/network/api_config.dart`) and cached in Drift, gameplay runs the
+letter wheel + word board + hints/shuffle/combo, `commitWin` records the result through
+the optimistic queue, and the level-complete screen advances to the next puzzle.
+`kBackendSyncEnabled = true`: foreground and WorkManager background flush both use the
+real `HttpMutationSender`. Double-send safety ultimately rests on the per-mutation
+**idempotency key** (at-least-once delivery); single-flight + the `inFlight` claim just
+minimize duplicates.
+
+- **Offline first run:** when the cache is empty and the backend is unreachable,
+  `PuzzleRepositoryImpl` seeds the bundled pack `assets/puzzles/starter_pack.json`
+  (seam: `PuzzleSeedSource`). Starter results (`kStarterPuzzlePrefix` ids) complete
+  locally and **skip the sync queue**. If truly nothing is playable, the game page shows
+  `EmptyPondNotice` (retry), never an endless spinner.
+- **Store + daily rewards are live:** the wallet "+" opens `/store` (feature at
+  `features/store/`), which reads the backend catalog (`GET /store`) and inventory
+  (`GET /me/inventory`) and spends coins via `POST /store/purchase`. Because the wallet
+  is server-owned, a purchase is an online, server-authoritative write (carrying an
+  idempotency-key header), not an optimistic-queue write; the returned balance is written
+  through to the cached profile so the coin pill updates at once. The Home screen shows a
+  `RewardTimerPad` (`features/rewards/`) reading `GET /rewards`: a live 72h countdown that
+  becomes a Claim button (`POST /rewards/claim-coins`, 400 coins), plus the weekly powerup
+  claim when ready. Rewards unlock at level 5 (server `REWARD_MIN_LEVEL`). Both features
+  use plain models (no Drift tables, no generated code), so build_runner is not required
+  for them.
+- **Still stubbed:** Withdraw, Bonus Gift (coming-soon sheets). Dictionary now
+  opens the session dictionary sheet (found words show definitions, unfound stay masked).
+  `level_results` remains the original optimistic-path sample.
+- **Auth caveat:** guest sign-in needs network the first time, so a never-online fresh
+  install cannot reach gameplay yet (product decision pending).
+
+## Pond design system & widget previews
+
+- **Pad silhouette single source of truth:** `core/design/pad_geometry.dart`
+  (`PadGeometry.notchedPad`/`smoothPad`/`veins`, 100x100 viewBox). Used by the
+  `LilyPad` painter (shared/widgets) and the ambient `PadShadowComponent` (Flame).
+  The base is a softly rounded three-sided shape (not a circle); the play pad adds two
+  rim nicks that never reach the center.
+- **Pad depth layers (painter order):** blurred cast shadow → hard darker `underside`
+  offset → radial sheen fill → vein texture → light rim glow along the top edge. All
+  colors/gradients are tokens (`LilyPadPalette`, `AppGradients.padRimGlow`).
+- **Design previews:** `lib/preview/pond_previews.dart` holds `@Preview` functions
+  (screens, pads, top bar, progress bar). Run `flutter widget-preview start` (or the IDE
+  panel). The previewer is Flutter Web: preview files must stay provider-free and must
+  not import bootstrap, Drift, or Flame.
 
 ## Known follow-ups (not blocking)
 
-- **Wire the backend:** replace the placeholder `_send` (and the WorkManager
-  `callbackDispatcher`'s sender) with a real `ApiClient` call, register a reconciler per
-  mutation `kind`, then flip `kBackendSyncEnabled = true`.
-- **Web runtime:** add `sqlite3.wasm` + `drift_worker.js` to `web/` (matching the drift
-  version) or web Drift 404s at first DB use. APK/tests are unaffected.
+- **Web runtime:** run `tool/fetch_web_runtime.ps1` once to download `sqlite3.wasm` +
+  `drift_worker.js` (pinned to pubspec.lock: drift 2.34.0, sqlite3 3.3.3) into `web/`,
+  or web Drift 404s at first DB use. APK/tests are unaffected.
 - **Env cleanup:** delete the old SDK copy at `C:\Users\Mr Dashi\flutter` (when the IDE is
   closed) and point the **Machine PATH** at `C:\flutter\bin` (needs admin) so bare
   `flutter` uses the space-free SDK everywhere.

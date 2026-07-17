@@ -56,34 +56,111 @@ export async function resolveDefinitions(
   return result;
 }
 
-interface DictionaryApiEntry {
-  meanings?: {definitions?: {definition?: string}[]}[];
+// Offline, in-memory definition source backed by a bundled word -> definition
+// map (WordNet glosses, pre-built by scripts/build_dictionary.ts) plus an
+// optional supplement (common function/irregular words WordNet omits). Loaded
+// once into a Map for fast lookups; no network, fully deterministic.
+let dictInstance: Map<string, string> | null = null;
+
+function loadDict(dictPath: string, supplementPath: string): Map<string, string> {
+  if (dictInstance) return dictInstance;
+  const dict = new Map<string, string>();
+  const base = JSON.parse(fs.readFileSync(dictPath, "utf8")) as Record<string, string>;
+  for (const [w, d] of Object.entries(base)) dict.set(w.toUpperCase(), d);
+  try {
+    const sup = JSON.parse(fs.readFileSync(supplementPath, "utf8")) as Record<string, string>;
+    for (const [w, d] of Object.entries(sup)) dict.set(w.toUpperCase(), d);
+  } catch {
+    // The supplement file is optional.
+  }
+  dictInstance = dict;
+  return dict;
 }
 
-/**
- * Default fetcher hitting the free Dictionary API. 200 -> first definition;
- * 404 -> null (no entry); transient failure -> retry with backoff, then null.
- */
-export function dictionaryApiFetch(maxRetries: number): FetchFn {
-  return async (word: string): Promise<string | null> => {
-    const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`;
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        const res = await fetch(url);
-        if (res.status === 404) return null;
-        if (res.ok) {
-          const data = (await res.json()) as DictionaryApiEntry[];
-          const def = data?.[0]?.meanings?.[0]?.definitions?.[0]?.definition;
-          return def ?? null;
-        }
-        // Non-ok, non-404 (e.g. 429/5xx): fall through to backoff.
-      } catch {
-        // Network error: fall through to backoff.
-      }
-      if (attempt < maxRetries) {
-        await new Promise((r) => setTimeout(r, 250 * 2 ** attempt));
-      }
-    }
-    return null;
+// Cheap regular de-inflection: maps a surface form to base-lemma candidates so
+// plurals, verb forms, comparatives and adverbs resolve to their base word
+// (CATS -> CAT, RUNNING -> RUN, BIGGER -> BIG, QUICKLY -> QUICK). Direct hits are
+// tried first, so false candidates simply miss; irregular forms (GREW, SLEPT,
+// MICE) come from the supplement instead.
+function deinflect(w: string): string[] {
+  const c: string[] = [];
+  const add = (s: string): void => {
+    if (s.length >= 2) c.push(s);
   };
+  // Undouble a trailing doubled consonant (RUNN -> RUN, STOPP -> STOP).
+  const undouble = (s: string): void => {
+    if (s.length >= 3 && s[s.length - 1] === s[s.length - 2] && !"AEIOU".includes(s[s.length - 1])) {
+      add(s.slice(0, -1));
+    }
+  };
+  // Plurals and third-person singular.
+  if (w.length > 4 && (w.endsWith("IES") || w.endsWith("IED"))) add(w.slice(0, -3) + "Y");
+  if (w.length > 4 && /(SS|X|Z|CH|SH)ES$/.test(w)) add(w.slice(0, -2)); // boxes -> box
+  if (w.length > 3 && w.endsWith("ES")) {
+    add(w.slice(0, -2));
+    add(w.slice(0, -1));
+  }
+  if (w.length > 2 && w.endsWith("S")) add(w.slice(0, -1));
+  if (w.length > 4 && w.endsWith("MEN")) add(w.slice(0, -2) + "AN"); // firemen -> fireman
+  // Past tense / past participle.
+  if (w.length > 3 && w.endsWith("ED")) {
+    add(w.slice(0, -2)); // walked -> walk
+    add(w.slice(0, -1)); // liked -> like
+    undouble(w.slice(0, -2)); // stopped -> stop
+  }
+  // Gerund / present participle.
+  if (w.length > 4 && w.endsWith("ING")) {
+    add(w.slice(0, -3)); // walking -> walk
+    add(w.slice(0, -3) + "E"); // making -> make
+    undouble(w.slice(0, -3)); // running -> run
+  }
+  // Adverbs and comparatives / superlatives.
+  if (w.length > 4 && w.endsWith("LY")) {
+    add(w.slice(0, -2)); // quickly -> quick
+    add(w.slice(0, -2) + "E"); // nicely -> nice
+  }
+  if (w.length > 4 && w.endsWith("EST")) {
+    add(w.slice(0, -3));
+    add(w.slice(0, -2)); // largest -> large
+    undouble(w.slice(0, -3)); // biggest -> big
+  }
+  if (w.length > 3 && w.endsWith("ER")) {
+    add(w.slice(0, -2));
+    add(w.slice(0, -1)); // larger -> large
+    undouble(w.slice(0, -2)); // bigger -> big
+  }
+  return c;
+}
+
+export interface LocalDictionary {
+  // Synchronous lookup: direct hit, then de-inflection fallback; null if absent.
+  define(word: string): string | null;
+}
+
+// Loads the bundled dictionary once and exposes a synchronous lookup. Used both
+// to define answers and to filter the common-word vocabulary down to words that
+// actually have a definition (so every answer is defined by construction).
+export function loadLocalDictionary(
+  dictPath: string,
+  supplementPath: string,
+): LocalDictionary {
+  const dict = loadDict(dictPath, supplementPath);
+  return {
+    define(word: string): string | null {
+      const W = word.toUpperCase();
+      const direct = dict.get(W);
+      if (direct) return direct;
+      for (const cand of deinflect(W)) {
+        const d = dict.get(cand);
+        if (d) return d;
+      }
+      return null;
+    },
+  };
+}
+
+// FetchFn adapter over the local dictionary for resolveDefinitions.
+export function localDictionaryFetch(dictPath: string, supplementPath: string): FetchFn {
+  const dict = loadLocalDictionary(dictPath, supplementPath);
+  return async (word: string): Promise<string | null> => dict.define(word);
 }

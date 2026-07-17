@@ -1,17 +1,21 @@
 name: agape_logos_game
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.2.0+2
+version: 0.4.0+9
 
 environment:
   sdk: ^3.12.0
 
 dependencies:
+  cloud_firestore: ^6.0.0
   connectivity_plus: ^7.1.1
+  cryptography: ^2.7.0
   dio: ^5.9.2
   drift: ^2.34.0
+  flutter_secure_storage: ^9.2.4
   firebase_auth: ^6.5.3
   firebase_core: ^4.11.0
+  firebase_messaging: ^16.4.1
   flame: ^1.35.1
   flame_audio: ^2.11.14
   flutter:
@@ -31,25 +35,63 @@ dependencies:
   sqlite3: ^3.3.3
   sqlite3_flutter_libs: ^0.5.42
   uuid: ^4.5.3
+  vibration: ^3.1.8
+  web: ^1.1.0
   workmanager: ^0.9.0+3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.1
   build_runner: ^2.15.0
   drift_dev: ^2.34.0
   freezed: ^3.2.6-dev.1
   json_serializable: ^6.14.0
   mocktail: ^1.0.5
   flame_test: ^2.2.4
+  fake_cloud_firestore: ^4.0.0
 
 flutter:
   uses-material-design: true
   assets:
     - assets/branding/
+    - assets/powerups/
+    - assets/puzzles/
+    - assets/tutorial/
     - shorebird.yaml
   fonts:
     - family: ZenSerif
       fonts:
         - asset: assets/fonts/ZenSerif-Regular.ttf
+  shaders:
+    - assets/shaders/fog.frag
+
+# App launcher icon generation.
+#
+# Save the icon art (the glass-orb lotus mark) to assets/branding/app_icon.png
+# as a square PNG (1024x1024 recommended), then run:
+#
+#   dart run flutter_launcher_icons
+#
+# This writes every Android mipmap density, the adaptive icon, and the web
+# icons/favicon. app_icon.png is a transparent-backed RGBA lotus disc, so the
+# adaptive background color shows through behind the whole mark. The background
+# is teal-green (#0C7F80, AppColors.pond3), giving a lotus floating on the pond
+# to match the in-app look. See assets/branding/README.md.
+#
+# PLAN (orchestrator, after regen): the non-adaptive mipmap-*/ic_launcher.png and
+# web/icons/Icon-maskable-*.png are also built from this transparent source. A
+# transparent legacy square icon, or a maskable with a transparent safe-zone, may
+# want a filled background. Inspect both after regen (see plan 03 Task 7).
+flutter_launcher_icons:
+  image_path: "assets/branding/app_icon.png"
+  android: "ic_launcher"
+  min_sdk_android: 21
+  adaptive_icon_background: "#0C7F80"
+  adaptive_icon_foreground: "assets/branding/app_icon.png"
+  web:
+    generate: true
+    image_path: "assets/branding/app_icon.png"
+    background_color: "#0C7F80"
+    theme_color: "#0C7F80"

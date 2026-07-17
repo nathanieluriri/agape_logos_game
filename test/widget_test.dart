@@ -44,6 +44,6 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 
-    expect(find.text('ZEN WORD'), findsOneWidget);
+    expect(find.text('NAT WORD'), findsOneWidget);
   });
 }

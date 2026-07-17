@@ -1,6 +1,59 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // A live match. Readable only by its participants (uid array on the doc, so
+    // the rule needs no extra get()). All writes go through Cloud Functions
+    // (Admin SDK bypasses rules); direct client writes are never allowed.
+    match /matches/{matchId} {
+      allow read: if request.auth != null
+                  && request.auth.uid in resource.data.participants;
+      allow write: if false;
+
+      // Append-only powerup/effect events. Each event doc carries its own
+      // participants array (denormalized by the server) so the read rule costs
+      // zero extra reads. Plan 10 section 5 invited this optimization.
+      match /events/{eventId} {
+        allow read: if request.auth != null
+                    && request.auth.uid in resource.data.participants;
+        allow write: if false;
+      }
+
+      // Private per-player rack: only its owner can read it (opponents cannot
+      // see your words or encrypted answers). Doc id is the owner uid.
+      match /racks/{uid} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
+    // A user may LISTEN to their OWN social inbox: incoming friend requests and
+    // their friends list. Read-only - every mutation still goes through a Cloud
+    // Function (send/respond), so the client never writes here. This is the one
+    // window that lets friend requests arrive live instead of being polled.
+    // Deliberately does NOT open users/{uid} itself: the profile doc holds coins
+    // and inventory, which stay server-owned and HTTP-only.
+    match /users/{uid}/friendRequests/{fromUid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /users/{uid}/friends/{friendUid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Incoming friend challenges (the invite half of a challenge). Same window
+    // as friendRequests: a user listens to their OWN invites so a challenge
+    // arrives live. Written only by the server (POST /matches/challenge).
+    match /users/{uid}/challenges/{matchId} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Everything else stays server-only. Match codes, user profiles, puzzles,
+    // inventory, history: all read/written through Cloud Functions only. The
+    // social layer's public-profile reads go through GET /users/:uid/public
+    // (plan 13), NOT direct Firestore.
     match /{document=**} {
       allow read, write: if false;
     }

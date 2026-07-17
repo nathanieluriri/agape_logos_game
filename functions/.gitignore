@@ -1,2 +1,8 @@
 node_modules/
 lib/
+
+# Runtime secrets loaded by `firebase deploy` into the function environment.
+# NEVER commit: holds ANSWER_MASTER_SECRET (rotating it invalidates all issued keys).
+.env
+.env.*
+!.env.example

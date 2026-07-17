@@ -17,7 +17,7 @@ void main() {
     );
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('9,999'), findsOneWidget);
-    await tester.tap(find.bySemanticsLabel('Add coins'));
+    await tester.tap(find.bySemanticsLabel('Add petals'));
     expect(added, 1);
   });
 }

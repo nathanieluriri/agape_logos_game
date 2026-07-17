@@ -27,7 +27,7 @@ export const DrawHeadersSchema = z.object({
 });
 
 export const AssignedQuerySchema = z.object({
-  status: z.enum(["incomplete", "all"]).default("incomplete"),
+  status: z.enum(["incomplete", "completed", "all"]).default("incomplete"),
 });
 
 export const PuzzleResultParamsSchema = z.object({
@@ -39,5 +39,10 @@ export const PuzzleResultHeadersSchema = DrawHeadersSchema;
 export const PuzzleResultBodySchema = z.object({
   score: z.number().int(),
   completedAt: z.number().int(),
+  // Optional progression level this result completed. When present the server
+  // bumps the profile's highestLevel to max(current, level). Puzzles are
+  // identified by letter key, not a level number, so this is the only channel
+  // the client has to advance highestLevel.
+  level: z.number().int().nonnegative().optional(),
 });
 export type PuzzleResultBody = z.infer<typeof PuzzleResultBodySchema>;

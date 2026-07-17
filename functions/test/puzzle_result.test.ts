@@ -62,4 +62,34 @@ describe("POST /puzzles/:puzzleId/result", () => {
     expect(assignment.exists).toBe(true);
     expect(assignment.data()).toMatchObject({completed: true});
   });
+
+  test("awards coins (10 + score) and totalScore exactly once across replays", async () => {
+    const {idToken, uid} = await mintUser();
+    const auth = `Bearer ${idToken}`;
+    const post = () => request(app).post("/puzzles/WORD/result")
+      .set("Authorization", auth).set("idempotency-key", "coin-1")
+      .send({score: 40, completedAt: 5, level: 3});
+
+    await post();
+    // Replay the same idempotency key: rewards must not stack.
+    await post();
+
+    const me = await request(app).get("/me").set("Authorization", auth);
+    expect(me.body.coins).toBe(50); // 10 + 40, applied once
+    expect(me.body.totalScore).toBe(40);
+    expect(me.body.highestLevel).toBe(3);
+
+    const coinsOnly = await request(app).get("/me/coins").set("Authorization", auth);
+    expect(coinsOnly.body).toEqual({coins: 50});
+
+    // A second, distinct result accumulates on top.
+    await request(app).post("/puzzles/PLAY/result")
+      .set("Authorization", auth).set("idempotency-key", "coin-2")
+      .send({score: 10, completedAt: 6, level: 2});
+    const after = await request(app).get("/me").set("Authorization", auth);
+    expect(after.body.coins).toBe(70); // 50 + (10 + 10)
+    expect(after.body.totalScore).toBe(50);
+    expect(after.body.highestLevel).toBe(3); // max(3, 2) unchanged
+    expect(uid).toBeTruthy();
+  });
 });

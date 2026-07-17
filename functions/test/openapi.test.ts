@@ -10,6 +10,7 @@ describe("API docs", () => {
     expect(res.status).toBe(200);
     expect(res.body.openapi).toBe("3.0.0");
     expect(res.body.paths["/me"]).toBeDefined();
+    expect(res.body.paths["/me/dictionary"]).toBeDefined();
     expect(res.body.paths["/levels/{levelId}/result"]).toBeDefined();
     expect(res.body.components.securitySchemes.bearerAuth).toBeDefined();
   });

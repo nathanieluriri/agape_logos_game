@@ -12,7 +12,13 @@
     "deploy": "firebase deploy --only functions",
     "seed": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/seed.js\"",
     "extend": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/extend.js\"",
-    "stats": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/stats.js\""
+    "clean:defs": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/clean_definitions.js\"",
+    "purge:pool": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/purge_pool.js\"",
+    "purge:userstate": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/purge_user_puzzle_state.js\"",
+    "stats": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/stats.js\"",
+    "export:starter": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/export_starter_pack.js\"",
+    "backfill:random": "node lib/scripts/backfill_random.js",
+    "seed:themes": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/seed_themes.js\""
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.0",
@@ -33,6 +39,7 @@
     "jest": "^29.7.0",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "wordpos": "^2.1.0"
   }
 }

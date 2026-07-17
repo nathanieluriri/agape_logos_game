@@ -90,4 +90,43 @@ void main() {
     expect(row.status, 'pending');
     expect(row.retryCount, 2);
   });
+
+  Future<void> enqueueKind(String id, String kind) {
+    return db.pendingMutationsDao.enqueue(
+      PendingMutationsCompanion.insert(
+        id: id, endpoint: '/x', method: 'POST', payloadJson: '{}',
+        idempotencyKey: id, kind: kind, createdAt: 1,
+      ),
+    );
+  }
+
+  test('watchFailed emits only failed rows of the given kind', () async {
+    await enqueueKind('a', 'puzzle_result');
+    await enqueueKind('b', 'puzzle_result');
+    await enqueueKind('c', 'level_result');
+    await db.pendingMutationsDao.markFailed('a', 'boom');
+    await db.pendingMutationsDao.markFailed('c', 'boom');
+
+    final rows =
+        await db.pendingMutationsDao.watchFailed('puzzle_result').first;
+    expect(rows.map((r) => r.id), ['a']);
+  });
+
+  test('resetFailed flips failed rows back to pending and re-arms them',
+      () async {
+    await enqueueKind('a', 'puzzle_result');
+    await db.pendingMutationsDao.scheduleRetry('a', 4, 9999);
+    await db.pendingMutationsDao.markFailed('a', 'boom');
+
+    await db.pendingMutationsDao.resetFailed('puzzle_result');
+
+    final row = await (db.select(db.pendingMutations)
+          ..where((t) => t.id.equals('a')))
+        .getSingle();
+    expect(row.status, 'pending');
+    expect(row.retryCount, 0);
+    expect(row.nextAttemptAt, 0);
+    // And it is now due again.
+    expect(await db.pendingMutationsDao.due(1), hasLength(1));
+  });
 }

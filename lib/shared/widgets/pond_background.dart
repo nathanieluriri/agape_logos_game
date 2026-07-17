@@ -1,60 +1,14 @@
 // lib/shared/widgets/pond_background.dart
-import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/design/tokens/gradients.dart';
-import '../../game/ambient/ambient_providers.dart'
-    show ambientPausedProvider, ambientEnabledProvider;
-import '../../game/ambient/ambient_background_game.dart';
-
-/// Full-viewport pond: a static radial gradient with the drifting Flame
-/// ambient layer above it (when enabled). Fills its parent; place [child]
-/// above the pond.
-class PondBackground extends ConsumerStatefulWidget {
+/// Passthrough kept for the page call sites. The pond (gradient + Flame ambient
+/// layer) is now a single app-level layer beneath the Navigator (`PondShell`),
+/// so a page must not paint its own: it floats transparently over the shell.
+class PondBackground extends StatelessWidget {
   const PondBackground({super.key, required this.child});
 
   final Widget child;
 
   @override
-  ConsumerState<PondBackground> createState() => _PondBackgroundState();
-}
-
-class _PondBackgroundState extends ConsumerState<PondBackground> {
-  late final AmbientBackgroundGame _game = AmbientBackgroundGame();
-
-  @override
-  Widget build(BuildContext context) {
-    final ambientEnabled = ref.watch(ambientEnabledProvider);
-
-    ref.listen<bool>(ambientPausedProvider, (_, isPaused) {
-      if (!ref.read(ambientEnabledProvider)) return;
-      if (isPaused) {
-        _game.pauseEngine();
-      } else {
-        _game.resumeEngine();
-      }
-    });
-
-    return DecoratedBox(
-      decoration: const BoxDecoration(gradient: AppGradients.pond),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (ambientEnabled)
-            IgnorePointer(
-              child: RepaintBoundary(
-                child: GameWidget(
-                  game: _game,
-                  // Degrade to the gradient if the game throws; never crash.
-                  errorBuilder: (_, __) => const SizedBox.shrink(),
-                  loadingBuilder: (_) => const SizedBox.shrink(),
-                ),
-              ),
-            ),
-          widget.child,
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => child;
 }

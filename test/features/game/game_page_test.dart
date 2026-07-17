@@ -1,5 +1,7 @@
+import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/game/application/game_controller.dart';
 import 'package:agape_logos_game/features/game/presentation/pages/game_page.dart';
+import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
 import 'package:agape_logos_game/features/puzzles/application/puzzle_providers.dart';
 import 'package:agape_logos_game/features/puzzles/domain/puzzle.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
@@ -16,12 +18,22 @@ const _puzzle = Puzzle(
 
 class _FakePuzzleController implements PuzzleController {
   bool recorded = false;
+  bool recovered = false;
   @override
-  Future<void> recordResult(String puzzleId, int score, int completedAt) async {
+  Future<void> recordResult(
+    String puzzleId,
+    int score,
+    int completedAt, {
+    int? level,
+  }) async {
     recorded = true;
   }
   @override
   Future<void> refresh() async {}
+  @override
+  Future<void> recover() async {
+    recovered = true;
+  }
 }
 
 // A minimal router so GamePage's context.push('/level-complete') works in tests.
@@ -38,6 +50,11 @@ Widget _app(_FakePuzzleController fake) => ProviderScope(
         currentPuzzleProvider.overrideWith((ref) => Stream.value(_puzzle)),
         puzzleControllerProvider.overrideWithValue(fake),
         ambientEnabledProvider.overrideWithValue(false),
+        // Backend-derived values stubbed; no signed-in user so commitWin skips
+        // the optimistic profile bump (keeps the test DB- and Firebase-free).
+        coinsProvider.overrideWithValue(0),
+        nextLevelProvider.overrideWithValue(1),
+        currentUserProvider.overrideWithValue(null),
       ],
       child: MaterialApp.router(routerConfig: _router()),
     );
@@ -71,5 +88,30 @@ void main() {
 
     expect(fake.recorded, isTrue);
     expect(find.text('Level complete'), findsOneWidget);
+  });
+
+  testWidgets('empty pond: Try again runs recovery', (tester) async {
+    final fake = _FakePuzzleController();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          // Stream resolves to "no puzzle" -> empty pond.
+          currentPuzzleProvider.overrideWith((ref) => Stream.value(null)),
+          puzzleControllerProvider.overrideWithValue(fake),
+          ambientEnabledProvider.overrideWithValue(false),
+          coinsProvider.overrideWithValue(0),
+          nextLevelProvider.overrideWithValue(1),
+          currentUserProvider.overrideWithValue(null),
+        ],
+        child: MaterialApp.router(routerConfig: _router()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Try again'), findsOneWidget);
+    await tester.tap(find.text('Try again'));
+    await tester.pump();
+    expect(fake.recovered, isTrue);
   });
 }

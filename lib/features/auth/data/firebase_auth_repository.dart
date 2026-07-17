@@ -9,7 +9,7 @@ import 'google/google_auth.dart';
 /// and FirebaseAuthException codes to AuthFailure.
 class FirebaseAuthRepository implements AuthRepository {
   FirebaseAuthRepository({FirebaseAuth? auth})
-      : _auth = auth ?? FirebaseAuth.instance;
+    : _auth = auth ?? FirebaseAuth.instance;
 
   final FirebaseAuth _auth;
 
@@ -29,27 +29,21 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signInWithEmail(String email, String password) => _guard(
-        () => _auth.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        ),
-      );
+    () => _auth.signInWithEmailAndPassword(email: email, password: password),
+  );
 
   @override
   Future<void> registerWithEmail(String email, String password) => _guard(
-        () => _auth.createUserWithEmailAndPassword(
-          email: email,
-          password: password,
-        ),
-      );
+    () =>
+        _auth.createUserWithEmailAndPassword(email: email, password: password),
+  );
 
   @override
   Future<void> signInWithGoogle() =>
       _guard(() => signInWithGoogleCredential(_auth));
 
   @override
-  Future<void> signInAnonymously() =>
-      _guard(() => _auth.signInAnonymously());
+  Future<void> signInAnonymously() => _guard(() => _auth.signInAnonymously());
 
   @override
   Future<void> sendPasswordReset(String email) =>

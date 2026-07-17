@@ -10,6 +10,6 @@ void main() {
       home: Center(child: WordmarkLogo(float: false)),
     ));
     expect(find.byType(LotusMark), findsOneWidget);
-    expect(find.text('ZEN WORD'), findsOneWidget);
+    expect(find.text('NAT WORD'), findsOneWidget);
   });
 }

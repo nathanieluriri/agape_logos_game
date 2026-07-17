@@ -1,0 +1,200 @@
+import {Response, Router} from "express";
+import {AuthedRequest, requireAuth} from "../middleware/auth";
+import {asyncHandler} from "../middleware/error";
+import {validate, ValidatedRequest} from "../middleware/validate";
+import {
+  ChallengeBodySchema,
+  CreateMatchBodySchema,
+  IdempotencyHeadersSchema,
+  JoinMatchBodySchema,
+  MatchParamsSchema,
+  MatchSettingsSchema,
+  PowerupBodySchema,
+  ReadyBodySchema,
+  RespondBodySchema,
+  StartBodySchema,
+  SubmitBodySchema,
+} from "../schemas/matches";
+import type {PowerupKind} from "../schemas/matches";
+import {createMatch, joinMatch, leaveMatch, setReady, startMatch} from "../services/match_service";
+import {challengeFriend, listActiveMatches, respondChallenge} from "../services/challenge_service";
+import {submitWord} from "../services/match_submit_service";
+import {firePowerup} from "../services/match_powerup_service";
+import {settleMatch} from "../services/match_finalize";
+import {HttpError} from "../middleware/http_error";
+
+export const matchesRouter = Router();
+
+type Authed = AuthedRequest & ValidatedRequest;
+
+// POST /matches - create a lobby (creator only), draw the creator rack. 201.
+matchesRouter.post(
+  "/matches",
+  requireAuth,
+  validate({headers: IdempotencyHeadersSchema, body: CreateMatchBodySchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const headers = req.valid?.headers as {"idempotency-key": string};
+    const body = req.valid?.body as {settings?: unknown};
+    const settings = MatchSettingsSchema.parse(body.settings ?? {});
+    const out = await createMatch(
+      req.uid as string,
+      req.isGuest ?? false,
+      headers["idempotency-key"],
+      settings,
+    );
+    res.status(201).json(out);
+  }),
+);
+
+// POST /matches/join - join by code, draw the joiner rack. 404 unknown/closed.
+matchesRouter.post(
+  "/matches/join",
+  requireAuth,
+  validate({body: JoinMatchBodySchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const body = req.valid?.body as {code: string};
+    const out = await joinMatch(req.uid as string, req.isGuest ?? false, body.code);
+    res.status(200).json(out);
+  }),
+);
+
+// POST /matches/challenge - challenge a friend. 404 not_friends, 409 already.
+matchesRouter.post(
+  "/matches/challenge",
+  requireAuth,
+  validate({headers: IdempotencyHeadersSchema, body: ChallengeBodySchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const headers = req.valid?.headers as {"idempotency-key": string};
+    const body = req.valid?.body as {toUid: string; settings?: unknown};
+    const settings = MatchSettingsSchema.parse(body.settings ?? {});
+    const result = await challengeFriend(
+      req.uid as string,
+      req.isGuest ?? false,
+      body.toUid,
+      headers["idempotency-key"],
+      settings,
+    );
+    if (!result.ok) {
+      res.status(result.reason === "not_friends" ? 404 : 409).json({error: result.reason});
+      return;
+    }
+    res.status(201).json({matchId: result.matchId});
+  }),
+);
+
+// POST /matches/:id/respond - accept or decline a challenge. 404 no_challenge.
+matchesRouter.post(
+  "/matches/:id/respond",
+  requireAuth,
+  validate({params: MatchParamsSchema, body: RespondBodySchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const {id} = req.valid?.params as {id: string};
+    const {accept} = req.valid?.body as {accept: boolean};
+    const result = await respondChallenge(req.uid as string, req.isGuest ?? false, id, accept);
+    if (!result.ok) {
+      res.status(404).json({error: result.reason});
+      return;
+    }
+    res.status(200).json({status: result.status});
+  }),
+);
+
+// GET /me/matches/active - the caller's in-flight matches (resume screen).
+matchesRouter.get(
+  "/me/matches/active",
+  requireAuth,
+  asyncHandler<Authed>(async (req, res: Response) => {
+    res.status(200).json({matches: await listActiveMatches(req.uid as string)});
+  }),
+);
+
+// POST /matches/:id/ready - toggle ready; both ready -> countdown.
+matchesRouter.post(
+  "/matches/:id/ready",
+  requireAuth,
+  validate({params: MatchParamsSchema, body: ReadyBodySchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const {id} = req.valid?.params as {id: string};
+    const {ready} = req.valid?.body as {ready: boolean};
+    res.status(200).json(await setReady(req.uid as string, id, ready));
+  }),
+);
+
+// POST /matches/:id/start - creator force-start.
+matchesRouter.post(
+  "/matches/:id/start",
+  requireAuth,
+  validate({params: MatchParamsSchema, body: StartBodySchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const {id} = req.valid?.params as {id: string};
+    res.status(200).json(await startMatch(req.uid as string, id));
+  }),
+);
+
+// POST /matches/:id/submit - validate a word vs the caller's rack; score it.
+matchesRouter.post(
+  "/matches/:id/submit",
+  requireAuth,
+  validate({params: MatchParamsSchema, body: SubmitBodySchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const {id} = req.valid?.params as {id: string};
+    const {word} = req.valid?.body as {word: string};
+    res.status(200).json(await submitWord(req.uid as string, id, word));
+  }),
+);
+
+// POST /matches/:id/powerup - spend inventory, write an event. 402 if none owned.
+// The idempotency-key IS the event id (plan 10 section 8.7).
+matchesRouter.post(
+  "/matches/:id/powerup",
+  requireAuth,
+  validate({params: MatchParamsSchema, headers: IdempotencyHeadersSchema, body: PowerupBodySchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const {id} = req.valid?.params as {id: string};
+    const headers = req.valid?.headers as {"idempotency-key": string};
+    const {kind} = req.valid?.body as {kind: PowerupKind};
+    try {
+      res.status(200).json(await firePowerup(req.uid as string, id, kind, headers["idempotency-key"]));
+    } catch (err) {
+      // word_steal vs an active combo_lock: a structured, spend-nothing 200,
+      // not a generic 409 error body.
+      if (err instanceof HttpError && err.message === "warded") {
+        res.status(200).json({ok: false, reason: "warded", serverNow: Date.now()});
+        return;
+      }
+      throw err;
+    }
+  }),
+);
+
+// POST /matches/:id/leave - leave/cancel; finalizes if in progress.
+matchesRouter.post(
+  "/matches/:id/leave",
+  requireAuth,
+  validate({params: MatchParamsSchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const {id} = req.valid?.params as {id: string};
+    res.status(200).json(await leaveMatch(req.uid as string, id));
+  }),
+);
+
+// GET /matches/:id - optional (clients mostly use listeners). Settles the clock
+// and returns the doc if the caller is a participant.
+matchesRouter.get(
+  "/matches/:id",
+  requireAuth,
+  validate({params: MatchParamsSchema}),
+  asyncHandler<Authed>(async (req, res: Response) => {
+    const {id} = req.valid?.params as {id: string};
+    const m = await settleMatch(id);
+    if (!m) {
+      res.status(404).json({error: "not found"});
+      return;
+    }
+    if (!m.participants.includes(req.uid as string)) {
+      res.status(403).json({error: "not a participant"});
+      return;
+    }
+    res.status(200).json({...m, serverNow: Date.now()});
+  }),
+);

@@ -1,7 +1,18 @@
 {
-  "includeCoAuthoredBy": false,
   "attribution": {
     "commit": "",
     "pr": ""
+  },
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Bash(cp index.html /c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/652fbfa9-b022-49ba-a384-450174c3abfc/scratchpad/idx.final.html)",
+      "Bash(node -e ' *)",
+      "Bash(npx hyperframes *)",
+      "Bash(rm -f \"/c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/652fbfa9-b022-49ba-a384-450174c3abfc/scratchpad/measure-probe.mjs\" && echo removed)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\MRDASH~1\\AppData\\Local\\Temp\\claude\\c--flutter-projects-agape-logos-game\\652fbfa9-b022-49ba-a384-450174c3abfc\\scratchpad"
+    ]
   }
 }

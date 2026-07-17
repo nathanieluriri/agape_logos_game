@@ -17,6 +17,9 @@ export async function writePuzzles(puzzles: Puzzle[]): Promise<void> {
       batch.set(db.collection(COLLECTION).doc(p.letterKey), {
         ...p,
         generatedAt: Date.now(),
+        // Uniform [0,1) key that lets `draw` sample candidates with a bounded
+        // range query instead of scanning the whole tier. Stable once written.
+        random: Math.random(),
       });
     }
     await batch.commit();

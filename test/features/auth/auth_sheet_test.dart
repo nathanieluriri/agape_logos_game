@@ -2,6 +2,7 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/auth/presentation/widgets/auth_sheet.dart';
+import 'package:agape_logos_game/shared/widgets/pond_pill_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -56,9 +57,9 @@ void main() {
     await tester.tap(find.text('Use email instead'));
     await tester.pump(const Duration(milliseconds: 400));
 
-    // After expanding: toggle label flips and FilledButton is visible.
+    // After expanding: toggle label flips and the submit pill is visible.
     expect(find.text('Hide email sign-in'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
+    expect(find.widgetWithText(PondPillButton, 'Sign in'), findsOneWidget);
 
     await tester.tap(find.text('Continue as guest'));
     await tester.pump();

@@ -1,7 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Android 13+ (API 33) runtime notification permission for FCM push. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-        android:label="agape_logos_game"
+        android:label="Agape Logos"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

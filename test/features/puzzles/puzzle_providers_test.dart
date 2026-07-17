@@ -35,7 +35,12 @@ void main() {
       CachedPuzzlesCompanion.insert(
         puzzleId: 'NOW', tier: 'easy', tierRank: 0, rackSize: 3,
         lettersJson: '["N","O","W"]', anchor: 'NOW',
-        answersJson: '[]', answerCount: 0, orderIndex: 0, assignedAt: 0,
+        // Two defined answers so the read-seam guard (>= kMinPlayableAnswers)
+        // surfaces the puzzle instead of skipping it as threadbare.
+        answersJson:
+            '[{"word":"NOW","length":3,"definition":"at the present time"},'
+            '{"word":"WON","length":3,"definition":"past tense of win"}]',
+        answerCount: 2, orderIndex: 0, assignedAt: 0,
       ),
     ]);
     // Activate the StreamProvider so its future resolves under the test binding.

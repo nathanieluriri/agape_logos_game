@@ -5,6 +5,11 @@ import {findAnswers, letterKey} from "./rack";
 import {meetsAnswerGate} from "./quality";
 import {Rng, shuffle} from "./random";
 
+/** True when every letter in the word is unique (no doubles, no triples). */
+export function hasDistinctLetters(word: string): boolean {
+  return new Set(word.split("")).size === word.length;
+}
+
 export interface RawPuzzle {
   tier: Tier;
   rackSize: number;
@@ -42,8 +47,11 @@ export interface GenerateResult {
  */
 export function generateTierBatch(opts: GenerateOptions): GenerateResult {
   const cfg = TIERS[opts.tier];
+  // Only anchors within this tier's frequency horizon (the difficulty knob).
   const candidates = shuffle(
-    commonWordsOfLength(opts.wordData.commonWords, cfg.rackSize),
+    commonWordsOfLength(opts.wordData.commonWords, cfg.rackSize).filter(
+      (w) => opts.wordData.rank(w) < cfg.anchorCutoff && hasDistinctLetters(w),
+    ),
     opts.rng,
   );
 
@@ -54,7 +62,13 @@ export function generateTierBatch(opts: GenerateOptions): GenerateResult {
     const key = letterKey(letters);
     if (opts.existingKeys.has(key)) continue;
 
-    const answers = findAnswers(letters, opts.index);
+    // Two horizons: full-length words (the headline words, incl. the anchor)
+    // count down to anchorCutoff; shorter sub-words only if common enough
+    // (answerCutoff). Keeps the anchor always present while capping clutter.
+    const answers = findAnswers(letters, opts.index).filter((w) => {
+      const cutoff = w.length === cfg.rackSize ? cfg.anchorCutoff : cfg.answerCutoff;
+      return opts.wordData.rank(w) < cutoff;
+    });
     if (!meetsAnswerGate(answers.length, cfg)) continue;
 
     opts.existingKeys.add(key);

@@ -1,6 +1,7 @@
 import {OpenApiGeneratorV3} from "@asteasolutions/zod-to-openapi";
 import {registry} from "./registry";
 import "./paths";
+import "./social_paths";
 
 // Generates the OpenAPI 3 document from the registry. Importing "./paths"
 // above registers every route before generation runs.

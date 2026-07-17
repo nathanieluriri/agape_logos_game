@@ -14,33 +14,64 @@ abstract final class AppColors {
   static const Color accent = Color(0xFFD9A441);
   static const Color danger = Color(0xFFB3261E);
 
-  // Pond background gradient stops (top glow -> deep water).
-  static const pondTop = Color(0xFF1FB19C);
-  static const pond2 = Color(0xFF14998C);
-  static const pond3 = Color(0xFF0C7C79);
-  static const pond4 = Color(0xFF086566);
-  static const pondDeep = Color(0xFF064F57);
+  /// Fully transparent, for surfaces that must not paint (e.g. the scaffolding
+  /// behind a custom-decorated bottom sheet).
+  static const Color transparent = Color(0x00000000);
 
-  // Submerged lily-pad shadow blob (dark teal -> transparent).
-  static const padShadowCore = Color(0x8C033A3C);
-  static const padShadowMid = Color(0x4D044848);
-  static const padShadowEdge = Color(0x00065A5A);
+  /// Opaque alpha-mask carrier for `ShaderMask`/`BlendMode.dstIn` masks, where
+  /// only the alpha channel is sampled and the color channels are discarded.
+  static const Color maskSolid = Color(0xFFFFFFFF);
+
+  // Pond background gradient stops (top glow -> deep water).
+  static const pondTop = Color(0xFF1BAFA6);
+  static const pond2 = Color(0xFF12988F);
+  static const pond3 = Color(0xFF0C7F80);
+  static const pond4 = Color(0xFF096870);
+  static const pondDeep = Color(0xFF07535F);
+
+  // Submerged lily-pad silhouettes (flat, faintly darker than the water).
+  static const ambientPadFill = Color(0x30053F44);
+  static const ambientPadFillSoft = Color(0x20053F44);
 
   // Surface ripple.
-  static const ripple = Color(0x0DFFFFFF);
+  static const ripple = Color(0x14FFFFFF);
 
   // Green play lily pad.
   static const lilyGreenLight = Color(0xFF84D8AD);
   static const lilyGreenMid = Color(0xFF5CC295);
   static const lilyGreenDeep = Color(0xFF44A87E);
-  static const lilyGreenStroke = Color(0xFF3C9A78);
+  static const lilyGreenUnder = Color(0xFF37946A);
   static const lilyGreenVein = Color(0xFF3F9D77);
 
   // Teal secondary lily pad.
   static const lilyTealLight = Color(0xFF33B0A0);
   static const lilyTealMid = Color(0xFF1F978B);
   static const lilyTealDeep = Color(0xFF147F78);
-  static const lilyTealStroke = Color(0xFF0F6D68);
+  static const lilyTealUnder = Color(0xFF0F6D68);
+
+  // Blue bonus/secondary pad.
+  static const bonusBlueLight = Color(0xFF54A9BA);
+  static const bonusBlueMid = Color(0xFF3E93A6);
+  static const bonusBlueDeep = Color(0xFF2F8093);
+  static const bonusBlueUnder = Color(0xFF266E82);
+
+  // Coral multiplayer lily pad: a warm accent distinct from the pond greens,
+  // teals, and blues so the "Versus" pad reads as its own affordance.
+  // PLAN: eyeball the coral hue against the pond background on device; nudge
+  // the four lilyCoral* values a shade warmer/cooler if it clashes.
+  static const lilyCoralLight = Color(0xFFF4A08B);
+  static const lilyCoralMid = Color(0xFFE9735A);
+  static const lilyCoralDeep = Color(0xFFD65B45);
+  static const lilyCoralUnder = Color(0xFFB94734);
+
+  // Incoming-effect overlays (multiplayer). Frost = a frozen wheel node; fog =
+  // the blurred board veil. Kept translucent so the pad/board read through.
+  static const frostFill = Color(0x99CDECF5);
+  static const frostBorder = Color(0xCCEAF8FC);
+  static const fogTint = Color(0x59E8F1F4);
+
+  // Light rim glow along the top edge of every pad.
+  static const padRimGlow = Color(0x8CEFFFF6);
 
   // Progress track + lime-gold fill.
   static const progressTrack = Color(0xFF0C6160);
@@ -50,9 +81,27 @@ abstract final class AppColors {
   static const progressFillEnd = Color(0xFFECEC55);
   static const progressFraction = Color(0xFFFBF1CF);
 
+  // Awwwards loader + premium progress-fill accents (Part B).
+  /// Bright, near-white lime crest at the fill's leading edge, so the fill front
+  /// reads as a lit water crest that pushes whatever rides it.
+  static const progressFillCrest = Color(0xFFF7FFD6);
+  /// Glossy top-surface highlight laid over the fill (water read).
+  static const progressGlossHighlight = Color(0x3DFFFFFF);
+  /// Peak alpha of the sheen band that sweeps along the fill.
+  static const progressSheenPeak = Color(0x59FFFFFF);
+  /// Soft wake the petal leaves in the water as it rides the crest.
+  static const petalWake = Color(0x40FFFFFF);
+  /// Warm lime-gold core of the blooming-lotus completion flash.
+  static const loaderBloomCore = Color(0xFFF2F7C4);
+
   // Chrome: settings + currency pill + plus button.
   static const settingsFill = Color(0x8C0D786E);
   static const settingsBorder = Color(0x8CBEEEE0);
+  static const settingsHalo = Color(0x40BEEEE0);
+  // Hairline row separator inside settings cards (settingsBorder at low alpha).
+  static const rowDivider = Color(0x1FBEEEE0);
+  static const settingsInnerLight = Color(0xFF2EA795);
+  static const settingsInnerDeep = Color(0xFF0F7C72);
   static const pillFill = Color(0x8C042A2F);
   static const pillBorder = Color(0x0FFFFFFF);
   static const pillText = Color(0xFFFDFAF0);
@@ -62,9 +111,24 @@ abstract final class AppColors {
 
   // Wordmark + play affordance.
   static const wordmark = Color(0xFFFDFBF3);
-  static const playTriangle = Color(0xFFFBF4DC);
-  static const playTriangleShadow = Color(0xFFE3D4AB);
+
+  /// Face and extrusion of every hand-painted glyph (play triangle, book,
+  /// versus chevrons, plus, key, back chevron, friends): cream over a darker
+  /// cream copy nudged down, the "pressed clay" recipe.
+  static const glyphFace = Color(0xFFFBF4DC);
+  static const glyphExtrusion = Color(0xFFE3D4AB);
+
+  /// Shadowed-water pool under the floating lotus mark (fades to clear).
+  static const lotusShadow = Color(0x4D043338);
   static const padLabel = Color(0xFFFFFFFF);
+  static const padLabelSoft = Color(0xD9FFFFFF);
+
+  // Pond overlay chrome: dialog scrim, switch track, danger actions.
+  static const pondScrim = Color(0xB3053F44);
+  static const switchTrackOn = Color(0x8C37946A);
+  static const dangerFill = Color(0x8C5C1A15);
+  static const dangerBorder = Color(0x8CFFC4BC);
+  static const dangerOnPond = Color(0xFFFFB4AB);
 
   // Game: word-forming board + wheel (approximated from the gameplay screenshots).
   static const Color tileBlue = Color(0xFF2A9FC9);
@@ -75,4 +139,38 @@ abstract final class AppColors {
   static const Color connectLine = tileBlue;
   static const Color comboBannerStart = Color(0xFF8E5BD6);
   static const Color comboBannerEnd = Color(0xFFC44FB0);
+
+  // Game: cream wheel pad (the paper disc the letters float on).
+  static const Color wheelPadLight = Color(0xFFFFFCF2);
+  static const Color wheelPadMid = Color(0xFFF3ECD9);
+  static const Color wheelPadDeep = Color(0xFFE6DABD);
+  static const Color wheelPadUnder = Color(0xFFCFC0A0);
+
+  // The drag line over the cream pad.
+  static const Color wheelConnect = lilyGreenDeep;
+
+  // Game: board slots, submerged hollows in the water.
+  static const Color boardSlotFill = Color(0x4D053F44);
+  static const Color boardSlotBorder = Color(0x2EBEEEE0);
+
+  // Tutorial spotlight overlay.
+  static const Color tutorialScrim = Color(0xE0021517);
+  static const Color tutorialTrace = Color(0xD9FDFAF0);
+  static const Color tutorialPillTop = Color(0xFFFFFFFF);
+  static const Color tutorialPillBottom = Color(0xFFE9F0F7);
+
+  // Brand mark (app icon + animated splash). A 2x2 grid of ivory-framed pink
+  // lotus tiles with a crimson lotus-bud keystone in the top-left, and the
+  // soft mint orb glow that blooms behind the assembled mark on the cream
+  // splash. Sampled from the reference icon art.
+  static const Color markCream = Color(0xFFFCF6EA);
+  static const Color markPinkLight = Color(0xFFF9B4CC);
+  static const Color markPinkMid = Color(0xFFF191B4);
+  static const Color markPinkDeep = Color(0xFFE87BA6);
+  static const Color markPinkEdge = Color(0xFFDD6E9C);
+  static const Color markPetal = Color(0xFFFBD0E0);
+  static const Color markCrimson = Color(0xFFC01F5F);
+  static const Color markCrimsonDeep = Color(0xFFA5194F);
+  static const Color markCrimsonPetal = Color(0xFFEE6E97);
+  static const Color markGlow = Color(0x66AFE6DC);
 }

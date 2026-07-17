@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
+import '../../../../core/design/tokens/colors.dart';
 import '../../domain/auth_failure.dart';
 
-/// Renders a friendly message for an auth error. Robust to non-AuthFailure
-/// errors (e.g. an unexpected Google exception).
+/// Renders a friendly message for an auth error in the pond danger tone.
+/// Robust to non-AuthFailure errors (e.g. an unexpected Google exception).
 class AuthErrorText extends StatelessWidget {
   const AuthErrorText({super.key, required this.error});
 
@@ -17,7 +18,10 @@ class AuthErrorText extends StatelessWidget {
     return Text(
       message,
       textAlign: TextAlign.center,
-      style: TextStyle(color: Theme.of(context).colorScheme.error),
+      style: const TextStyle(
+        color: AppColors.dangerOnPond,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }

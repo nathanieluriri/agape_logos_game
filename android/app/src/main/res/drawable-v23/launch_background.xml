@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 23-30: cream field with the launcher icon scaled to a comfortable
+     splash size (item width/height requires API 23). Android 12+ uses the
+     system SplashScreen theme in values-v31 instead. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FFF7F4EC" />
+        </shape>
+    </item>
+    <item
+        android:width="132dp"
+        android:height="132dp"
+        android:gravity="center"
+        android:drawable="@mipmap/ic_launcher" />
+</layer-list>

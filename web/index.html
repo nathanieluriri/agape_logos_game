@@ -18,21 +18,121 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="A calm lotus-pond word game.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="agape_logos_game">
+  <meta name="apple-mobile-web-app-title" content="Agape Logos">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>agape_logos_game</title>
+  <title>Agape Logos</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- PLAN: this boot splash is now pond green; the in-app Flutter splash
+       (lib/features/splash/presentation/splash_scene.dart, AppColors.paper) is
+       still cream. If the green->cream hand-off flashes on web, apply OPTIONAL
+       Task 6 Step 1 to green the in-app splash backdrop too. -->
+  <style>
+    /* Teal-green loading splash, shown until Flutter paints its first frame so
+       the page never flashes white.
+
+       This runs BEFORE Flutter (and therefore before any Dart) is loaded, so it
+       has to be plain HTML/CSS. It shows the REAL app mark (app_icon.svg, the
+       same asset the in-app splash and the match interlude draw) rather than the
+       CSS approximation of it that used to live here: four pink squares and a
+       bud, which never actually looked like the icon. The halo breathes and a
+       light sweeps across the mark, echoing the in-app draw-on animation. */
+    html, body { margin: 0; padding: 0; background-color: #0C7F80; }
+    #boot-splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #0C7F80;
+      transition: opacity 320ms ease;
+      z-index: 2;
+    }
+    #boot-splash.hidden { opacity: 0; pointer-events: none; }
+    .mark {
+      position: relative;
+      width: 132px;
+      height: 132px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: mark-breathe 2600ms ease-in-out infinite;
+    }
+    /* Soft mint halo blooming behind the mark. */
+    .mark::before {
+      content: "";
+      position: absolute;
+      inset: -34%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(239,255,246,0.42), rgba(239,255,246,0));
+      animation: halo-bloom 2600ms ease-in-out infinite;
+    }
+    .mark img {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    /* The light that sweeps across the mark as it "draws". */
+    .mark .sheen {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: linear-gradient(
+        100deg,
+        rgba(255,255,255,0) 38%,
+        rgba(255,255,255,0.38) 50%,
+        rgba(255,255,255,0) 62%
+      );
+      mix-blend-mode: screen;
+      animation: sheen-sweep 2600ms ease-in-out infinite;
+    }
+    @keyframes mark-breathe {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.05); }
+    }
+    @keyframes halo-bloom {
+      0%, 100% { opacity: 0.35; transform: scale(0.92); }
+      50%      { opacity: 0.85; transform: scale(1.06); }
+    }
+    @keyframes sheen-sweep {
+      0%       { transform: translateX(-115%); opacity: 0; }
+      18%      { opacity: 1; }
+      70%      { opacity: 1; }
+      100%     { transform: translateX(115%); opacity: 0; }
+    }
+    /* Respect the OS setting: hold the mark still rather than pulsing at someone. */
+    @media (prefers-reduced-motion: reduce) {
+      .mark, .mark::before, .mark .sheen { animation: none; }
+      .mark .sheen { opacity: 0; }
+    }
+  </style>
 </head>
 <body>
+  <div id="boot-splash" aria-hidden="true">
+    <div class="mark">
+      <img src="assets/assets/branding/app_icon.svg" alt="" />
+      <div class="sheen"></div>
+    </div>
+  </div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var splash = document.getElementById('boot-splash');
+      if (splash) {
+        splash.classList.add('hidden');
+        setTimeout(function () { splash.remove(); }, 360);
+      }
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

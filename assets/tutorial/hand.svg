@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Cartoon tutorial glove pointing up-left. The index fingertip sits at
+       roughly (30, 8) in the 100x100 viewBox so the widget can anchor the
+       tip to the touch point. Solid fills plus one shading pass only. -->
+  <!-- Hand silhouette: extended index finger + rounded fist + thumb bulge. -->
+  <path fill="#FFFFFF" stroke="#93A9BD" stroke-width="3"
+        stroke-linejoin="round" stroke-linecap="round"
+        d="M24 10
+           C24 4 32 2 36 6
+           L50 44
+           C54 42 58 42 63 44
+           C72 46 78 52 79 62
+           C80 74 72 84 60 86
+           C48 88 38 82 35 72
+           C30 70 27 64 29 57
+           C30 52 34 50 38 48
+           Z"/>
+  <!-- Shading: a cool blue-grey pass along the finger's shadow side and the
+       underside of the fist, so the glove reads as rounded. -->
+  <path fill="#DCE7F0"
+        d="M36 6 L50 44 C48 45 46 46 44 46 L31 9 C33 7 34 6 36 6 Z
+           M62 82 C51 84 42 79 38 71 C44 79 53 83 63 80 C63 81 62 82 62 82 Z"/>
+  <!-- Cuff capping the wrist. -->
+  <rect x="41" y="80" width="27" height="13" rx="6.5"
+        fill="#E9F0F7" stroke="#93A9BD" stroke-width="3"/>
+</svg>

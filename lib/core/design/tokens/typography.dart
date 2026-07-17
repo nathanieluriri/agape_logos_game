@@ -18,6 +18,18 @@ abstract final class AppTypography {
     height: 1.1,
   );
 
+  /// Splash wordmark ("Agape Logos"). Serif, a touch smaller than the home
+  /// wordmark so it sits calmly under the assembling mark. Carries no color;
+  /// callers set one for the surface it sits on.
+  static const splashWordmark = TextStyle(
+    fontFamily: fontFamily,
+    fontFamilyFallback: ['serif'],
+    fontSize: 30,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 2,
+    height: 1.1,
+  );
+
   /// Progress fraction ("5/8"). Serif, bold.
   static const numeral = TextStyle(
     fontFamily: fontFamily,
@@ -26,6 +38,30 @@ abstract final class AppTypography {
     fontWeight: FontWeight.w700,
     letterSpacing: 0.5,
   );
+
+  /// Page headings ("Settings"). Serif, calm. Carries no color; callers set
+  /// one for the surface they sit on.
+  static const heading = TextStyle(
+    fontFamily: fontFamily,
+    fontFamilyFallback: ['serif'],
+    fontSize: 26,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.5,
+    height: 1.1,
+  );
+
+  // Game surfaces. Deliberately family-agnostic (they inherit the ambient
+  // sans family, not the serif wordmark face) and carry no color; callers add
+  // one. Centralizing the sizes keeps the board, wheel, and banner in step.
+
+  /// A letter on a board or wheel tile.
+  static const tileLetter = TextStyle(fontSize: 22, fontWeight: FontWeight.w800);
+
+  /// The combo banner's praise line ("Great!").
+  static const banner = TextStyle(fontSize: 20, fontWeight: FontWeight.w800);
+
+  /// The combo banner's streak subtitle ("Combo Streak x3").
+  static const bannerSub = TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
 
   static final TextTheme _light = _build(Brightness.light);
   static final TextTheme _dark = _build(Brightness.dark);
