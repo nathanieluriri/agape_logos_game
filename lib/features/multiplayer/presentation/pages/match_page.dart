@@ -396,7 +396,12 @@ class _MatchPageState extends ConsumerState<MatchPage> {
       for (final e in events) {
         if (e.kind == MatchEventKind.scramble) {
           ctrl.applyScramble(e.id);
-          setState(() => _scrambleSwirlTick++);
+          // Replayed emission: _handleIncomingEvent already recorded this id on
+          // the pass that first animated it; only a genuinely new scramble
+          // swirls.
+          if (!_seenEventIds.contains(e.id)) {
+            setState(() => _scrambleSwirlTick++);
+          }
         } else if (e.kind == MatchEventKind.wordSteal) {
           final w = e.stolenWord;
           if (w != null) ctrl.applyWordSteal(e.id, w);

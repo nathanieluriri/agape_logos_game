@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
+import 'package:agape_logos_game/features/game/presentation/widgets/formed_word_pill.dart';
+import 'package:agape_logos_game/features/game/presentation/widgets/letter_wheel.dart';
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
 import 'package:agape_logos_game/features/multiplayer/data/match_remote.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/active_match.dart';
@@ -250,6 +252,92 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
         expect(find.byType(PowerupIncomingBanner), findsOneWidget);
+      },
+    );
+
+    // Regression: the events stream is a doc-query replay (every emission
+    // repeats ALL historical events, not just new ones). A scramble that has
+    // already been applied must not re-arm the wheel's 900ms swirl a second
+    // time, or an unrelated re-emission would relock the wheel's input for
+    // the rest of the match.
+    testWidgets(
+      'a replayed scramble event does not re-arm the wheel swirl',
+      (tester) async {
+        final events = StreamController<List<MatchEvent>>();
+        addTearDown(events.close);
+        final scramble = MatchEvent(
+          id: 's1',
+          at: DateTime.now().millisecondsSinceEpoch,
+          byUid: 'opp',
+          targetUid: 'me',
+          kind: MatchEventKind.scramble,
+          payload: const {},
+          expiresAt: 0,
+        );
+
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+            matchServiceProvider.overrideWithValue(_FakeRemote()),
+            matchStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_active())),
+            myRackStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_rack())),
+            matchEventsStreamProvider('m1').overrideWith((ref) => events.stream),
+            storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+          ],
+          child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+        ));
+        await tester.pump(); // match + rack streams emit
+        await tester.pump(); // rack sync + rebuild
+
+        // Seed: the first snapshot is historical, not new.
+        events.add(const []);
+        await tester.pump();
+
+        // A genuinely new scramble: arms the wheel's 900ms swirl from here.
+        events.add([scramble]);
+        await tester.pump();
+
+        // Mid-flight: halfway through the swirl.
+        await tester.pump(const Duration(milliseconds: 500));
+
+        // The doc query re-emits the SAME event (a Firestore snapshot
+        // replay, e.g. from an unrelated field changing). The buggy version
+        // re-armed the swirl on every such replay, pushing completion out
+        // another 900ms from THIS point and leaving the wheel permanently
+        // locked; the fix recognizes the id as already-seen and leaves the
+        // in-flight swirl alone.
+        events.add([scramble]);
+        await tester.pump();
+
+        // Past the ORIGINAL completion (900ms after the first, genuine arm).
+        // Fixed: the swirl has settled and the wheel accepts input again.
+        // Buggy: the replay pushed completion to 1400ms, so a drag here
+        // would still be ignored and the formed-word pill would stay empty.
+        await tester.pump(const Duration(milliseconds: 450));
+
+        final wheelFinder = find.byType(LetterWheel);
+        final wheelTopLeft = tester.getTopLeft(wheelFinder);
+        final wheelSize = tester.getSize(wheelFinder);
+        // Slot 0 (12 o'clock) on the 2-letter rack, in the wheel's actual
+        // on-screen geometry (the FittedBox around it may scale it down).
+        final slot0 = wheelTopLeft + LetterWheel.centersIn(wheelSize, 2)[0];
+
+        final gesture = await tester.startGesture(slot0);
+        await gesture.moveBy(const Offset(6, 6));
+        await tester.pump();
+
+        expect(
+          find.descendant(
+            of: find.byType(FormedWordPill),
+            matching: find.byType(Text),
+          ),
+          findsWidgets,
+        );
+
+        await gesture.up();
+        await tester.pump();
       },
     );
   });
