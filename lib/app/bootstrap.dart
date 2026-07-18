@@ -22,8 +22,10 @@ import '../core/storage/app_database.dart';
 import '../core/storage/storage_providers.dart';
 import '../features/auth/application/auth_providers.dart';
 import '../features/auth/domain/auth_user.dart';
+import '../features/multiplayer/application/resume_providers.dart';
 import '../features/multiplayer/presentation/widgets/fog_shader.dart';
 import '../features/profile/application/profile_providers.dart';
+import '../features/social/application/social_providers.dart';
 import '../firebase_options.dart';
 import 'app.dart';
 import 'background_entrypoint.dart';
@@ -114,6 +116,14 @@ Future<void> bootstrap() async {
                       ref.read(authRepositoryProvider).currentUser;
                   if (user == null) return;
                   await ref.read(profileRepositoryProvider).fetch(user.uid);
+                },
+                // A queued forfeit that only reached the server after the
+                // player came back online still drops the match from the
+                // Resume list, the "Play with friends" badge, and history
+                // (issue #38) without a manual pull-to-refresh.
+                onMatchLeaveSynced: () async {
+                  ref.invalidate(activeMatchesProvider);
+                  ref.invalidate(matchHistoryProvider);
                 },
               ),
             ),

@@ -1,10 +1,13 @@
 import 'dart:async';
 
+import 'package:agape_logos_game/core/storage/app_database.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
 import 'package:agape_logos_game/features/multiplayer/application/resume_providers.dart';
+import 'package:agape_logos_game/features/multiplayer/data/match_leave_repository.dart';
 import 'package:agape_logos_game/features/multiplayer/data/match_remote.dart';
+import 'package:agape_logos_game/features/multiplayer/domain/multiplayer_config.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/active_match.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/challenge_outcome.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match.dart';
@@ -18,20 +21,18 @@ import 'package:agape_logos_game/features/social/application/social_providers.da
 import 'package:agape_logos_game/features/social/domain/match_history_entry.dart';
 import 'package:agape_logos_game/features/store/application/store_providers.dart';
 import 'package:agape_logos_game/features/store/domain/store_item.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-/// Records the settling GET the page pokes at each clock boundary.
+/// Records the settling GET the page pokes at each clock boundary. `leave` is
+/// still implemented (part of the interface) and records to [left] so a test
+/// can assert the forfeit no longer fires a bare call straight at the remote.
 class _FakeRemote implements MatchRemote {
   final List<String> settled = <String>[];
   final List<String> left = <String>[];
-
-  /// When set, `leave()` records the call but does not resolve until this
-  /// completes, so a test can assert what happens BEFORE vs AFTER the
-  /// server's forfeit write actually lands.
-  Completer<void>? leaveGate;
 
   @override
   Future<void> settle(String matchId) async => settled.add(matchId);
@@ -54,11 +55,7 @@ class _FakeRemote implements MatchRemote {
     required String eventId,
   }) async => (ok: true, reason: null);
   @override
-  Future<void> leave(String matchId) async {
-    left.add(matchId);
-    final gate = leaveGate;
-    if (gate != null) await gate.future;
-  }
+  Future<void> leave(String matchId) async => left.add(matchId);
 
   @override
   Future<ChallengeOutcome> challenge(String toUid, {required String mode}) async =>
@@ -270,18 +267,25 @@ void main() {
     expect(find.text('Go'), findsOneWidget); // popped back to the caller
   });
 
-  // Regression for #37: _leaveMatch navigates home before the server's leave()
-  // write resolves, so the match page (and its `ref`) are torn down before the
-  // forfeit's finished transition could ever be observed. Without capturing a
+  // Regression for #37 + #38: _leaveMatch navigates home before the forfeit is
+  // recorded, so the match page (and its `ref`) are torn down before the
+  // finished transition could ever be observed. Without capturing a
   // longer-lived container, the Resume list, the "Play with friends" badge, and
-  // history would stay stale until a manual refresh. Drive a real forfeit
-  // through a minimal GoRouter (home is a stub that watches both providers, so
-  // a refresh is directly observable) and assert the refresh happens only once
-  // the leave write actually lands, not before.
+  // history would stay stale until a manual refresh. #38 additionally routes
+  // the leave through the durable offline queue (instead of a bare
+  // fire-and-forget HTTP call) so it survives an offline exit. Drive a real
+  // forfeit through a minimal GoRouter (home is a stub that watches both
+  // providers, so a refresh is directly observable). The gated repo lets us
+  // assert that the durable row is written up front, that home is already up
+  // (navigation never waits on the write), and that the two surfaces refresh
+  // only once the enqueue future completes, not before.
   testWidgets(
-      'forfeiting a live match refreshes resume + history once leave settles',
+      'forfeiting a live match queues a durable leave and refreshes resume + history',
       (tester) async {
-    final remote = _FakeRemote()..leaveGate = Completer<void>();
+    final remote = _FakeRemote();
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final leaveRepo = _GatedLeaveRepo(db);
     var activeMatchesCalls = 0;
     var matchHistoryCalls = 0;
 
@@ -300,6 +304,7 @@ void main() {
       overrides: [
         currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
         matchServiceProvider.overrideWithValue(remote),
+        matchLeaveRepositoryProvider.overrideWithValue(leaveRepo),
         matchStreamProvider('m1').overrideWith((ref) => Stream.value(_active())),
         myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
         matchEventsStreamProvider('m1')
@@ -325,27 +330,52 @@ void main() {
     await tester.tap(find.text('Forfeit'));
     await tester.pumpAndSettle();
 
-    // Home is already up (navigation does not wait on the network write), and
-    // the stub's first build has read each provider exactly once.
+    // Home is up (navigation does not wait on the write), the durable leave row
+    // is already queued for the leave endpoint (routed through the offline
+    // engine, not fired straight at the remote), and the stub's first build has
+    // read each provider exactly once.
     expect(find.text('home'), findsOneWidget);
-    expect(remote.left, <String>['m1']);
+    expect(remote.left, isEmpty); // no bare fire-and-forget call anymore
+    final queued = await db.pendingMutationsDao.due(
+      DateTime.now().millisecondsSinceEpoch,
+    );
+    expect(queued, hasLength(1));
+    expect(queued.single.endpoint, '/matches/m1/leave');
+    expect(queued.single.kind, kMatchLeaveKind);
+    expect(queued.single.idempotencyKey, 'leave:m1');
     expect(activeMatchesCalls, 1);
     expect(matchHistoryCalls, 1);
 
-    // The leave() write has NOT resolved yet: no second refresh fired early.
+    // The enqueue future has NOT completed yet: no refresh fired early.
     expect(activeMatchesCalls, 1);
     expect(matchHistoryCalls, 1);
 
-    // Now let the server's forfeit write land.
-    remote.leaveGate!.complete();
+    // Let the enqueue future resolve.
+    leaveRepo.gate.complete();
     await tester.pumpAndSettle();
 
-    // Both providers refreshed once the write actually completed, so the
-    // Resume list / badge / history drop the forfeited match without a manual
-    // pull-to-refresh.
+    // Both surfaces refreshed once the queue write settled, so the Resume list /
+    // badge / history drop the forfeited match without a manual pull-to-refresh.
     expect(activeMatchesCalls, 2);
     expect(matchHistoryCalls, 2);
   });
+}
+
+/// A [MatchLeaveRepository] whose `enqueueLeave` writes the durable row up front
+/// (so the queue is observable immediately) but then holds its returned future
+/// on [gate], so a test can assert what happens BEFORE vs AFTER the enqueue
+/// future completes (the point at which `_leaveMatch` invalidates the resume
+/// surfaces).
+class _GatedLeaveRepo extends MatchLeaveRepository {
+  _GatedLeaveRepo(super.db);
+
+  final Completer<void> gate = Completer<void>();
+
+  @override
+  Future<void> enqueueLeave(String matchId) async {
+    await super.enqueueLeave(matchId);
+    await gate.future;
+  }
 }
 
 /// Stands in for the real home route: just enough to prove that invalidating

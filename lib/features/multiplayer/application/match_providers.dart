@@ -2,9 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/firebase/firestore_providers.dart';
 import '../../../core/network/network_providers.dart';
+import '../../../core/storage/storage_providers.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../puzzles/application/puzzle_providers.dart';
 import '../data/match_firestore.dart';
+import '../data/match_leave_repository.dart';
 import '../data/match_remote.dart';
 import '../domain/match.dart';
 import '../domain/match_event.dart';
@@ -22,6 +24,13 @@ final matchServiceProvider = Provider<MatchRemote>(
     ref.watch(apiClientProvider),
     clock: ref.watch(serverClockProvider),
   ),
+);
+
+/// Durable-queue path for a forfeit: a leave routed through the offline sync
+/// engine (with backoff + a stable idempotency key) so it survives an offline
+/// exit instead of vanishing as a bare fire-and-forget call. See issue #38.
+final matchLeaveRepositoryProvider = Provider<MatchLeaveRepository>(
+  (ref) => MatchLeaveRepository(ref.watch(appDatabaseProvider)),
 );
 
 /// The Firestore read layer, sharing the puzzles' answer-key store so racks

@@ -11,6 +11,7 @@ import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/haptics/haptics.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../core/offline/offline_providers.dart';
 import '../../../../shared/widgets/animated_app_icon.dart';
 import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_dialog.dart';
@@ -538,26 +539,35 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   }
 
   /// Forfeit: get off the page first (disposing this page's match-stream
-  /// listener before the status flip lands), then fire the leave without
-  /// awaiting; an offline failure must never trap the player behind the
-  /// PopScope.
+  /// listener before the status flip lands), then DURABLY QUEUE the leave
+  /// rather than firing a bare fire-and-forget HTTP call. A leave that failed
+  /// offline (or on a 403/500) used to vanish, leaving the match `active`
+  /// server-side with no retry (issue #38); routing it through the offline sync
+  /// engine means it replays with backoff once connectivity returns, deduped by
+  /// a stable per-match idempotency key. The enqueue is a local write that
+  /// completes even offline, so the player is never trapped behind the PopScope.
   ///
   /// The forfeit never reaches the normal finish-transition listener above
   /// (this page is already gone by the time the server records it), so the
   /// Resume list, the "Play with friends" badge, and history would otherwise
   /// stay stale until a manual refresh. Capture the app's long-lived
   /// ProviderContainer before navigating away (this page's own `ref` is
-  /// disposed the moment `context.go` tears it down) and invalidate through
-  /// that once the leave completes.
+  /// disposed the moment `context.go` tears it down) and invalidate through it
+  /// as soon as the durable row is queued; the sync engine's reconciler
+  /// refreshes them again once the server actually finalizes.
   void _leaveMatch() {
-    final service = ref.read(matchServiceProvider);
+    final leaveRepo = ref.read(matchLeaveRepositoryProvider);
+    final kick = ref.read(syncKickProvider);
     final container = ProviderScope.containerOf(context, listen: false);
     context.go('/');
-    service
-        .leave(widget.matchId)
+    leaveRepo
+        .enqueueLeave(widget.matchId)
         .then((_) {
           container.invalidate(activeMatchesProvider);
           container.invalidate(matchHistoryProvider);
+          // Best-effort "sync now" so an online forfeit leaves at once; offline
+          // it is a no-op and the queued row flushes when connectivity returns.
+          return kick();
         })
         .ignore();
   }
