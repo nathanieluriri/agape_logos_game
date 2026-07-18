@@ -2,6 +2,9 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_repository.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/home/presentation/pages/home_page.dart';
+import 'package:agape_logos_game/features/multiplayer/application/resume_providers.dart';
+import 'package:agape_logos_game/features/multiplayer/domain/active_match.dart';
+import 'package:agape_logos_game/features/multiplayer/domain/challenge_invite.dart';
 import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
 import 'package:agape_logos_game/features/rewards/application/rewards_providers.dart';
 import 'package:agape_logos_game/features/rewards/domain/reward_status.dart';
@@ -72,6 +75,12 @@ void main() {
           // Backend-derived values stubbed so the widget test stays DB-free.
           coinsProvider.overrideWithValue(0),
           nextLevelProvider.overrideWithValue(26),
+          // Keeps the Versus pad's resume badge off the network: it watches
+          // these same providers as the "Play with friends" sheet's badge.
+          incomingChallengesProvider
+              .overrideWith((ref) => Stream.value(const <ChallengeInvite>[])),
+          activeMatchesProvider
+              .overrideWith((ref) async => const <ActiveMatch>[]),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
@@ -97,6 +106,12 @@ void main() {
           // Backend-derived values stubbed so the widget test stays DB-free.
           coinsProvider.overrideWithValue(0),
           nextLevelProvider.overrideWithValue(26),
+          // Keeps the Versus pad's resume badge off the network: it watches
+          // these same providers as the "Play with friends" sheet's badge.
+          incomingChallengesProvider
+              .overrideWith((ref) => Stream.value(const <ChallengeInvite>[])),
+          activeMatchesProvider
+              .overrideWith((ref) async => const <ActiveMatch>[]),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
@@ -120,6 +135,12 @@ void main() {
           rewardStatusControllerProvider.overrideWith(_StubRewards.new),
           coinsProvider.overrideWithValue(0),
           nextLevelProvider.overrideWithValue(26),
+          // Keeps the Versus pad's resume badge off the network: it watches
+          // these same providers as the "Play with friends" sheet's badge.
+          incomingChallengesProvider
+              .overrideWith((ref) => Stream.value(const <ChallengeInvite>[])),
+          activeMatchesProvider
+              .overrideWith((ref) async => const <ActiveMatch>[]),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
@@ -145,6 +166,12 @@ void main() {
           // Backend-derived values stubbed so the widget test stays DB-free.
           coinsProvider.overrideWithValue(0),
           nextLevelProvider.overrideWithValue(26),
+          // Keeps the Versus pad's resume badge off the network: it watches
+          // these same providers as the "Play with friends" sheet's badge.
+          incomingChallengesProvider
+              .overrideWith((ref) => Stream.value(const <ChallengeInvite>[])),
+          activeMatchesProvider
+              .overrideWith((ref) async => const <ActiveMatch>[]),
         ],
         child: MaterialApp.router(routerConfig: _buildRouter()),
       ),
