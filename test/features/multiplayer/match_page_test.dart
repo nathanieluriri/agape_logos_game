@@ -415,6 +415,89 @@ void main() {
     expect(find.byIcon(Icons.circle), findsNothing);
   });
 
+  // Issue #47: the playability gate (and the settle-boundary pokes) must read
+  // the SAME server-corrected clock the displayed timers already use, not the
+  // raw device clock. Sync the server clock 5s ahead of the device: `startedAt`
+  // sits 2s out by the raw device clock (still "counting down" under the old,
+  // buggy device-clock gate) but is already 3s in the past by the
+  // server-corrected clock the fix must use.
+  testWidgets(
+      'the countdown gate opens the board on the server clock, not the '
+      'device clock',
+      (tester) async {
+    final remote = _FakeRemote();
+    final clock = ServerClock();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    clock.sync(now + 5000); // offset becomes +5s (serverNow - deviceNow)
+    final counting = _active().copyWith(
+      status: MatchStatus.countdown,
+      startedAt: now + 2000,
+      endsAt: now + 90000,
+    );
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchServiceProvider.overrideWithValue(remote),
+        serverClockProvider.overrideWithValue(clock),
+        matchStreamProvider('m1').overrideWith((ref) => Stream.value(counting)),
+        myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
+        matchEventsStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(const <MatchEvent>[])),
+        storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+      ],
+      child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    // The server clock has already crossed startedAt, so the board must be
+    // open on the very first build: no "Get ready" hold, and the start
+    // boundary already poked the settling GET.
+    expect(find.textContaining('Get ready'), findsNothing);
+    expect(find.text('I'), findsWidgets);
+    expect(remote.settled, <String>['m1']);
+  });
+
+  // The other half: a device clock AHEAD of the server must not lock the
+  // board (or poke the end boundary) before the server clock says time is up.
+  testWidgets(
+      'the expiry gate holds the board open on the server clock, not a '
+      'device clock that has already run past endsAt',
+      (tester) async {
+    final remote = _FakeRemote();
+    final clock = ServerClock();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    clock.sync(now - 5000); // offset becomes -5s: server is BEHIND the device
+    final active = _active().copyWith(
+      startedAt: now - 90000,
+      // 2s in the past by the raw device clock (would already read "Time's
+      // up" under the old device-clock gate), but still 3s in the FUTURE by
+      // the server-corrected clock.
+      endsAt: now - 2000,
+    );
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchServiceProvider.overrideWithValue(remote),
+        serverClockProvider.overrideWithValue(clock),
+        matchStreamProvider('m1').overrideWith((ref) => Stream.value(active)),
+        myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
+        matchEventsStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(const <MatchEvent>[])),
+        storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+      ],
+      child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining("Time's up"), findsNothing);
+    expect(find.text('I'), findsWidgets); // the board is still up
+    expect(remote.settled, isEmpty); // the end boundary has not poked yet
+  });
+
   // Regression for #37 + #38: _leaveMatch navigates home before the forfeit is
   // recorded, so the match page (and its `ref`) are torn down before the
   // finished transition could ever be observed. Without capturing a

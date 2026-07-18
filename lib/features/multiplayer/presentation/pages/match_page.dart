@@ -109,7 +109,10 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   // the token directly; keep the two equal if the token ever changes.
   static const _wheelSize = Size(260, 260);
   Timer? _ticker;
-  int _now = DateTime.now().millisecondsSinceEpoch;
+  // Set for real in initState (needs `ref`, unavailable in a field
+  // initializer); this placeholder is only ever visible before the first
+  // build.
+  int _now = 0;
   bool _navigated = false;
   // Memo keys: the derived board/wheel data is rebuilt only when the rack or the
   // play state that feeds it actually changes, never on a clock tick.
@@ -161,6 +164,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   @override
   void initState() {
     super.initState();
+    _now = ref.read(serverClockProvider).now().millisecondsSinceEpoch;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(matchPlayControllerProvider.notifier).reset();
     });
@@ -168,12 +172,16 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     // countdown / play / time's up). The leaf widgets that show a live time (the
     // match timer, the fog and freeze expiries) carry their own tick, so a
     // second of clock never rebuilds the board, the wheel, or the powerup bar.
+    // Reads the SAME server-corrected clock the displayed timers use (see
+    // `_content`'s HUD/overlay `now:` readers below): gating playability on
+    // the raw device clock while every visible timer shows server time lets
+    // a skewed device submit into a dead match, or strand on "Time's up".
     _ticker = Timer.periodic(kMatchTick, (_) => _onTick());
   }
 
   void _onTick() {
     if (!mounted) return;
-    final int now = DateTime.now().millisecondsSinceEpoch;
+    final int now = ref.read(serverClockProvider).now().millisecondsSinceEpoch;
     final Match? match = ref.read(matchStreamProvider(widget.matchId)).value;
     final String? myUid = ref.read(currentUserProvider)?.uid;
     if (match == null) {
