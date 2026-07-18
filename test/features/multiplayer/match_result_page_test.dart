@@ -5,6 +5,7 @@ import 'package:agape_logos_game/features/multiplayer/domain/match.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_player.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_settings.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/pages/match_result_page.dart';
+import 'package:agape_logos_game/features/game/presentation/widgets/streak_confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,7 +42,68 @@ void main() {
     expect(find.text('You win'), findsOneWidget);
     expect(find.textContaining('20'), findsOneWidget);
     expect(find.textContaining('10'), findsOneWidget);
-    expect(find.text('Rematch'), findsOneWidget);
+    // Rematch is relabelled honestly: the client has no opponent uid to
+    // re-challenge the same player, so it opens a new match instead.
+    expect(find.text('Play again'), findsOneWidget);
+  });
+
+  testWidgets('a win renders the confetti burst', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(_finished('me'))),
+      ],
+      child: const MaterialApp(home: MatchResultPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(StreakConfetti), findsOneWidget);
+  });
+
+  testWidgets('a loss renders no confetti burst', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(_finished('opp'))),
+      ],
+      child: const MaterialApp(home: MatchResultPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(StreakConfetti), findsNothing);
+  });
+
+  testWidgets('a long opponent name does not overflow the score row',
+      (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchStreamProvider('m1').overrideWith(
+          (ref) => Stream.value(_finished(
+            'me',
+            players: {
+              'me': _p('me', 20),
+              'opp': const MatchPlayer(
+                uid: 'opp',
+                displayName: 'A Truly Extraordinarily Long Display Name',
+                avatarId: 'a',
+                isGuest: false,
+                ready: true,
+                connected: true,
+                score: 10,
+                wordsFound: 0,
+              ),
+            },
+          )),
+        ),
+      ],
+      child: const MaterialApp(home: MatchResultPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+    await tester.pump();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('explains a words-found win even with tied scores', (tester) async {

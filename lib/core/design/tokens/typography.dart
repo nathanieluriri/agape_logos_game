@@ -63,6 +63,30 @@ abstract final class AppTypography {
   /// The combo banner's streak subtitle ("Combo Streak x3").
   static const bannerSub = TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
 
+  /// A multiplayer section title ("Match lobby", the pre/post-play interlude
+  /// label). Carries no color; callers set one for the surface they sit on.
+  static const matchSectionTitle = TextStyle(fontSize: 22, fontWeight: FontWeight.w800);
+
+  /// The shared pre-play countdown numeral on the match interlude screen.
+  static const matchCountdown = TextStyle(fontSize: 44, fontWeight: FontWeight.w800);
+
+  /// The lobby's shareable match code, spaced out for legibility.
+  static const matchCode = TextStyle(
+    fontSize: 34,
+    fontWeight: FontWeight.w800,
+    letterSpacing: 10,
+  );
+
+  /// The match-result headline ("You win" / "You lose" / "Draw"). Carries no
+  /// color; callers set one for the win/lose/draw variant.
+  static const matchResultHeadline = TextStyle(fontSize: 40, fontWeight: FontWeight.w900);
+
+  /// A match-result score line's player-name label.
+  static const matchScoreLabel = TextStyle(fontSize: 18, fontWeight: FontWeight.w700);
+
+  /// A match-result score line's numeric score.
+  static const matchScoreValue = TextStyle(fontSize: 22, fontWeight: FontWeight.w900);
+
   static final TextTheme _light = _build(Brightness.light);
   static final TextTheme _dark = _build(Brightness.dark);
 

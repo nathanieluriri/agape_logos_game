@@ -127,4 +127,47 @@ void main() {
     expect(c.read(matchPlayControllerProvider).pendingFound, isEmpty);
     expect(before.length, 4);
   });
+
+  // Issue #63: an invalid or already-found word must leave a visible signal
+  // for the UI to flash, not just a haptic (invisible on web).
+  test('an invalid word records a WordRejection with reason invalid', () {
+    ctrl.touchLetter(3); // R
+    ctrl.touchLetter(0); // T
+    ctrl.endSelection(_rack(), <String>{}); // "RT": not an answer
+    final rejection = c.read(matchPlayControllerProvider).rejection;
+    expect(rejection, isNotNull);
+    expect(rejection!.reason, WordRejectReason.invalid);
+  });
+
+  test(
+    'a duplicate word records a WordRejection with reason alreadyFound, '
+    'and every rejection bumps a distinct nonce',
+    () {
+      ctrl.touchLetter(0); // T
+      ctrl.touchLetter(1); // E
+      ctrl.touchLetter(2); // A
+      ctrl.touchLetter(3); // R
+      expect(ctrl.endSelection(_rack(), <String>{}), 'TEAR'); // accepted
+      expect(c.read(matchPlayControllerProvider).rejection, isNull);
+
+      ctrl.touchLetter(0);
+      ctrl.touchLetter(1);
+      ctrl.touchLetter(2);
+      ctrl.touchLetter(3);
+      expect(
+        ctrl.endSelection(_rack(), <String>{}),
+        isNull,
+      ); // TEAR already pending: duplicate
+      final first = c.read(matchPlayControllerProvider).rejection;
+      expect(first, isNotNull);
+      expect(first!.reason, WordRejectReason.alreadyFound);
+
+      ctrl.touchLetter(3); // R
+      ctrl.touchLetter(0); // T
+      ctrl.endSelection(_rack(), <String>{}); // "RT": invalid
+      final second = c.read(matchPlayControllerProvider).rejection;
+      expect(second!.reason, WordRejectReason.invalid);
+      expect(second.nonce, isNot(first.nonce));
+    },
+  );
 }

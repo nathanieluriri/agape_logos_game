@@ -56,8 +56,20 @@ class _WordStealFlyoutViewState extends State<_WordStealFlyoutView>
   )
     ..addStatusListener((status) {
       if (status == AnimationStatus.completed) widget.onDone();
-    })
-    ..forward();
+    });
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_controller.isAnimating && _controller.status != AnimationStatus.completed) {
+      final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+      if (reduceMotion) {
+        _controller.value = 1;
+      } else {
+        _controller.forward();
+      }
+    }
+  }
 
   late final Animation<double> _t =
       CurvedAnimation(parent: _controller, curve: AppCurves.emphasized);

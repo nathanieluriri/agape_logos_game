@@ -17,12 +17,14 @@ import 'package:agape_logos_game/features/multiplayer/domain/match_rack.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_settings.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/pages/match_page.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/active_effect_chips.dart';
+import 'package:agape_logos_game/features/multiplayer/presentation/widgets/powerup_cast_flyout.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/powerup_incoming_banner.dart';
 import 'package:agape_logos_game/features/puzzles/domain/puzzle.dart';
 import 'package:agape_logos_game/features/store/application/store_providers.dart';
 import 'package:agape_logos_game/features/store/domain/store_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Records which haptic calls fired, so a test can assert the incoming-attack
@@ -157,6 +159,66 @@ void main() {
       expect(find.text('Shield blocked Fog Bank!'), findsOneWidget);
       expect(find.text('Grace cast Fog Bank!'), findsNothing);
     });
+
+    testWidgets(
+      'under reduced motion the banner snaps in, still holds, then snaps '
+      'away and self-removes',
+      (tester) async {
+        var done = false;
+        await tester.pumpWidget(
+          MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: MaterialApp(
+              home: Scaffold(
+                body: PowerupIncomingBanner(
+                  data: const IncomingBannerData(
+                    casterName: 'Grace',
+                    powerupName: 'Fog Bank',
+                  ),
+                  onDone: () => done = true,
+                ),
+              ),
+            ),
+          ),
+        );
+        // No drop-in animation frames needed: the card is already in place.
+        await tester.pump();
+        expect(find.text('Grace cast Fog Bank!'), findsOneWidget);
+        expect(done, isFalse);
+
+        // Still holds for the message to read.
+        await tester.pump(const Duration(milliseconds: 1600));
+        expect(done, isTrue);
+      },
+    );
+  });
+
+  group('PowerupCastFlyout', () {
+    testWidgets(
+      'under reduced motion the flyout snaps to the end state and '
+      'self-removes without a 520px travel',
+      (tester) async {
+        late BuildContext ctx;
+        await tester.pumpWidget(
+          MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: MaterialApp(
+              home: Scaffold(
+                body: Builder(builder: (c) {
+                  ctx = c;
+                  return const SizedBox.expand();
+                }),
+              ),
+            ),
+          ),
+        );
+        PowerupCastFlyout.show(ctx, 'shield', from: const Offset(100, 500));
+        await tester.pump();
+        // Snapped straight to completed: self-removes by the next frame.
+        await tester.pump();
+        expect(find.byType(SvgPicture), findsNothing);
+      },
+    );
   });
 
   group('MatchPage event animation dedup', () {
@@ -548,7 +610,9 @@ void main() {
     final effects = MatchActiveEffects(
       fog: true,
       fogUntil: DateTime.fromMillisecondsSinceEpoch(now + 4000),
-      frozenLetter: 'A',
+      frozenLetterExpiries: {
+        'A': DateTime.fromMillisecondsSinceEpoch(now + 2500),
+      },
       freezeUntil: DateTime.fromMillisecondsSinceEpoch(now + 2500),
       doublePoints: true,
       doublePointsUntil: DateTime.fromMillisecondsSinceEpoch(now + 6000),
@@ -571,7 +635,7 @@ void main() {
       expect(find.text('Fog 4s'), findsOneWidget);
       expect(find.text('Frozen 3s'), findsOneWidget); // ceil(2500ms) -> 3s
       expect(find.text('2x points 6s'), findsOneWidget);
-      expect(find.text('Warded 9s'), findsOneWidget);
+      expect(find.text('Steal ward 9s'), findsOneWidget);
       expect(find.text('Shield'), findsOneWidget);
     });
 
@@ -603,8 +667,23 @@ void main() {
       expect(find.textContaining('Fog'), findsNothing);
       expect(find.textContaining('Frozen'), findsNothing);
       expect(find.text('Shield'), findsOneWidget);
-      expect(find.textContaining('Warded'), findsOneWidget);
+      expect(find.textContaining('Steal ward'), findsOneWidget);
       expect(find.textContaining('2x points'), findsOneWidget);
+    });
+
+    testWidgets('ward chip names Word Steal, not a generic Warded label', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActiveEffectChips(effects: effects, nowMillis: now),
+          ),
+        ),
+      );
+
+      expect(find.textContaining('Steal'), findsOneWidget);
+      expect(find.text('Warded 9s'), findsNothing);
     });
   });
 }

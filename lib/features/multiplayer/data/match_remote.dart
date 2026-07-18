@@ -76,10 +76,13 @@ class HttpMatchRemote implements MatchRemote {
 
   /// `serverNow` rides on the powerup and match-read responses (contract
   /// update: server clock); feed every one we see to keep effect expiries
-  /// comparing correctly against a skewed device clock.
-  void _syncClock(Map<String, dynamic>? data) {
+  /// comparing correctly against a skewed device clock. `roundTrip` is the
+  /// caller-measured request latency (issue #58), so the offset can be
+  /// corrected for the time the response spent in flight rather than treating
+  /// `serverNow` as if it landed instantly.
+  void _syncClock(Map<String, dynamic>? data, {required Duration roundTrip}) {
     final serverNow = (data?['serverNow'] as num?)?.toInt();
-    if (serverNow != null) _clock?.sync(serverNow);
+    if (serverNow != null) _clock?.sync(serverNow, roundTrip: roundTrip);
   }
 
   @override
@@ -132,6 +135,7 @@ class HttpMatchRemote implements MatchRemote {
     required String eventId,
   }) async {
     try {
+      final t0 = DateTime.now();
       final res = await _api.request<Map<String, dynamic>>(
         '/matches/$matchId/powerup',
         method: 'POST',
@@ -140,7 +144,7 @@ class HttpMatchRemote implements MatchRemote {
         // which is also the events/{eventId} doc id the server writes.
         headers: <String, String>{'idempotency-key': eventId},
       );
-      _syncClock(res.data);
+      _syncClock(res.data, roundTrip: DateTime.now().difference(t0));
       final ok = res.data?['ok'] as bool? ?? true;
       final reason = res.data?['reason'] as String?;
       return (ok: ok, reason: reason);
@@ -162,11 +166,12 @@ class HttpMatchRemote implements MatchRemote {
     // through the Firestore listener, exactly like every other match change.
     // `serverNow` is not in the doc though, so it is the one thing this
     // response is read for.
+    final t0 = DateTime.now();
     final res = await _api.request<Map<String, dynamic>>(
       '/matches/$matchId',
       method: 'GET',
     );
-    _syncClock(res.data);
+    _syncClock(res.data, roundTrip: DateTime.now().difference(t0));
   }
 
   @override

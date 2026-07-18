@@ -1,16 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/design/motion/curves.dart';
 import '../../../../core/design/tokens/colors.dart';
+import '../../../../core/design/tokens/durations.dart';
 import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../core/design/tokens/typography.dart';
 import '../../../../shared/widgets/pond_background.dart';
+import '../../../../shared/widgets/pond_loader.dart';
 import '../../../../shared/widgets/pond_page_header.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_stage.dart';
 import '../../../auth/application/auth_providers.dart';
+import '../../../social/presentation/widgets/social_avatar_dot.dart';
 import '../../application/match_providers.dart';
 import '../../domain/match.dart';
 import '../../domain/match_player.dart';
@@ -83,7 +90,7 @@ class LobbyPage extends ConsumerWidget {
   }
 }
 
-class _LobbyBody extends ConsumerWidget {
+class _LobbyBody extends ConsumerStatefulWidget {
   const _LobbyBody({
     required this.match,
     required this.myUid,
@@ -94,10 +101,69 @@ class _LobbyBody extends ConsumerWidget {
   final String matchId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final me = myUid == null ? null : match.playerFor(myUid!);
-    final isCreator = myUid != null && match.isCreator(myUid!);
+  ConsumerState<_LobbyBody> createState() => _LobbyBodyState();
+}
+
+class _LobbyBodyState extends ConsumerState<_LobbyBody> {
+  Timer? _stillSearchingTimer;
+  Timer? _joinConfirmTimer;
+  bool _stillSearching = false;
+  String? _justJoinedName;
+
+  @override
+  void initState() {
+    super.initState();
+    _armStillSearchingTimer();
+  }
+
+  void _armStillSearchingTimer() {
+    _stillSearchingTimer?.cancel();
+    _stillSearchingTimer = null;
+    if (widget.match.hasOpponent) return;
+    _stillSearchingTimer = Timer(AppDurations.lobbyStillSearchingAfter, () {
+      if (mounted) setState(() => _stillSearching = true);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _LobbyBody old) {
+    super.didUpdateWidget(old);
+    if (!old.match.hasOpponent && widget.match.hasOpponent) {
+      final opponentUid = widget.match.playerOrder.firstWhere(
+        (uid) => uid != widget.myUid,
+        orElse: () => '',
+      );
+      final opponent = widget.match.playerFor(opponentUid);
+      _stillSearchingTimer?.cancel();
+      _stillSearchingTimer = null;
+      _joinConfirmTimer?.cancel();
+      setState(() {
+        _stillSearching = false;
+        _justJoinedName = opponent?.displayName;
+      });
+      _joinConfirmTimer = Timer(AppDurations.lobbyJoinConfirmHold, () {
+        if (mounted) setState(() => _justJoinedName = null);
+      });
+    } else if (old.match.hasOpponent && !widget.match.hasOpponent) {
+      _armStillSearchingTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _stillSearchingTimer?.cancel();
+    _joinConfirmTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final match = widget.match;
+    final myUid = widget.myUid;
+    final me = myUid == null ? null : match.playerFor(myUid);
+    final isCreator = myUid != null && match.isCreator(myUid);
     final service = ref.read(matchServiceProvider);
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -105,29 +171,60 @@ class _LobbyBody extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: AppSpacing.xl),
-          const Text(
+          Text(
             'Match lobby',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: AppTypography.matchSectionTitle.copyWith(
               color: AppColors.wordmark,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           _CodeCard(code: match.code),
           const SizedBox(height: AppSpacing.lg),
           for (final uid in match.playerOrder)
-            _PlayerRow(player: match.playerFor(uid), isMe: uid == myUid),
-          if (!match.hasOpponent)
-            const Padding(
-              padding: EdgeInsets.only(top: AppSpacing.md),
-              child: Text(
-                'Waiting for an opponent to join...',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.padLabelSoft),
-              ),
+            _PlayerRow(
+              key: ValueKey(uid),
+              player: match.playerFor(uid),
+              isMe: uid == myUid,
+              reduceMotion: reduceMotion,
             ),
+          AnimatedSize(
+            duration: AppDurations.fast,
+            curve: AppCurves.enter,
+            child: _justJoinedName != null
+                ? Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.md),
+                    child: Text(
+                      '${_justJoinedName!} joined!',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.lilyGreenLight,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          if (!match.hasOpponent) ...[
+            const Padding(
+              padding: EdgeInsets.only(top: AppSpacing.lg),
+              child: PondLoader(label: 'Waiting for an opponent to join...'),
+            ),
+            AnimatedSize(
+              duration: AppDurations.fast,
+              curve: AppCurves.enter,
+              child: _stillSearching
+                  ? const Padding(
+                      padding: EdgeInsets.only(top: AppSpacing.sm),
+                      child: Text(
+                        'Still searching... share the code above to speed it up.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.padLabelSoft),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
           const Spacer(),
           PondPillButton(
             label: (me?.ready ?? false) ? 'Not ready' : 'Ready',
@@ -135,7 +232,9 @@ class _LobbyBody extends ConsumerWidget {
             enabled: me != null,
             onPressed: () {
               final self = me;
-              if (self != null) service.ready(matchId, ready: !self.ready);
+              if (self != null) {
+                service.ready(widget.matchId, ready: !self.ready);
+              }
             },
           ),
           if (isCreator) ...[
@@ -144,7 +243,7 @@ class _LobbyBody extends ConsumerWidget {
               label: 'Start now',
               variant: PondPillVariant.quiet,
               enabled: match.hasOpponent,
-              onPressed: () => service.start(matchId),
+              onPressed: () => service.start(widget.matchId),
             ),
           ],
           const SizedBox(height: AppSpacing.sm),
@@ -157,7 +256,7 @@ class _LobbyBody extends ConsumerWidget {
               } else {
                 context.go('/');
               }
-              service.leave(matchId).ignore();
+              service.leave(widget.matchId).ignore();
             },
           ),
         ],
@@ -189,11 +288,8 @@ class _CodeCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             Text(
               code,
-              style: const TextStyle(
+              style: AppTypography.matchCode.copyWith(
                 color: AppColors.pillText,
-                fontSize: 34,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 10,
               ),
             ),
           ],
@@ -203,32 +299,90 @@ class _CodeCard extends StatelessWidget {
   }
 }
 
-class _PlayerRow extends StatelessWidget {
-  const _PlayerRow({required this.player, required this.isMe});
+/// One lobby seat. Fades and rises in on its first appearance (notably the
+/// opponent's row, the moment they join) unless reduced motion is requested,
+/// in which case it snaps straight to its settled state.
+class _PlayerRow extends StatefulWidget {
+  const _PlayerRow({
+    super.key,
+    required this.player,
+    required this.isMe,
+    required this.reduceMotion,
+  });
   final MatchPlayer? player;
   final bool isMe;
+  final bool reduceMotion;
+
+  @override
+  State<_PlayerRow> createState() => _PlayerRowState();
+}
+
+class _PlayerRowState extends State<_PlayerRow>
+    with SingleTickerProviderStateMixin {
+  static const double _riseDistance = 12;
+
+  late final AnimationController _enter = AnimationController(
+    vsync: this,
+    duration: AppDurations.lobbyRowEnter,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.reduceMotion) {
+      _enter.value = 1;
+    } else {
+      _enter.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _enter.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final p = player;
+    final p = widget.player;
     final name = p == null
         ? 'Empty seat'
-        : '${p.displayName}${isMe ? ' (you)' : ''}';
+        : '${p.displayName}${widget.isMe ? ' (you)' : ''}';
     final ready = p?.ready ?? false;
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(
         children: [
-          Icon(
-            ready ? Icons.check_circle_rounded : Icons.person_outline_rounded,
-            color: ready ? AppColors.lilyGreenLight : AppColors.padLabelSoft,
-          ),
+          SocialAvatarDot(name: p?.displayName ?? '?', size: 32),
           const SizedBox(width: AppSpacing.sm),
-          Text(
-            name,
-            style: const TextStyle(color: AppColors.padLabel, fontSize: 16),
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(color: AppColors.padLabel, fontSize: 16),
+            ),
           ),
+          if (ready)
+            const Icon(
+              Icons.check_circle_rounded,
+              color: AppColors.lilyGreenLight,
+            ),
         ],
       ),
+    );
+    if (widget.reduceMotion) return row;
+    return AnimatedBuilder(
+      animation: _enter,
+      child: row,
+      builder: (context, child) {
+        final t = AppCurves.enter.transform(_enter.value);
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, _riseDistance * (1 - t)),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }

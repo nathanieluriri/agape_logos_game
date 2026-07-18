@@ -7,10 +7,12 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/audio/audio_providers.dart';
 import '../../../../core/audio/sfx_keys.dart';
+import '../../../../core/connectivity/connectivity_providers.dart';
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/haptics/haptics.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../core/design/tokens/typography.dart';
 import '../../../../core/offline/offline_providers.dart';
 import '../../../../shared/widgets/animated_app_icon.dart';
 import '../../../../shared/widgets/pond_background.dart';
@@ -18,9 +20,12 @@ import '../../../../shared/widgets/pond_dialog.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_snack.dart';
 import '../../../auth/application/auth_providers.dart';
+import '../../../game/application/game_session.dart' show praiseForCombo;
+import '../../../game/presentation/widgets/combo_banner.dart';
 import '../../../game/presentation/widgets/dictionary_sheet.dart';
 import '../../../game/presentation/widgets/formed_word_pill.dart';
 import '../../../game/presentation/widgets/letter_wheel.dart';
+import '../../../game/presentation/widgets/streak_confetti.dart';
 import '../../../game/presentation/widgets/wheel_action_button.dart';
 import '../../../game/presentation/widgets/word_board.dart';
 import '../../../puzzles/domain/puzzle.dart';
@@ -33,6 +38,7 @@ import '../../application/resume_providers.dart';
 import '../../domain/match.dart';
 import '../../domain/match_event.dart';
 import '../../domain/match_rack.dart';
+import '../../domain/match_result.dart';
 import '../../domain/match_settings.dart';
 import '../../domain/powerup_kind.dart';
 import '../widgets/active_effect_chips.dart';
@@ -46,6 +52,7 @@ import '../widgets/powerup_info_sheet.dart';
 import '../widgets/powerup_side_buttons.dart';
 import '../widgets/powerup_tutorial_overlay.dart';
 import '../widgets/powerup_wheel.dart';
+import '../widgets/reconnecting_banner.dart';
 import '../widgets/shield_bubble_overlay.dart';
 import '../widgets/ward_ring_overlay.dart';
 import '../widgets/word_steal_flyout.dart';
@@ -53,6 +60,18 @@ import '../widgets/word_steal_flyout.dart';
 /// How often anything on the match page consults the wall clock. Not a motion
 /// token: this is a polling interval, not an animation.
 const Duration kMatchTick = Duration(milliseconds: 500);
+
+/// Issue #60 (client part): how long a persistently-null rack (the private
+/// `racks/{uid}` stream has emitted, i.e. `hasValue`, but the doc does not
+/// exist) is treated as still-settling before the page gives up and shows an
+/// error with retry, instead of the bare spinner that used to hang forever.
+/// A brief null window right after join is normal (the join call returns
+/// before the rack doc write is visible to a listener that attached slightly
+/// earlier); this window comfortably covers that. If the server's rack draw
+/// itself failed (the doc is never written at all), the window closes and
+/// the player sees a retry instead of an endless hang. Not a motion token:
+/// this is a data-settling grace window, not an animation.
+const Duration kRackMissingGrace = Duration(seconds: 6);
 
 /// Rebuilds only its own subtree on the match tick, handing the builder the
 /// current wall clock. Used for leaf widgets that show a live time (the
@@ -129,6 +148,14 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   // so a dropped request retries on the next tick instead of stranding the match.
   bool _pokedStart = false;
   bool _pokedEnd = false;
+  // Issue #58: an ASYNC challenge match is written straight to status:active
+  // (no lobby, no countdown), so on entry neither boundary above may be due
+  // and _settleAtBoundaries never pokes. Without a dedicated poke the server
+  // clock stays unsynced (offset zero) for the whole resumed session. Fired
+  // at most once per page instance, and skipped entirely if a boundary poke
+  // already covered this same build or the clock was already synced earlier
+  // in the app run.
+  bool _requestedInitialClockSync = false;
 
   // Which powerup wheel (if any) is open. Task 8's tutorial spotlights these
   // via the exposed GlobalKeys: the offense button, the defense button, and
@@ -160,6 +187,23 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   // Task 8: bumped each time my ward deflects an attack (a `warded` event
   // targeting me), so WardRingOverlay pulses its echo ring.
   int _wardPingTick = 0;
+
+  // Issue #64: multiplayer has no combo/streak of its own (unlike
+  // single-player's GameSession.combo), so this just alternates between the
+  // two lowest combo values on every LOCAL word find, purely to give the
+  // reused ComboBanner/StreakConfetti (both are combo-gated: they only show
+  // or fire once their `combo` argument is >= 2 AND has just changed) a
+  // changing value to react to. Not a real streak count, and never reset -
+  // "celebrate every find", the simplest faithful trigger, not a rebuilt
+  // combo system.
+  int _foundCelebrationCombo = 0;
+
+  // Issue #60 (client part): armed the first time `myRackStreamProvider`
+  // settles on null (the rack doc does not exist), cleared the moment a real
+  // rack shows up. If it fires, the rack has been missing for the whole
+  // grace window and `_content` switches from the spinner to `MatchLoadError`.
+  Timer? _rackMissingTimer;
+  bool _rackMissingTimedOut = false;
 
   @override
   void initState() {
@@ -209,7 +253,28 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   @override
   void dispose() {
     _ticker?.cancel();
+    _rackMissingTimer?.cancel();
     super.dispose();
+  }
+
+  /// Issue #60 (client part): arms a one-shot grace timer the first time the
+  /// rack stream settles on null, and clears it the moment a real rack shows
+  /// up. Read directly off the current stream state in `build()` (not
+  /// `ref.listen`) because `myRackStreamProvider` is not autoDispose: an
+  /// already-null value cached from before this page attached would never
+  /// fire a "change" for `ref.listen` to catch.
+  void _trackRackMissing(bool rackEmittedNull) {
+    if (!rackEmittedNull) {
+      _rackMissingTimer?.cancel();
+      _rackMissingTimer = null;
+      _rackMissingTimedOut = false;
+      return;
+    }
+    if (_rackMissingTimer != null || _rackMissingTimedOut) return;
+    _rackMissingTimer = Timer(kRackMissingGrace, () {
+      _rackMissingTimer = null;
+      if (mounted) setState(() => _rackMissingTimedOut = true);
+    });
   }
 
   /// The server persists `countdown -> active` and `active -> finished` only
@@ -240,6 +305,27 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     }
   }
 
+  /// Issue #58: a boundary poke above already carries `serverNow`, so it is
+  /// enough of a sync on its own. But an ASYNC challenge match starts life
+  /// already `active` with neither boundary due, so this covers the gap: once
+  /// per page instance, if this same call did not already poke a boundary
+  /// AND the shared clock has never synced at all (a fresh app run, not just a
+  /// fresh match), fire the settling GET purely for its `serverNow` side
+  /// effect. Re-armed on failure like the boundary pokes, so a dropped
+  /// request retries on the next tick instead of leaving the session
+  /// permanently unsynced.
+  ///
+  /// Issue #76: called only from the ticker (`_onTick`) and the
+  /// `matchStreamProvider` listener, never from `build()`, so no network I/O
+  /// runs during the render pass.
+  void _syncClockOnLoad({required bool boundaryPokedThisBuild}) {
+    if (_requestedInitialClockSync) return;
+    _requestedInitialClockSync = true;
+    if (boundaryPokedThisBuild) return;
+    if (ref.read(serverClockProvider).isSynced) return;
+    _poke(() => _requestedInitialClockSync = false);
+  }
+
   void _poke(VoidCallback rearm) {
     ref.read(matchServiceProvider).settle(widget.matchId).catchError((_) {
       // Offline or a transient failure: re-arm so the next tick tries again.
@@ -251,8 +337,10 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   /// close the wheel, and launch the cast flyout from the release point.
   /// Mirrors the old PowerupBar flow (optimistic inventory decrement) but
   /// spends UP FRONT (rather than on success) so the flyout and the decrement
-  /// land together; a "warded"/402 outcome refunds the decrement once the
-  /// server responds (contract: `MatchRemote.powerup` -> `PowerupFireResult`).
+  /// land together; a "warded"/402 outcome (or ANY other error the server
+  /// call throws, e.g. a 409 "nothing to steal" or an offline DioException:
+  /// `MatchRemote.powerup` only maps 402 to a result and rethrows everything
+  /// else) refunds the decrement instead.
   Future<void> _firePowerup(String kind, Offset releaseGlobal) async {
     setState(() => _openPowerupCategory = null);
     final inventory =
@@ -270,51 +358,62 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     _playSfxQuiet(SfxKeys.powerupCast);
     Haptics.instance.mediumImpact();
 
-    final result = await ref
-        .read(matchServiceProvider)
-        .powerup(widget.matchId, kind, eventId: const Uuid().v4());
-    if (!mounted) return;
+    try {
+      final result = await ref
+          .read(matchServiceProvider)
+          .powerup(widget.matchId, kind, eventId: const Uuid().v4());
+      if (!mounted) return;
 
-    if (!result.ok && decremented) {
-      // Refund by incrementing whatever count is CURRENT at refund time, not
-      // by restoring the pre-fire snapshot: two overlapping fires would
-      // otherwise let the later refund clobber the newer state and lose or
-      // duplicate inventory counts.
-      final current =
-          ref.read(inventoryControllerProvider).value ?? const <String, int>{};
-      final refunded = (current[itemId] ?? 0) + 1;
-      ref
-          .read(inventoryControllerProvider.notifier)
-          .applyServer({...current, itemId: refunded});
-    }
+      if (!result.ok && decremented) _refundPowerup(itemId);
 
-    if (result.reason == 'warded') {
-      _playSfxQuiet(SfxKeys.powerupBlocked);
-      Haptics.instance.mistakeImpact();
-      showPondSnack(context, 'Warded!');
-      return;
-    }
-    if (!result.ok) {
+      if (result.reason == 'warded') {
+        _playSfxQuiet(SfxKeys.powerupBlocked);
+        Haptics.instance.mistakeImpact();
+        showPondSnack(context, 'Warded!');
+        return;
+      }
+      if (!result.ok) {
+        Haptics.instance.mistakeImpact();
+        showPondSnack(context, 'Could not fire that powerup');
+        return;
+      }
+      if (result.reason == 'blocked') {
+        _playSfxQuiet(SfxKeys.powerupBlocked);
+        Haptics.instance.mistakeImpact();
+        showPondSnack(context, 'Blocked!');
+      }
+      if (result.ok && result.reason == null && kind == 'word_steal') {
+        // The claimed word flies into my score pip (top left). The rack sync
+        // delivers the word itself; the flight is generic on this side.
+        final size = MediaQuery.sizeOf(context);
+        WordStealFlyout.show(
+          context,
+          label: '+1 word',
+          from: Offset(size.width / 2, AppSpacing.xl * 3),
+          to: const Offset(AppSpacing.xl, AppSpacing.xl),
+        );
+      }
+    } catch (_) {
+      // A rethrown server error (409, offline, ...): the cast never landed,
+      // so the optimistic decrement above must not stand.
+      if (!mounted) return;
+      if (decremented) _refundPowerup(itemId);
       Haptics.instance.mistakeImpact();
       showPondSnack(context, 'Could not fire that powerup');
-      return;
     }
-    if (result.reason == 'blocked') {
-      _playSfxQuiet(SfxKeys.powerupBlocked);
-      Haptics.instance.mistakeImpact();
-      showPondSnack(context, 'Blocked!');
-    }
-    if (result.ok && result.reason == null && kind == 'word_steal') {
-      // The claimed word flies into my score pip (top left). The rack sync
-      // delivers the word itself; the flight is generic on this side.
-      final size = MediaQuery.sizeOf(context);
-      WordStealFlyout.show(
-        context,
-        label: '+1 word',
-        from: Offset(size.width / 2, AppSpacing.xl * 3),
-        to: const Offset(AppSpacing.xl, AppSpacing.xl),
-      );
-    }
+  }
+
+  /// Refunds an optimistic decrement of [itemId] by incrementing whatever
+  /// count is CURRENT at refund time, not by restoring the pre-fire
+  /// snapshot: two overlapping fires would otherwise let the later refund
+  /// clobber the newer state and lose or duplicate inventory counts.
+  void _refundPowerup(String itemId) {
+    final current =
+        ref.read(inventoryControllerProvider).value ?? const <String, int>{};
+    final refunded = (current[itemId] ?? 0) + 1;
+    ref
+        .read(inventoryControllerProvider.notifier)
+        .applyServer({...current, itemId: refunded});
   }
 
   void _playSfxQuiet(String key) {
@@ -401,6 +500,14 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   }
 
   Future<void> _submit(String word) async {
+    // Issue #61: while offline the submit is guaranteed to fail (no path to
+    // the server), so skip the doomed call and roll back at once instead of
+    // waiting on a request that can only time out or throw. Read (not watch):
+    // this runs from a callback, not build.
+    if (ref.read(isOnlineProvider).value == false) {
+      ref.read(matchPlayControllerProvider.notifier).rollbackSubmit(word);
+      return;
+    }
     try {
       await ref.read(matchServiceProvider).submit(widget.matchId, word);
     } catch (_) {
@@ -471,13 +578,71 @@ class _MatchPageState extends ConsumerState<MatchPage> {
         _handleIncomingEvent(e);
       }
     });
-    // Navigate to the result screen once the match finishes. `_navigated`
-    // guards both the navigation and the invalidate below so the transition
-    // into finished fires exactly once, not on every stream tick.
-    ref.listen(matchStreamProvider(matchId), (_, next) {
+    // Issue #64: fires the found-word celebration off a genuinely NEW local
+    // find. `endSelection` only ever grows `pendingFound` for a brand-new
+    // valid word (a duplicate or an invalid attempt never adds to it, and a
+    // server-confirmed/rolled-back word only ever shrinks it), so a growth
+    // here is exactly "I just found a word".
+    ref.listen<MatchPlayState>(matchPlayControllerProvider, (prev, next) {
+      final justFound =
+          next.pendingFound.length > (prev?.pendingFound.length ?? 0);
+      if (!justFound) return;
+      _playSfxQuiet(SfxKeys.wordFound);
+      setState(
+        () => _foundCelebrationCombo = _foundCelebrationCombo == 2 ? 3 : 2,
+      );
+    });
+    // Navigate to the result screen once the match finishes, or home if it
+    // gets cancelled. `_navigated` guards both branches (and the invalidate
+    // below) so either transition fires exactly once, not on every stream
+    // tick.
+    ref.listen(matchStreamProvider(matchId), (prev, next) {
       final m = next.value;
-      if (m != null && m.status == MatchStatus.finished && !_navigated) {
+      if (m == null) return;
+      // Issue #76: boundary pokes are a network side effect and must not run
+      // from build(). The periodic ticker (_onTick) already drives them on a
+      // timer; this listener catches the case where a fresh match value
+      // arrives (e.g. entering the page already past a boundary) between
+      // ticks. `_settleAtBoundaries` is idempotent via _pokedStart/_pokedEnd.
+      final bool pokedStartBefore = _pokedStart;
+      final bool pokedEndBefore = _pokedEnd;
+      _settleAtBoundaries(m, _now, myUid);
+      final bool boundaryPokedThisListen =
+          (_pokedStart && !pokedStartBefore) || (_pokedEnd && !pokedEndBefore);
+      // Issue #58: the dedicated load-time clock sync is only for a match that
+      // enters already `active` with no boundary imminent (an async challenge
+      // resumed mid-play). A lobby/countdown match will reach its start
+      // boundary shortly and sync via that poke, so it must not settle on load.
+      if (m.status == MatchStatus.active) {
+        _syncClockOnLoad(boundaryPokedThisBuild: boundaryPokedThisListen);
+      }
+      if (_navigated) return;
+      // Issue #65: the opponent's authoritative wordsFound just went up
+      // (a local find, or a word steal credited to them), so cue that they
+      // scored. Guarded the same way as the powerup calls: best-effort, no
+      // audio asset ships at this key yet.
+      if (myUid != null) {
+        final prevOpponentWords =
+            prev?.value?.opponentOf(myUid)?.wordsFound ?? 0;
+        final nextOpponentWords = m.opponentOf(myUid)?.wordsFound ?? 0;
+        if (nextOpponentWords > prevOpponentWords) {
+          _playSfxQuiet(SfxKeys.opponentScored);
+        }
+      }
+      if (m.status == MatchStatus.finished) {
         _navigated = true;
+        // Issue #65: the most emotional beat in the match, cued once, right
+        // as the finish transition fires (before the result page even
+        // mounts). Mirrors MatchResult.fromFinishedMatch's outcome so this
+        // never disagrees with what the result screen shows.
+        if (myUid != null) {
+          final outcome = MatchResult.fromFinishedMatch(m, myUid).outcome;
+          if (outcome == 'win') {
+            _playSfxQuiet(SfxKeys.matchWon);
+          } else if (outcome == 'loss') {
+            _playSfxQuiet(SfxKeys.matchLost);
+          }
+        }
         // Drop this match from the Resume list and the "Play with friends"
         // badge (see #32, #33) without waiting for a manual pull-to-refresh.
         ref.invalidate(activeMatchesProvider);
@@ -485,6 +650,14 @@ class _MatchPageState extends ConsumerState<MatchPage> {
         // without a manual pull-to-refresh (see #34).
         ref.invalidate(matchHistoryProvider);
         context.pushReplacement('/multiplayer/result/$matchId');
+      } else if (m.status == MatchStatus.cancelled) {
+        // Issue #62: a countdown-phase cancellation (e.g. the opponent
+        // force-leaves before the match starts) must not strand the other
+        // player on the permanent "Time's up" interlude with no way out but
+        // the OS back button. Mirrors lobby_page's cancellation handling.
+        _navigated = true;
+        showPondSnack(context, 'Match cancelled');
+        context.go('/');
       }
     });
 
@@ -492,14 +665,28 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     final rackAsync = ref.watch(myRackStreamProvider(matchId));
     final match = matchAsync.value;
     final rack = rackAsync.value;
+    // Issue #60 (client part): the rack stream HAS emitted (hasValue), but
+    // the value is null, meaning the `racks/{uid}` doc does not exist (most
+    // often a server rack-draw failure during join). A brief null window
+    // right after join is normal; only past the grace window does this
+    // become an error rather than "still loading".
+    _trackRackMissing(rackAsync.hasValue && rack == null);
     // A listener that errored has no value; without this it would read as
-    // "still loading" and spin forever.
+    // "still loading" and spin forever. A rack that stayed null past the
+    // grace window is likewise a failure, not a loading state.
     final failed =
         (matchAsync.hasError && match == null) ||
-        (rackAsync.hasError && rack == null);
-    if (match != null) _settleAtBoundaries(match, _now, myUid);
+        (rackAsync.hasError && rack == null) ||
+        _rackMissingTimedOut;
     final effects = ref.watch(activeEffectsProvider(matchId));
     final playState = ref.watch(matchPlayControllerProvider);
+    // Issue #61: the live board's Firestore listeners stop delivering while
+    // offline, but nothing else here notices, so the board would otherwise
+    // look live while it is actually stale. A never-yet-emitted status
+    // (still loading) is deliberately NOT treated as offline, so the banner
+    // does not flash on every page entry before the first reachability check
+    // lands.
+    final offline = ref.watch(isOnlineProvider).value == false;
 
     // An async (6-hour) match is meant to be played across sittings, so leaving
     // the screen is NORMAL and must NOT forfeit: the game keeps running
@@ -533,6 +720,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
               myUid,
               failed,
               isAsync,
+              offline,
             ),
           ),
         ),
@@ -597,22 +785,29 @@ class _MatchPageState extends ConsumerState<MatchPage> {
         .ignore();
   }
 
-  /// Which SLOTS are frozen at [now]: every slot whose letter equals the
-  /// server-frozen character, so a shuffle never desyncs the freeze from the
-  /// letter it targets.
+  /// Which SLOTS are frozen at [now]: every slot whose letter equals ANY
+  /// currently-active frozen letter, so a shuffle never desyncs the freeze
+  /// from the letters it targets and a stacked cast (opponent freezes E then
+  /// R with no cooldown between casts) frosts both instead of only the last
+  /// one landed - the client's frozen set must match the server's submit
+  /// validator, which rejects a word containing ANY active freeze letter
+  /// (issue #54). Each letter is checked against its OWN expiry so it drops
+  /// out the instant its window ends, independent of the others.
   Set<int> _frozenSlots(
     MatchActiveEffects effects,
     List<String> wheelLetters,
     int now,
   ) {
-    final letter = effects.frozenLetter;
-    final until = effects.freezeUntil;
-    if (letter == null || until == null || until.millisecondsSinceEpoch <= now) {
-      return const <int>{};
-    }
+    final expiries = effects.frozenLetterExpiries;
+    if (expiries.isEmpty) return const <int>{};
+    final activeLetters = <String>{
+      for (final entry in expiries.entries)
+        if (entry.value.millisecondsSinceEpoch > now) entry.key.toUpperCase(),
+    };
+    if (activeLetters.isEmpty) return const <int>{};
     final frozen = <int>{};
     for (var slot = 0; slot < wheelLetters.length; slot++) {
-      if (wheelLetters[slot].toUpperCase() == letter.toUpperCase()) {
+      if (activeLetters.contains(wheelLetters[slot].toUpperCase())) {
         frozen.add(slot);
       }
     }
@@ -668,6 +863,20 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     ];
   }
 
+  /// Maps the controller's one-shot [WordRejection] (issue #63) to the
+  /// message [FormedWordPill] flashes, so an unrecognized word and an
+  /// already-found one read differently instead of both looking like a
+  /// silent no-op.
+  FormedWordAlert? _rejectionAlert(WordRejection? rejection) {
+    if (rejection == null) return null;
+    return FormedWordAlert(
+      message: rejection.reason == WordRejectReason.alreadyFound
+          ? 'Already found'
+          : 'Not a word',
+      nonce: rejection.nonce,
+    );
+  }
+
   Widget _content(
     Match? match,
     MatchRack? rack,
@@ -676,6 +885,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     String? myUid,
     bool failed,
     bool isAsync,
+    bool offline,
   ) {
     if (failed) {
       return MatchLoadError(
@@ -686,6 +896,47 @@ class _MatchPageState extends ConsumerState<MatchPage> {
       );
     }
     if (match == null || rack == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    // Issue #59: the finish listener in build() above navigates to the result
+    // page only when a NEW `status == finished` value arrives on the stream,
+    // so it never fires for a match that was ALREADY finished at mount (deep
+    // link, back-nav from the result screen, or a stale Resume tap) -
+    // `matchStreamProvider` has no autoDispose, so the result page can leave a
+    // finished value cached for the very next entry to read straight off the
+    // stream. Guard for that here too, reusing the SAME `_navigated` flag the
+    // listener sets so the two can never double-navigate. Navigation cannot
+    // happen during build, so it is scheduled for the next frame; this frame
+    // renders a neutral placeholder instead of the interactive board.
+    if (match.status == MatchStatus.finished) {
+      if (!_navigated) {
+        _navigated = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          ref.invalidate(activeMatchesProvider);
+          ref.invalidate(matchHistoryProvider);
+          context.pushReplacement('/multiplayer/result/${widget.matchId}');
+        });
+      }
+      return const Center(child: CircularProgressIndicator());
+    }
+    // Issue #62: a cancelled match has no countdown and is never playable, so
+    // without this branch it would otherwise fall through to the "Time's up"
+    // check below and render that interlude PERMANENTLY (nothing else on
+    // this page would ever move it along). The listener above already
+    // navigates home on a live status transition to cancelled; this covers
+    // the same cached-value gap #59 guards for finished (a deep link or a
+    // stale Resume tap landing directly on an already-cancelled match, with
+    // no new stream emission for the listener to observe).
+    if (match.status == MatchStatus.cancelled) {
+      if (!_navigated) {
+        _navigated = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          showPondSnack(context, 'Match cancelled');
+          context.go('/');
+        });
+      }
       return const Center(child: CircularProgressIndicator());
     }
     // Pre-start: the lobby, or the shared countdown to startedAt. The board opens
@@ -724,6 +975,9 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     final inventory =
         ref.watch(inventoryControllerProvider).value ?? const <String, int>{};
     final prices = {for (final item in catalog) item.id: item.cost};
+    final powerupDisplayNames = {
+      for (final item in catalog) item.id: item.name,
+    };
 
     final myScore = myUid == null ? 0 : (match.playerFor(myUid)?.score ?? 0);
     final formed = [
@@ -732,6 +986,15 @@ class _MatchPageState extends ConsumerState<MatchPage> {
 
     final playColumn = Column(
       children: [
+        // Issue #61: the board looks live (timer running, wheel touchable)
+        // even while offline, because the Firestore listeners that feed it
+        // simply stop delivering rather than erroring. This is the only
+        // signal the player gets that the board may be stale.
+        if (offline)
+          const Padding(
+            padding: EdgeInsets.only(top: AppSpacing.sm),
+            child: ReconnectingBanner(),
+          ),
         Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
@@ -739,7 +1002,13 @@ class _MatchPageState extends ConsumerState<MatchPage> {
           ),
           child: MatchHud(
             myScore: myScore,
-            myWords: rack.foundWords.length,
+            // Authoritative wordsFound, not rack.foundWords.length: Word
+            // Steal credits players.${uid}.wordsFound on the caster without
+            // adding the stolen word to their own rack.foundWords (issue
+            // #57), so the rack count would undercount after a steal while
+            // the opponent's chip (which already reads
+            // opponentOf(uid)?.wordsFound) shows the true value.
+            myWords: myUid == null ? 0 : (match.playerFor(myUid)?.wordsFound ?? 0),
             opponentName:
                 (myUid == null ? null : match.opponentOf(myUid)?.displayName) ??
                 'Waiting...',
@@ -796,7 +1065,25 @@ class _MatchPageState extends ConsumerState<MatchPage> {
             ),
           ),
         ),
-        FormedWordPill(word: formed),
+        // Issue #64: the found-word celebration (mute-N/A, reduced-motion-aware
+        // via the widgets themselves), mirroring single-player's _ComboSlot.
+        Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: StreakConfetti(combo: _foundCelebrationCombo),
+            ),
+            ComboBanner(
+              praise: praiseForCombo(_foundCelebrationCombo),
+              combo: _foundCelebrationCombo,
+            ),
+          ],
+        ),
+        FormedWordPill(
+          word: formed,
+          alert: _rejectionAlert(playState.rejection),
+        ),
         const SizedBox(height: AppSpacing.sm),
         Stack(
           alignment: Alignment.bottomCenter,
@@ -922,6 +1209,7 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                 category: _openPowerupCategory!,
                 ownedCounts: inventory,
                 prices: prices,
+                displayNames: powerupDisplayNames,
                 firstSlotKey: powerupWheelSlotKey,
                 onFire: _firePowerup,
                 onTapInfo: (itemId) => _openPowerupInfo(catalog, itemId),
@@ -987,33 +1275,26 @@ class _MatchInterlude extends StatelessWidget {
   /// Whole seconds until the shared start instant; 0 hides the numeral.
   final int countdown;
 
-  /// Diameter of the drawing mark.
-  static const double _markSize = 160;
-
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const AnimatedAppIcon(size: _markSize),
+          const AnimatedAppIcon(size: AppSpacing.matchInterludeMarkSize),
           const SizedBox(height: AppSpacing.xl),
           Text(
             label,
-            style: const TextStyle(
+            style: AppTypography.matchSectionTitle.copyWith(
               color: AppColors.wordmark,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
             ),
           ),
           if (countdown > 0) ...<Widget>[
             const SizedBox(height: AppSpacing.sm),
             Text(
               '$countdown',
-              style: const TextStyle(
+              style: AppTypography.matchCountdown.copyWith(
                 color: AppColors.wordmark,
-                fontSize: 44,
-                fontWeight: FontWeight.w800,
               ),
             ),
           ],

@@ -155,7 +155,11 @@ class _LetterWheelState extends State<LetterWheel>
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final moveDuration = reduceMotion ? Duration.zero : AppDurations.shuffle;
-    return SizedBox(
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: 'Letter wheel, drag across letters to form a word',
+      child: SizedBox(
       width: AppSizing.wheelDiameter,
       height: AppSizing.wheelDiameter,
       child: GestureDetector(
@@ -256,6 +260,7 @@ class _LetterWheelState extends State<LetterWheel>
           ),
         ),
       ),
+      ),
     );
   }
 }
@@ -280,22 +285,30 @@ class _Node extends StatelessWidget {
   Widget build(BuildContext context) {
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    return Center(
-      child: AnimatedScale(
-        scale: selected ? _selectedScale : 1,
-        duration: reduceMotion ? Duration.zero : AppDurations.instant,
-        curve: AppCurves.pop,
-        child: Container(
-          alignment: Alignment.center,
-          decoration: selected ? _selectedDecoration : null,
-          width: AppSizing.wheelNode,
-          height: AppSizing.wheelNode,
-          child: Text(
-            letter,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
-              color: selected ? AppColors.padLabel : AppColors.wheelLetter,
+    return Semantics(
+      container: true,
+      label: selected ? '$letter, selected' : letter,
+      child: Center(
+        child: AnimatedScale(
+          scale: selected ? _selectedScale : 1,
+          duration: reduceMotion ? Duration.zero : AppDurations.instant,
+          curve: AppCurves.pop,
+          child: Container(
+            alignment: Alignment.center,
+            decoration: selected ? _selectedDecoration : null,
+            width: AppSizing.wheelNode,
+            height: AppSizing.wheelNode,
+            child: ExcludeSemantics(
+              child: Text(
+                letter,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? AppColors.padLabel
+                      : AppColors.wheelLetter,
+                ),
+              ),
             ),
           ),
         ),

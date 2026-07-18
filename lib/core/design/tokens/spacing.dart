@@ -11,4 +11,14 @@ abstract final class AppSpacing {
   static const double lg = 24;
   static const double xl = 32;
   static const double xxl = 48;
+
+  /// Top inset the incoming-powerup banner rests at once it has dropped in.
+  static const double powerupBannerTopInset = 72;
+
+  /// Vertical travel distance of the incoming-powerup banner's drop-in glide,
+  /// from just above the screen down to [powerupBannerTopInset].
+  static const double powerupBannerDropDistance = 160;
+
+  /// Diameter of the drawing app mark on the match interlude screen.
+  static const double matchInterludeMarkSize = 160;
 }

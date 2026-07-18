@@ -5,6 +5,7 @@ import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/durations.dart';
 import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../shared/widgets/glyphs/pond_glyph.dart';
 import '../../application/match_providers.dart';
 
 /// Remaining-seconds badges for whatever is live on ME right now, rendered
@@ -57,8 +58,12 @@ class ActiveEffectChips extends StatelessWidget {
       ));
     }
 
+    // frozenLetters may hold several letters at once (a stacked freeze cast
+    // with no cooldown); the chip still shows one countdown, keyed off the
+    // group's furthest expiry, with the stack count carrying "how many"
+    // (matches the fog/ward/double-points chips above).
     final freezeLeft = _secondsLeft(effects.freezeUntil, nowMillis);
-    if (effects.frozenLetter != null && freezeLeft != null) {
+    if (effects.frozenLetters.isNotEmpty && freezeLeft != null) {
       chips.add(_EffectChip(
         key: ValueKey('freeze-${effects.freezeStacks}'),
         label:
@@ -83,7 +88,8 @@ class ActiveEffectChips extends StatelessWidget {
     if (effects.warded && wardLeft != null) {
       chips.add(_EffectChip(
         key: ValueKey('ward-${effects.wardStacks}'),
-        label: '${_stackedLabel('Warded', effects.wardStacks)} ${wardLeft}s',
+        label:
+            '${_stackedLabel('Steal ward', effects.wardStacks)} ${wardLeft}s',
         icon: Icons.security_rounded,
         urgent: wardLeft <= urgentThresholdSecs,
       ));
@@ -93,7 +99,7 @@ class ActiveEffectChips extends StatelessWidget {
       chips.add(_EffectChip(
         key: ValueKey('shield-${effects.shieldCharges}'),
         label: _stackedLabel('Shield', effects.shieldCharges),
-        icon: Icons.shield_rounded,
+        glyph: PondGlyph.shield,
       ));
     }
 
@@ -118,12 +124,22 @@ class _EffectChip extends StatelessWidget {
   const _EffectChip({
     super.key,
     required this.label,
-    required this.icon,
+    this.icon,
+    this.glyph,
     this.urgent = false,
-  });
+  }) : assert(
+         icon != null || glyph != null,
+         'either icon or glyph must be provided',
+       );
 
   final String label;
-  final IconData icon;
+
+  /// A Material icon fallback for glyphs with no font-independent
+  /// [PondGlyph] equivalent yet. Prefer [glyph] when one exists.
+  final IconData? icon;
+
+  /// Font-independent replacement for [icon] (see `lib/shared/widgets/glyphs/`).
+  final PondGlyph? glyph;
 
   /// True inside the effect's final [ActiveEffectChips.urgentThresholdSecs]
   /// seconds; swaps the chip to danger styling as an expiry warning.
@@ -155,7 +171,9 @@ class _EffectChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: urgent ? fg : AppColors.padLabel),
+            glyph != null
+                ? PondIcon(glyph!, size: 14)
+                : Icon(icon, size: 14, color: urgent ? fg : AppColors.padLabel),
             const SizedBox(width: AppSpacing.xxs),
             Text(
               label,

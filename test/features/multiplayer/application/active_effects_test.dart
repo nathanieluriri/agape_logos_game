@@ -84,8 +84,8 @@ void main() {
 
     final fx = container.read(activeEffectsProvider('m1'));
     expect(fx.fog, isTrue);
-    expect(fx.frozenLetter, 'A');
-    expect(fx.frozenLetterCp, 'A'.codeUnitAt(0));
+    expect(fx.frozenLetters, {'A'});
+    expect(fx.frozenLetterExpiries['A'], DateTime.fromMillisecondsSinceEpoch(future2));
     // double_points has expiresAt 0 but isn't armed-until-consumed like
     // shield: MatchEffectKind.doublePoints just has no timed expiry in this
     // fixture, so it counts as live.
@@ -314,5 +314,71 @@ void main() {
     final fx = container.read(activeEffectsProvider('m1'));
     expect(fx.warded, isFalse);
     expect(fx.wardUntil, isNull);
+  });
+
+  test(
+      'stacked letter_freeze casts track ALL active frozen letters as a set '
+      '(issue #54)', () async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchStreamProvider('m1').overrideWith(
+          (ref) => Stream.value(
+            _matchWith({
+              'me': [
+                // Opponent casts letter_freeze twice with no cooldown: E
+                // then R. Both must stay frozen client-side, not just the
+                // last one landed (issue #54: the server's submit validator
+                // rejects a word containing EITHER active freeze letter).
+                MatchActiveEffect(
+                  kind: MatchEffectKind.letterFreeze,
+                  byUid: 'opp',
+                  startedAt: 0,
+                  expiresAt: now + 10000,
+                  payload: const {'letter': 'E'},
+                ),
+                MatchActiveEffect(
+                  kind: MatchEffectKind.letterFreeze,
+                  byUid: 'opp',
+                  startedAt: 0,
+                  expiresAt: now + 8000,
+                  payload: const {'letter': 'R'},
+                ),
+                // An earlier freeze on Q has already lapsed by server time
+                // and must not linger in the set.
+                MatchActiveEffect(
+                  kind: MatchEffectKind.letterFreeze,
+                  byUid: 'opp',
+                  startedAt: 0,
+                  expiresAt: now - 1000,
+                  payload: const {'letter': 'Q'},
+                ),
+              ],
+            }),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.listen(matchStreamProvider('m1'), (_, __) {});
+    await container.pump();
+
+    final fx = container.read(activeEffectsProvider('m1'));
+    expect(fx.frozenLetters, {'E', 'R'});
+    expect(
+      fx.frozenLetterExpiries['E'],
+      DateTime.fromMillisecondsSinceEpoch(now + 10000),
+    );
+    expect(
+      fx.frozenLetterExpiries['R'],
+      DateTime.fromMillisecondsSinceEpoch(now + 8000),
+    );
+    expect(fx.frozenLetterExpiries.containsKey('Q'), isFalse);
+    // The lapsed Q entry never reaches this provider's loop at all
+    // (match.effectsFor already filtered it out by server time).
+    expect(fx.freezeStacks, 2);
+    // The group countdown chip keeps the FURTHEST of the live expiries.
+    expect(fx.freezeUntil, DateTime.fromMillisecondsSinceEpoch(now + 10000));
   });
 }

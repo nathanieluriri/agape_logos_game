@@ -34,4 +34,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('LOTUS'), findsNothing);
   });
+
+  testWidgets(
+      'under reduced motion the flyout snaps to the end state and self-removes '
+      'without travelling', (tester) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: MaterialApp(
+          home: Scaffold(
+            body: Builder(builder: (c) {
+              ctx = c;
+              return const SizedBox.expand();
+            }),
+          ),
+        ),
+      ),
+    );
+    WordStealFlyout.show(
+      ctx,
+      label: 'LOTUS',
+      from: const Offset(200, 400),
+      to: const Offset(340, 60),
+    );
+    await tester.pump();
+    // No large-travel animation: the overlay entry has already snapped to
+    // completed and self-removed by the next frame.
+    await tester.pump();
+    expect(find.text('LOTUS'), findsNothing);
+  });
 }

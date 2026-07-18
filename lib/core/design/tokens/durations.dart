@@ -113,4 +113,29 @@ abstract final class AppDurations {
 
   /// The match timer digits rolling up to the boosted deadline.
   static const Duration timeBoostClimb = Duration(milliseconds: 800);
+
+  /// How long the formed-word pill's shake + red flash holds after the
+  /// controller rejects a word (invalid or already found) before it reverts
+  /// to its normal display.
+  static const Duration wordRejectFlash = Duration(milliseconds: 520);
+
+  /// The opponent chip's scale bump + color flash when their word count
+  /// increments, so scoring by the opponent reads as a felt moment.
+  static const Duration opponentScorePulse = Duration(milliseconds: 420);
+
+  /// The incoming-powerup banner's drop-in glide and its mirrored fly-away
+  /// exit; both halves of the cast feedback loop share this timing.
+  static const Duration powerupBannerTransition = Duration(milliseconds: 320);
+
+  /// How long the multiplayer lobby waits with no opponent before surfacing
+  /// the "still searching" hint beneath the loader.
+  static const Duration lobbyStillSearchingAfter = Duration(seconds: 15);
+
+  /// How long the "{name} joined!" confirmation holds in the lobby before
+  /// fading away.
+  static const Duration lobbyJoinConfirmHold = Duration(milliseconds: 1800);
+
+  /// A lobby player row's fade + rise entrance when it first appears
+  /// (notably the opponent's row, the moment they join).
+  static const Duration lobbyRowEnter = Duration(milliseconds: 420);
 }

@@ -20,7 +20,8 @@ class PowerupWheelSlot extends StatefulWidget {
     required this.price,
     required this.onFire,
     required this.onTapInfo,
-  });
+    String? displayName,
+  }) : displayName = displayName ?? itemId;
 
   final GlobalKey? anchorKey;
   final String itemId;
@@ -28,6 +29,11 @@ class PowerupWheelSlot extends StatefulWidget {
   final int price;
   final void Function(String itemId, Offset releaseGlobal) onFire;
   final void Function(String itemId) onTapInfo;
+
+  /// The catalog display name for [itemId] (e.g. "Fog Bank"), used for the
+  /// screen-reader label instead of the raw wire id. Falls back to [itemId]
+  /// when the caller has no catalog entry resolved yet.
+  final String displayName;
 
   static const double fireThreshold = 64;
 
@@ -62,9 +68,13 @@ class _PowerupWheelSlotState extends State<PowerupWheelSlot> {
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      container: true,
       button: true,
-      label: _owned ? '${widget.itemId}, ${widget.owned} owned' : widget.itemId,
-      child: GestureDetector(
+      label: _owned
+          ? '${widget.displayName}, ${widget.owned} owned'
+          : widget.displayName,
+      child: ExcludeSemantics(
+        child: GestureDetector(
         key: widget.anchorKey,
         behavior: HitTestBehavior.opaque,
         onTap: () => widget.onTapInfo(widget.itemId),
@@ -78,6 +88,7 @@ class _PowerupWheelSlotState extends State<PowerupWheelSlot> {
             owned: widget.owned,
             price: widget.price,
           ),
+        ),
         ),
       ),
     );

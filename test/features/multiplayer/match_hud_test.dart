@@ -178,6 +178,51 @@ void main() {
   });
 
   testWidgets(
+      'stacked double points still shows x2, never x4 (regression #55: '
+      'the server only ever awards a flat 2x)', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: MatchHud(
+          myScore: 10, myWords: 2,
+          opponentName: 'O', opponentScore: 7, opponentWords: 1, opponent: _opp(),
+          endsAt: DateTime.now().add(const Duration(minutes: 2)),
+          onDictionary: () {},
+          doublePoints: true,
+          doubleStacks: 2,
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('x2'), findsOneWidget);
+    expect(find.text('x4'), findsNothing);
+  });
+
+  testWidgets(
+      'a score gain under a stacked double points still floats a x2 pop, '
+      'never x4 (regression #55)', (tester) async {
+    Widget hud(int score) => MaterialApp(
+      home: Scaffold(
+        body: MatchHud(
+          myScore: score, myWords: 2,
+          opponentName: 'O', opponentScore: 7, opponentWords: 1, opponent: _opp(),
+          endsAt: DateTime.now().add(const Duration(minutes: 2)),
+          onDictionary: () {},
+          doublePoints: true,
+          doubleStacks: 2,
+        ),
+      ),
+    );
+    await tester.pumpWidget(hud(10));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(hud(24));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('+14 x2'), findsOneWidget);
+    expect(find.text('+14 x4'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.text('+14 x2'), findsNothing);
+  });
+
+  testWidgets(
       'double points badge scale-in actually animates (not a static '
       'AnimatedScale(scale: 1))', (tester) async {
     await tester.pumpWidget(MaterialApp(
@@ -240,5 +285,84 @@ void main() {
     expect(find.text('+14 x2'), findsOneWidget);
     await tester.pumpAndSettle();
     expect(find.text('+14 x2'), findsNothing);
+  });
+
+  testWidgets(
+      'opponent chip pulses when their word count increments (issue #68)',
+      (tester) async {
+    Widget hud(int opponentWords) => MaterialApp(
+      home: Scaffold(
+        body: MatchHud(
+          myScore: 5, myWords: 1,
+          opponentName: 'Opp', opponentScore: 42, opponentWords: opponentWords,
+          opponent: _opp(),
+          endsAt: DateTime.now().add(const Duration(minutes: 5)),
+          onDictionary: () {},
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(hud(3));
+    await tester.pumpAndSettle();
+
+    Transform wordsTransform() => tester.widget<Transform>(
+      find.ancestor(
+        of: find.text('· 3'),
+        matching: find.byType(Transform),
+      ).first,
+    );
+    Transform wordsTransformFor(String text) => tester.widget<Transform>(
+      find.ancestor(
+        of: find.text(text),
+        matching: find.byType(Transform),
+      ).first,
+    );
+
+    // Settled state: no pulse in flight, scale reads 1.0.
+    expect(wordsTransform().transform.storage[0], 1.0);
+
+    // The count increments: the chip should be mid-pulse (scaled above 1.0)
+    // right after the update, then settle back to 1.0.
+    await tester.pumpWidget(hud(4));
+    await tester.pump();
+    final midScale = wordsTransformFor('· 4').transform.storage[0];
+    expect(midScale, greaterThan(1.0));
+
+    await tester.pumpAndSettle();
+    expect(wordsTransformFor('· 4').transform.storage[0], 1.0);
+  });
+
+  testWidgets(
+      'opponent chip does not pulse when word count is unchanged (issue #68)',
+      (tester) async {
+    Widget hud(int myScore) => MaterialApp(
+      home: Scaffold(
+        body: MatchHud(
+          myScore: myScore, myWords: 1,
+          opponentName: 'Opp', opponentScore: 42, opponentWords: 3,
+          opponent: _opp(),
+          endsAt: DateTime.now().add(const Duration(minutes: 5)),
+          onDictionary: () {},
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(hud(5));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(hud(6));
+    await tester.pump();
+
+    final scale = tester
+        .widget<Transform>(
+          find
+              .ancestor(
+                of: find.text('· 3'),
+                matching: find.byType(Transform),
+              )
+              .first,
+        )
+        .transform
+        .storage[0];
+    expect(scale, 1.0);
   });
 }

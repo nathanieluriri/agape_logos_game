@@ -10,7 +10,8 @@ import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/spacing.dart';
 
 /// The combo_lock ward: a soft luminous ring around the whole play area that
-/// deflects incoming attacks for its window. Rising edge: the ring draws
+/// wards off Word Steal specifically for its window (it does not block
+/// letter_freeze, fog_bank, or scramble). Rising edge: the ring draws
 /// itself in. Live: a STATIC stroke (no ticker); a one-shot [Timer] fades it
 /// at [wardUntil] (same pattern as the fog overlay's reduced-motion path).
 /// A [pingTick] increment plays one ripple pulse (an attack just bounced) as
@@ -209,27 +210,30 @@ class _WardRingOverlayState extends State<WardRingOverlay> {
     final showEcho = _pinging && !reduceMotion;
 
     return IgnorePointer(
-      child: RepaintBoundary(
-        child: Stack(
-          // Always a Stack, even with a single child: keeping the tree
-          // shape constant (base always at the same slot) means the echo
-          // layer appearing/disappearing never disturbs the base layer's
-          // element, which is the whole point of this structure.
-          fit: StackFit.expand,
-          children: [
-            base,
-            if (showEcho)
-              TweenAnimationBuilder<double>(
-                key: ValueKey<String>('ward-ping-${widget.pingTick}'),
-                tween: Tween(begin: 0, end: 1),
-                duration: AppDurations.effectExpire,
-                curve: AppCurves.exit,
-                builder: (_, ping, _) => CustomPaint(
-                  size: Size.infinite,
-                  painter: _WardEchoPainter(ping: ping),
+      child: Semantics(
+        label: 'Warded against Word Steal',
+        child: RepaintBoundary(
+          child: Stack(
+            // Always a Stack, even with a single child: keeping the tree
+            // shape constant (base always at the same slot) means the echo
+            // layer appearing/disappearing never disturbs the base layer's
+            // element, which is the whole point of this structure.
+            fit: StackFit.expand,
+            children: [
+              base,
+              if (showEcho)
+                TweenAnimationBuilder<double>(
+                  key: ValueKey<String>('ward-ping-${widget.pingTick}'),
+                  tween: Tween(begin: 0, end: 1),
+                  duration: AppDurations.effectExpire,
+                  curve: AppCurves.exit,
+                  builder: (_, ping, _) => CustomPaint(
+                    size: Size.infinite,
+                    painter: _WardEchoPainter(ping: ping),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

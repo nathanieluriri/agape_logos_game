@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -199,6 +198,11 @@ class _TickingOpponentChipState extends State<_TickingOpponentChip> {
   Timer? _timer;
   late int _now = widget.now().millisecondsSinceEpoch;
 
+  /// Bumped each time the opponent's word count increments, so the chip's
+  /// pulse animation restarts (issue #68: the word count used to silently
+  /// snap up with no felt moment).
+  int _pulseSeq = 0;
+
   @override
   void initState() {
     super.initState();
@@ -206,6 +210,14 @@ class _TickingOpponentChipState extends State<_TickingOpponentChip> {
       if (!mounted) return;
       setState(() => _now = widget.now().millisecondsSinceEpoch);
     });
+  }
+
+  @override
+  void didUpdateWidget(_TickingOpponentChip old) {
+    super.didUpdateWidget(old);
+    if (widget.words > old.words) {
+      setState(() => _pulseSeq++);
+    }
   }
 
   @override
@@ -220,6 +232,7 @@ class _TickingOpponentChipState extends State<_TickingOpponentChip> {
     score: widget.score,
     words: widget.words,
     connected: opponentPresence(widget.opponent, _now),
+    pulseSeq: _pulseSeq,
   );
 }
 
@@ -267,7 +280,13 @@ class _MyScorePipState extends State<_MyScorePip> {
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final active = widget.doublePoints;
-    final multiplier = math.pow(2, math.max(1, widget.doubleStacks)).toInt();
+    // The server awards a flat 2x for double_points no matter how many
+    // stacks are live (issue #55: stacking never compounds server-side), so
+    // the shown multiplier is capped at x2 too - it must never read x4+ for
+    // something the player only ever gets 2x credit for. `doubleStacks`
+    // still drives the stack-count / duration chip elsewhere (informational
+    // and correct), just not this multiplier value.
+    final multiplier = widget.doubleStacks >= 1 ? 2 : 1;
 
     final pip = Row(
       mainAxisSize: MainAxisSize.min,
@@ -296,6 +315,19 @@ class _MyScorePipState extends State<_MyScorePip> {
               fontSize: 24,
               fontWeight: FontWeight.w800,
             ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.xxs),
+        // Mirrors the opponent chip's `· $words` treatment below (same size,
+        // weight, and color) so both sides read as one system. Sourced from
+        // the authoritative players[uid].wordsFound (issue #57), not the
+        // rack's own foundWords, so it stays correct through a word steal.
+        Text(
+          '· ${widget.words}',
+          style: const TextStyle(
+            color: AppColors.padLabelSoft,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
           ),
         ),
         if (active) ...[
@@ -367,6 +399,7 @@ class _OpponentChip extends StatelessWidget {
     required this.score,
     required this.words,
     required this.connected,
+    required this.pulseSeq,
   });
 
   final String name;
@@ -374,8 +407,15 @@ class _OpponentChip extends StatelessWidget {
   final int words;
   final bool connected;
 
+  /// Bumped by the parent state whenever [words] just incremented, so the
+  /// word-count text pulses/flashes to mark the moment (issue #68).
+  final int pulseSeq;
+
   @override
   Widget build(BuildContext context) {
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sm,
@@ -417,13 +457,32 @@ class _OpponentChip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.xxs),
-          Text(
-            '· $words',
-            style: const TextStyle(
-              color: AppColors.padLabelSoft,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
+          TweenAnimationBuilder<double>(
+            key: ValueKey<int>(pulseSeq),
+            tween: Tween(begin: pulseSeq == 0 ? 1 : 1.6, end: 1),
+            duration: reduceMotion
+                ? Duration.zero
+                : AppDurations.opponentScorePulse,
+            curve: AppCurves.pop,
+            builder: (_, t, child) {
+              final flash = pulseSeq == 0 ? 0.0 : (t - 1) / 0.6;
+              final color = Color.lerp(
+                AppColors.padLabelSoft,
+                AppColors.accent,
+                flash.clamp(0.0, 1.0),
+              );
+              return Transform.scale(
+                scale: reduceMotion ? 1 : t,
+                child: Text(
+                  '· $words',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),

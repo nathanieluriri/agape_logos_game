@@ -102,8 +102,7 @@ final matchEventsStreamProvider =
 class MatchActiveEffects {
   const MatchActiveEffects({
     this.fog = false,
-    this.frozenLetterCp,
-    this.frozenLetter,
+    this.frozenLetterExpiries = const {},
     this.fogUntil,
     this.freezeUntil,
     this.doublePoints = false,
@@ -120,10 +119,24 @@ class MatchActiveEffects {
 
   final bool fog;
 
-  /// Unicode code point of the frozen character, for the wheel painter.
-  final int? frozenLetterCp;
-  final String? frozenLetter;
+  /// Every currently-frozen letter mapped to its OWN expiry (latest wins if
+  /// the same letter gets frozen twice). A stacked cast (opponent casts
+  /// letter_freeze twice within the no-cooldown window, landing E then R)
+  /// leaves BOTH letters here, mirroring the server's submit validator,
+  /// which rejects a word containing ANY active freeze letter (issue #54).
+  /// Checked against a ticking clock (not just recomputed on a fresh
+  /// Firestore snapshot) so a letter drops out of the frozen set the instant
+  /// its own window ends, same as the old single-letter [freezeUntil] did.
+  final Map<String, DateTime> frozenLetterExpiries;
+
+  /// The set of currently-frozen letters (raw casing from the server).
+  Set<String> get frozenLetters => frozenLetterExpiries.keys.toSet();
+
   final DateTime? fogUntil;
+
+  /// Latest expiry across ALL active freeze entries (used only for the
+  /// group countdown chip; per-letter expiry lives in
+  /// [frozenLetterExpiries]).
   final DateTime? freezeUntil;
   final bool doublePoints;
 
@@ -168,8 +181,7 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
 
   var fog = false;
   DateTime? fogUntil;
-  String? frozenLetter;
-  int? frozenLetterCp;
+  final frozenLetterExpiries = <String, DateTime>{};
   DateTime? freezeUntil;
   var doublePoints = false;
   DateTime? doublePointsUntil;
@@ -198,12 +210,15 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
       case MatchEffectKind.letterFreeze:
         final letter = e.frozenLetter;
         if (letter != null && letter.isNotEmpty) {
-          frozenLetter = letter;
-          frozenLetterCp = letter.runes.first;
           freezeCount++;
-          if (expiresAt != null &&
-              (freezeUntil == null || expiresAt.isAfter(freezeUntil))) {
-            freezeUntil = expiresAt;
+          if (expiresAt != null) {
+            final existing = frozenLetterExpiries[letter];
+            if (existing == null || expiresAt.isAfter(existing)) {
+              frozenLetterExpiries[letter] = expiresAt;
+            }
+            if (freezeUntil == null || expiresAt.isAfter(freezeUntil)) {
+              freezeUntil = expiresAt;
+            }
           }
         }
         break;
@@ -237,8 +252,7 @@ final activeEffectsProvider = Provider.family<MatchActiveEffects, String>((
 
   return MatchActiveEffects(
     fog: fog,
-    frozenLetterCp: frozenLetterCp,
-    frozenLetter: frozenLetter,
+    frozenLetterExpiries: frozenLetterExpiries,
     fogUntil: fogUntil,
     freezeUntil: freezeUntil,
     doublePoints: doublePoints,
