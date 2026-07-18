@@ -26,12 +26,20 @@ class _FakeStoreRepo implements StoreRepository {
   final PurchaseOutcome outcome;
   final List<StoreItem> items;
   int purchaseCalls = 0;
+  int catalogCalls = 0;
+  int inventoryCalls = 0;
 
   @override
-  Future<List<StoreItem>> catalog() async => items;
+  Future<List<StoreItem>> catalog() async {
+    catalogCalls++;
+    return items;
+  }
 
   @override
-  Future<Map<String, int>> inventory() async => const <String, int>{};
+  Future<Map<String, int>> inventory() async {
+    inventoryCalls++;
+    return const <String, int>{};
+  }
 
   @override
   Future<PurchaseOutcome> purchase({
@@ -116,5 +124,48 @@ void main() {
       find.text('Not enough petals. Hint costs 50, you have 10.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('pull-to-refresh refetches the catalog and the inventory', (
+    tester,
+  ) async {
+    final repo = _FakeStoreRepo(
+      outcome: const PurchaseUnavailable(),
+      items: const <StoreItem>[_hint],
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          ambientEnabledProvider.overrideWithValue(false),
+          currentUserProvider.overrideWithValue(const AuthUser(uid: 'u1')),
+          coinsProvider.overrideWithValue(500),
+          storeRepositoryProvider.overrideWithValue(repo),
+        ],
+        child: const MaterialApp(home: StorePage()),
+      ),
+    );
+    // Resolve the catalog + inventory futures.
+    await tester.pump();
+    await tester.pump();
+
+    expect(repo.catalogCalls, 1);
+    expect(repo.inventoryCalls, 1);
+
+    // Invoke the wired onRefresh callback directly rather than driving a
+    // drag gesture or RefreshIndicatorState.show(): both hinge on the
+    // indicator's AnimationController ticking forward, and this page's
+    // loading state renders an indeterminate PondLoader that "loops forever
+    // by design" (see pond_loader_test.dart), so a real gesture or
+    // pumpAndSettle can hang. Calling the callback exercises exactly what a
+    // pull gesture would trigger, deterministically.
+    final RefreshIndicator indicator = tester.widget<RefreshIndicator>(
+      find.byType(RefreshIndicator),
+    );
+    await indicator.onRefresh();
+    await tester.pump();
+    await tester.pump();
+
+    expect(repo.catalogCalls, 2);
+    expect(repo.inventoryCalls, 2);
   });
 }

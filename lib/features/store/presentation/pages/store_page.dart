@@ -31,18 +31,33 @@ class StorePage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.transparent,
       body: PondBackground(
-        child: PondStage(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const PondPageHeader(title: 'Store'),
-              const SizedBox(height: AppSpacing.sm),
-              if (user == null)
-                const _SignedOutNotice()
-              else
-                const _StoreBody(),
-              const SizedBox(height: AppSpacing.xxl),
-            ],
+        // Pull-to-refresh: the RefreshIndicator must be an ancestor of the
+        // Scrollable that `PondStage` builds internally, so it wraps the
+        // stage rather than sitting inside it. Refetches the catalog and the
+        // inventory on the success path, matching what the error-retry
+        // button already does for the catalog alone.
+        child: RefreshIndicator(
+          onRefresh: () async {
+            if (user == null) return;
+            ref.invalidate(storeCatalogProvider);
+            await Future.wait<void>([
+              ref.read(storeCatalogProvider.future),
+              ref.read(inventoryControllerProvider.notifier).refresh(),
+            ]);
+          },
+          child: PondStage(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const PondPageHeader(title: 'Store'),
+                const SizedBox(height: AppSpacing.sm),
+                if (user == null)
+                  const _SignedOutNotice()
+                else
+                  const _StoreBody(),
+                const SizedBox(height: AppSpacing.xxl),
+              ],
+            ),
           ),
         ),
       ),
