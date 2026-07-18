@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,9 +11,11 @@ import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_page_header.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
 import '../../../../shared/widgets/pond_stage.dart';
+import '../../application/match_providers.dart';
 import '../../application/resume_providers.dart';
 import '../../domain/active_match.dart';
 import '../../domain/challenge_invite.dart';
+import '../widgets/match_timer.dart';
 
 /// Resume Games: incoming challenges to accept/decline, plus the player's
 /// in-progress matches, so an async 6-hour game can be played across sittings.
@@ -100,6 +104,7 @@ class ResumeGamesPage extends ConsumerWidget {
             : [
                 for (final m in list)
                   Padding(
+                    key: ValueKey<String>(m.matchId),
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: _GameTile(
                       match: m,
@@ -108,23 +113,17 @@ class ResumeGamesPage extends ConsumerWidget {
                             ? '/multiplayer/lobby/${m.matchId}'
                             : '/multiplayer/match/${m.matchId}',
                       ),
+                      // The match may have already settled server-side by the
+                      // time this tile's own countdown hits zero (see #32);
+                      // refreshing here drops it from the list without a
+                      // manual pull-to-refresh.
+                      onExpired: () => ref.invalidate(activeMatchesProvider),
                     ),
                   ),
               ],
       ),
     ];
   }
-}
-
-/// Whole hours/minutes remaining until [endsAt], as "Xh Ym left" (or "Xm left").
-/// Empty when the deadline has passed or is unknown.
-String remainingLabel(int endsAt, int nowMillis) {
-  final ms = endsAt - nowMillis;
-  if (endsAt <= 0 || ms <= 0) return '';
-  final totalMinutes = ms ~/ 60000;
-  final h = totalMinutes ~/ 60;
-  final m = totalMinutes % 60;
-  return h > 0 ? '${h}h ${m}m left' : '${m}m left';
 }
 
 class _SectionLabel extends StatelessWidget {
@@ -244,22 +243,71 @@ class _ChallengeTile extends StatelessWidget {
   }
 }
 
-class _GameTile extends StatelessWidget {
-  const _GameTile({required this.match, required this.onTap});
+/// A single "Your games" row: opponent, live score, and (async matches only)
+/// a live countdown that reuses the shared [MatchTimer] pill (its m:ss / h:mm
+/// formatting and sub-30s urgency styling) instead of a duplicated formatter.
+/// Owns its own ticker so the countdown moves without the tile ever being
+/// rebuilt from outside, and calls [onExpired] once when the countdown hits
+/// zero so the caller can refresh the settled match off the list.
+class _GameTile extends ConsumerStatefulWidget {
+  const _GameTile({
+    required this.match,
+    required this.onTap,
+    required this.onExpired,
+  });
 
   final ActiveMatch match;
   final VoidCallback onTap;
+  final VoidCallback onExpired;
+
+  @override
+  ConsumerState<_GameTile> createState() => _GameTileState();
+}
+
+class _GameTileState extends ConsumerState<_GameTile> {
+  static const _tick = Duration(seconds: 1);
+
+  Timer? _timer;
+  bool _expired = false;
+
+  /// Re-read from the server-corrected clock (see `match_page.dart`'s use of
+  /// `serverClockProvider`) rather than stepped by a fixed tick amount, so the
+  /// countdown stays correct under jank/frame delay and under device clock
+  /// skew (a fixed step cannot correct for either).
+  int _now = 0;
+
+  bool get _showsCountdown => widget.match.isAsync && widget.match.endsAt > 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = ref.read(serverClockProvider).now().millisecondsSinceEpoch;
+    if (_showsCountdown) _timer = Timer.periodic(_tick, (_) => _onTick());
+  }
+
+  void _onTick() {
+    if (!mounted) return;
+    final now = ref.read(serverClockProvider).now().millisecondsSinceEpoch;
+    final justExpired = !_expired && now >= widget.match.endsAt;
+    setState(() => _now = now);
+    if (justExpired) {
+      _expired = true;
+      _timer?.cancel();
+      widget.onExpired();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final left = match.isAsync
-        ? remainingLabel(
-            match.endsAt,
-            DateTime.now().millisecondsSinceEpoch,
-          )
-        : '';
+    final match = widget.match;
     return _Card(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Row(
         children: [
           Expanded(
@@ -285,15 +333,8 @@ class _GameTile extends StatelessWidget {
               ],
             ),
           ),
-          if (left.isNotEmpty)
-            Text(
-              left,
-              style: const TextStyle(
-                color: AppColors.padLabelSoft,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+          if (_showsCountdown)
+            MatchTimer(endsAt: match.endsAt, nowMillis: _now),
         ],
       ),
     );

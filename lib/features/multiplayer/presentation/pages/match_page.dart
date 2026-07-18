@@ -27,6 +27,7 @@ import '../../../store/application/store_providers.dart';
 import '../../../store/domain/store_item.dart';
 import '../../application/match_controller.dart';
 import '../../application/match_providers.dart';
+import '../../application/resume_providers.dart';
 import '../../domain/match.dart';
 import '../../domain/match_event.dart';
 import '../../domain/match_rack.dart';
@@ -443,11 +444,16 @@ class _MatchPageState extends ConsumerState<MatchPage> {
         _handleIncomingEvent(e);
       }
     });
-    // Navigate to the result screen once the match finishes.
+    // Navigate to the result screen once the match finishes. `_navigated`
+    // guards both the navigation and the invalidate below so the transition
+    // into finished fires exactly once, not on every stream tick.
     ref.listen(matchStreamProvider(matchId), (_, next) {
       final m = next.value;
       if (m != null && m.status == MatchStatus.finished && !_navigated) {
         _navigated = true;
+        // Drop this match from the Resume list and the "Play with friends"
+        // badge (see #32, #33) without waiting for a manual pull-to-refresh.
+        ref.invalidate(activeMatchesProvider);
         context.pushReplacement('/multiplayer/result/$matchId');
       }
     });
