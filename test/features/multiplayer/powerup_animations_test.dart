@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:agape_logos_game/core/haptics/haptic_service.dart';
+import 'package:agape_logos_game/core/haptics/haptics.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/game/presentation/widgets/formed_word_pill.dart';
@@ -22,6 +24,34 @@ import 'package:agape_logos_game/features/store/domain/store_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+/// Records which haptic calls fired, so a test can assert the incoming-attack
+/// buzz (heavyImpact) never fires for a self-cast event.
+class _RecordingHaptics implements HapticService {
+  final calls = <String>[];
+  @override
+  Future<void> init() async {}
+  @override
+  Future<void> lightImpact() async => calls.add('light');
+  @override
+  Future<void> mediumImpact() async => calls.add('medium');
+  @override
+  Future<void> heavyImpact() async => calls.add('heavy');
+  @override
+  Future<void> gameImpact() async => calls.add('game');
+  @override
+  Future<void> streakImpact() async => calls.add('streak');
+  @override
+  Future<void> mistakeImpact() async => calls.add('mistake');
+  @override
+  Future<void> selectionClick() async => calls.add('selection');
+  @override
+  Future<void> successPattern() async => calls.add('success');
+  @override
+  Future<void> tickImpact() async => calls.add('tick');
+  @override
+  void setMuted(bool muted) {}
+}
 
 class _FakeRemote implements MatchRemote {
   @override
@@ -398,6 +428,117 @@ void main() {
         await tester.pump(const Duration(milliseconds: 800));
         await tester.pumpAndSettle();
         expect(find.text('LOTUS'), findsNothing);
+      },
+    );
+  });
+
+  group('MatchPage self-cast suppression (#45)', () {
+    late _RecordingHaptics haptics;
+    late HapticService previousHaptics;
+
+    setUp(() {
+      previousHaptics = Haptics.instance;
+      haptics = _RecordingHaptics();
+      Haptics.instance = haptics;
+    });
+    tearDown(() => Haptics.instance = previousHaptics);
+
+    // Self-target powerups (shield, double_points, combo_lock, time_boost) are
+    // written server-side with targetUid == the caster, so casting one on
+    // yourself reaches `watchEventsForMe` with byUid == myUid too. Before the
+    // fix, the client's enum has no case for these wire kinds so they mapped
+    // to `unknown`, whose non-empty wire string slipped past the
+    // `wireKind.isEmpty` guard and queued a false "you got hit" banner
+    // (labeled "unknown") with the incoming SFX and a heavy haptic buzz.
+    testWidgets(
+      'casting a self-buff does not queue the incoming banner or heavy haptic',
+      (tester) async {
+        final events = StreamController<List<MatchEvent>>();
+        addTearDown(events.close);
+        final selfBuff = MatchEvent(
+          id: 'self-1',
+          at: DateTime.now().millisecondsSinceEpoch,
+          byUid: 'me',
+          targetUid: 'me',
+          kind: MatchEventKind.unknown, // shield/double_points/etc: no case
+          payload: const {},
+          expiresAt: DateTime.now().millisecondsSinceEpoch + 8000,
+        );
+
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+            matchServiceProvider.overrideWithValue(_FakeRemote()),
+            matchStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_active())),
+            myRackStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_rack())),
+            matchEventsStreamProvider('m1').overrideWith((ref) => events.stream),
+            storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+          ],
+          child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+        ));
+        await tester.pump(); // match + rack streams emit
+        await tester.pump(); // rack sync + rebuild
+
+        // Seed: the first snapshot is historical, not new.
+        events.add(const []);
+        await tester.pump();
+
+        // The self-cast buff arrives as a genuinely new event.
+        events.add([selfBuff]);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400)); // drop-in window
+
+        expect(find.byType(PowerupIncomingBanner), findsNothing);
+        expect(find.textContaining('cast'), findsNothing);
+        expect(haptics.calls, isNot(contains('heavy')));
+      },
+    );
+
+    // Control: the opponent's OWN offensive cast (byUid == opponent, targeting
+    // me) must be entirely unaffected by the self-cast suppression above.
+    testWidgets(
+      "an opponent's offensive cast still shows the incoming banner and buzzes",
+      (tester) async {
+        final events = StreamController<List<MatchEvent>>();
+        addTearDown(events.close);
+        final opponentAttack = MatchEvent(
+          id: 'opp-1',
+          at: DateTime.now().millisecondsSinceEpoch,
+          byUid: 'opp',
+          targetUid: 'me',
+          kind: MatchEventKind.fogBank,
+          payload: const {},
+          expiresAt: DateTime.now().millisecondsSinceEpoch + 8000,
+        );
+
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+            matchServiceProvider.overrideWithValue(_FakeRemote()),
+            matchStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_active())),
+            myRackStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_rack())),
+            matchEventsStreamProvider('m1').overrideWith((ref) => events.stream),
+            storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+          ],
+          child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+        ));
+        await tester.pump();
+        await tester.pump();
+
+        events.add(const []);
+        await tester.pump();
+
+        events.add([opponentAttack]);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byType(PowerupIncomingBanner), findsOneWidget);
+        expect(find.textContaining('opp cast'), findsOneWidget);
+        expect(haptics.calls, contains('heavy'));
       },
     );
   });

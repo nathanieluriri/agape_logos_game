@@ -331,6 +331,15 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   /// so a duplicate stream emission never animates twice.
   void _handleIncomingEvent(MatchEvent e) {
     if (!_seenEventIds.add(e.id)) return;
+    // Self-target powerups (shield, double_points, combo_lock, time_boost)
+    // are written with targetUid == the caster, so casting one on yourself
+    // reaches this "fired at me" stream with byUid == myUid too. That is
+    // never an incoming attack (an opponent's cast always carries their own
+    // byUid), so it must never queue the banner/SFX/haptic that says
+    // "you got hit". The events themselves are already surfaced positively
+    // via ActiveEffectChips, driven off the match doc's activeEffects.
+    final myUid = ref.read(currentUserProvider)?.uid;
+    if (e.byUid == myUid) return;
     final match = ref.read(matchStreamProvider(widget.matchId)).value;
     final blocked = e.kind == MatchEventKind.blocked;
     final wireKind = blocked
