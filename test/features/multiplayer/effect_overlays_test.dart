@@ -1,9 +1,15 @@
 import 'package:agape_logos_game/features/multiplayer/application/server_clock.dart';
+import 'package:agape_logos_game/features/multiplayer/domain/match_player.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/frozen_letter_overlay.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/match_hud.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/match_timer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+const _connectedOpponent = MatchPlayer(
+  uid: 'opp', displayName: 'Opponent', avatarId: 'a', isGuest: false,
+  ready: true, connected: true, score: 0, wordsFound: 0,
+);
 
 void main() {
   testWidgets('frozen overlay shows a frost icon per frozen slot', (tester) async {
@@ -157,7 +163,7 @@ void main() {
               opponentName: 'Opponent',
               opponentScore: 0,
               opponentWords: 0,
-              opponentConnected: true,
+              opponent: _connectedOpponent,
               endsAt: endsAt,
               onDictionary: () {},
               now: skewedClock.now,

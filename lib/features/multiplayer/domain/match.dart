@@ -173,3 +173,27 @@ abstract class Match with _$Match {
     return remaining <= 0 ? 0 : (remaining / 1000).ceil();
   }
 }
+
+/// Conservative staleness threshold for the client-only presence dot
+/// (issue #46). There is no server heartbeat or Firestore `onDisconnect`:
+/// `lastSeen` only advances when the opponent submits a word, casts a
+/// powerup, settles, or loads the match, so a tight threshold would grey a
+/// present-but-idle opponent mid-race. This is wide enough to avoid that
+/// false grey while still eventually reflecting a genuine drop. The robust
+/// fix is a real server presence mechanism (heartbeat / `onDisconnect`),
+/// which stays a backend follow-up out of client scope.
+const int kOpponentPresenceStaleAfterMs = 90 * 1000;
+
+/// Whether the opponent should show as connected in the HUD dot. Derived
+/// from `lastSeen` freshness against the server clock ([nowMs]) rather than
+/// the raw `connected` flag, which the server sets once in `buildPlayer` and
+/// clears only on leaving a LOBBY/COUNTDOWN match, never during ACTIVE play
+/// (so it never reflects a mid-match drop). Falls back to `connected` when
+/// `lastSeen` is missing or zero, so a match doc that has not written it yet
+/// is never incorrectly greyed.
+bool opponentPresence(MatchPlayer? opponent, int nowMs) {
+  if (opponent == null) return false;
+  final lastSeen = opponent.lastSeen;
+  if (lastSeen <= 0) return opponent.connected;
+  return nowMs - lastSeen < kOpponentPresenceStaleAfterMs;
+}

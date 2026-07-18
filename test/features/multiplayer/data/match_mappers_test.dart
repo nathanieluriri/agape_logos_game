@@ -30,7 +30,7 @@ void main() {
       'endsAt': 3,
       'settings': {'difficulty': 'hard', 'durationSec': 90, 'rackSize': 7, 'theme': null},
       'players': {
-        'a': {'uid': 'a', 'displayName': 'Grace', 'score': 12, 'ready': true},
+        'a': {'uid': 'a', 'displayName': 'Grace', 'score': 12, 'ready': true, 'lastSeen': 555},
         'b': {'uid': 'b', 'displayName': 'Guest', 'isGuest': true},
       },
       'winner': null,
@@ -38,8 +38,11 @@ void main() {
     expect(m.status, MatchStatus.active);
     expect(m.settings.durationSec, 90);
     expect(m.playerFor('a')!.score, 12);
+    expect(m.playerFor('a')!.lastSeen, 555);
     expect(m.opponentOf('a')!.displayName, 'Guest');
     expect(m.opponentOf('a')!.isGuest, isTrue);
+    // Missing lastSeen on the wire defaults to 0 (issue #46 presence fallback).
+    expect(m.opponentOf('a')!.lastSeen, 0);
   });
 
   test('matchRackFromSnapshot parks the enc token; not decrypted yet', () {

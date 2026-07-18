@@ -5,6 +5,7 @@ import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
 import 'package:agape_logos_game/features/multiplayer/application/resume_providers.dart';
+import 'package:agape_logos_game/features/multiplayer/application/server_clock.dart';
 import 'package:agape_logos_game/features/multiplayer/data/match_leave_repository.dart';
 import 'package:agape_logos_game/features/multiplayer/data/match_remote.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/multiplayer_config.dart';
@@ -68,11 +69,16 @@ class _FakeRemote implements MatchRemote {
   Future<List<ActiveMatch>> activeMatches() async => const [];
 }
 
-MatchPlayer _p(String uid, {int score = 0, int endsAtBonusMs = 0}) =>
+MatchPlayer _p(
+  String uid, {
+  int score = 0,
+  int endsAtBonusMs = 0,
+  int lastSeen = 0,
+}) =>
     MatchPlayer(
       uid: uid, displayName: uid, avatarId: 'a', isGuest: false, ready: true,
       connected: true, score: score, wordsFound: 0,
-      endsAtBonusMs: endsAtBonusMs,
+      endsAtBonusMs: endsAtBonusMs, lastSeen: lastSeen,
     );
 
 Match _active() => Match(
@@ -265,6 +271,148 @@ void main() {
     expect(find.text('Leave the match?'), findsNothing); // no forfeit confirm
     expect(remote.left, isEmpty); // never forfeited
     expect(find.text('Go'), findsOneWidget); // popped back to the caller
+  });
+
+  // Issue #46: the server only ever clears `connected` on leaving a LOBBY /
+  // COUNTDOWN match, never during ACTIVE play, so a dropped opponent's dot
+  // used to stay green forever. The HUD dot must be driven off `lastSeen`
+  // freshness instead: a stale `lastSeen` greys the dot even though the raw
+  // `connected` flag (set by `_p`) is still true.
+  testWidgets(
+      'opponent HUD dot greys out once lastSeen is older than the presence '
+      'staleness threshold, even though connected is still true',
+      (tester) async {
+    final remote = _FakeRemote();
+    final staleOpponent = _active().copyWith(
+      players: {
+        'me': _p('me', score: 7),
+        'opp': _p(
+          'opp',
+          score: 3,
+          lastSeen: DateTime.now().millisecondsSinceEpoch -
+              kOpponentPresenceStaleAfterMs -
+              5000,
+        ),
+      },
+    );
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchServiceProvider.overrideWithValue(remote),
+        matchStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(staleOpponent)),
+        myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
+        matchEventsStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(const <MatchEvent>[])),
+        storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+      ],
+      child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byIcon(Icons.circle_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.circle), findsNothing);
+  });
+
+  testWidgets(
+      'opponent HUD dot stays green while lastSeen is fresh',
+      (tester) async {
+    final remote = _FakeRemote();
+    final freshOpponent = _active().copyWith(
+      players: {
+        'me': _p('me', score: 7),
+        'opp': _p(
+          'opp',
+          score: 3,
+          lastSeen: DateTime.now().millisecondsSinceEpoch - 1000,
+        ),
+      },
+    );
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchServiceProvider.overrideWithValue(remote),
+        matchStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(freshOpponent)),
+        myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
+        matchEventsStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(const <MatchEvent>[])),
+        storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+      ],
+      child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byIcon(Icons.circle), findsOneWidget);
+    expect(find.byIcon(Icons.circle_outlined), findsNothing);
+  });
+
+  // Issue #46 review follow-up: the two tests above only assert the dot at a
+  // fixed initial timestamp, which the original (broken) implementation
+  // could also pass, since the presence bool was computed once at build
+  // time from whatever lastSeen already was. The actual bug only shows up
+  // when BOTH players go idle: nothing submits, nothing casts, the match
+  // stream never re-emits, and the page's own gate never moves (a 6h endsAt
+  // keeps the match playable throughout, and `_onTick`'s gate arithmetic
+  // runs on the raw device clock, never the injected one below), so nothing
+  // above the opponent chip would ever trigger a rebuild. `lastSeen` is
+  // fixed for the whole test; a `ServerClock` override lets the test move
+  // "now" forward the same way a real server-clock sync would, without a
+  // literal 90+ second sleep. The dot must flip to grey on its own, from the
+  // opponent chip's own tick alone, proving it does not freeze at whatever
+  // it last read on the page's last rebuild.
+  testWidgets(
+      'opponent HUD dot goes stale from a live clock tick, with no other '
+      'state change',
+      (tester) async {
+    final remote = _FakeRemote();
+    final clock = ServerClock();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final idleMatch = _active().copyWith(
+      // Far beyond the clock jump below, so the match never times out and
+      // the page's own gate-driven rebuild never fires.
+      endsAt: now + const Duration(hours: 6).inMilliseconds,
+      players: {
+        'me': _p('me', score: 7),
+        'opp': _p('opp', score: 3, lastSeen: now - 1000),
+      },
+    );
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchServiceProvider.overrideWithValue(remote),
+        serverClockProvider.overrideWithValue(clock),
+        matchStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(idleMatch)),
+        myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
+        matchEventsStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(const <MatchEvent>[])),
+        storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+      ],
+      child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    // Starts green: lastSeen is 1s old.
+    expect(find.byIcon(Icons.circle), findsOneWidget);
+    expect(find.byIcon(Icons.circle_outlined), findsNothing);
+
+    // Move the server clock (and only the server clock: the match doc, the
+    // rack, and the events stream are untouched) well past the staleness
+    // threshold, exactly as a real `serverNow` sync would. Then pump just
+    // enough real-time-equivalent for the opponent chip's own 500ms ticker
+    // (not the page's) to fire once and pick it up.
+    clock.sync(now + kOpponentPresenceStaleAfterMs + 5000);
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.byIcon(Icons.circle_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.circle), findsNothing);
   });
 
   // Regression for #37 + #38: _leaveMatch navigates home before the forfeit is

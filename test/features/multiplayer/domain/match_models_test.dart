@@ -5,9 +5,16 @@ import 'package:agape_logos_game/features/multiplayer/domain/match_result.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_settings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-MatchPlayer _p(String uid, {bool ready = false, int score = 0}) => MatchPlayer(
+MatchPlayer _p(
+  String uid, {
+  bool ready = false,
+  int score = 0,
+  bool connected = true,
+  int lastSeen = 0,
+}) => MatchPlayer(
       uid: uid, displayName: uid, avatarId: 'avatar_01', isGuest: false,
-      ready: ready, connected: true, score: score, wordsFound: 0,
+      ready: ready, connected: connected, score: score, wordsFound: 0,
+      lastSeen: lastSeen,
     );
 
 Match _match({
@@ -44,6 +51,49 @@ void main() {
     final m = _match(players: {'a': _p('a', ready: true), 'b': _p('b')});
     expect(m.opponentOf('a')?.uid, 'b');
     expect(m.bothReady, isFalse);
+  });
+
+  group('opponentPresence (issue #46: dot driven by lastSeen freshness)', () {
+    const now = 1000000;
+
+    test('fresh lastSeen (within the threshold) reads as connected', () {
+      final opp = _p(
+        'b',
+        connected: true,
+        lastSeen: now - (kOpponentPresenceStaleAfterMs ~/ 2),
+      );
+      expect(opponentPresence(opp, now), isTrue);
+    });
+
+    test('stale lastSeen (older than the threshold) reads as disconnected, '
+        'even though the raw connected flag is still true', () {
+      final opp = _p(
+        'b',
+        connected: true,
+        lastSeen: now - kOpponentPresenceStaleAfterMs - 1,
+      );
+      expect(opponentPresence(opp, now), isFalse);
+    });
+
+    test('missing/zero lastSeen falls back to the raw connected flag', () {
+      final connectedOpp = _p('b', connected: true, lastSeen: 0);
+      final disconnectedOpp = _p('b', connected: false, lastSeen: 0);
+      expect(opponentPresence(connectedOpp, now), isTrue);
+      expect(opponentPresence(disconnectedOpp, now), isFalse);
+    });
+
+    test('a null opponent (no one has joined yet) is never connected', () {
+      expect(opponentPresence(null, now), isFalse);
+    });
+
+    test('lastSeen exactly at the threshold boundary reads as stale', () {
+      final opp = _p(
+        'b',
+        connected: true,
+        lastSeen: now - kOpponentPresenceStaleAfterMs,
+      );
+      expect(opponentPresence(opp, now), isFalse);
+    });
   });
 
   test('event kind round-trips through the wire strings', () {

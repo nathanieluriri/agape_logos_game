@@ -731,8 +731,12 @@ class _MatchPageState extends ConsumerState<MatchPage> {
                 myUid == null ? 0 : (match.opponentOf(myUid)?.score ?? 0),
             opponentWords:
                 myUid == null ? 0 : (match.opponentOf(myUid)?.wordsFound ?? 0),
-            opponentConnected:
-                myUid == null ? false : (match.opponentOf(myUid)?.connected ?? false),
+            // The dot itself is ticked live inside MatchHud
+            // (_TickingOpponentChip), not recomputed here: this rebuild only
+            // runs on a Firestore emission or a gate transition, so a fully
+            // idle match (no submits/casts from either player) would
+            // otherwise never re-evaluate `lastSeen` freshness at all.
+            opponent: myUid == null ? null : match.opponentOf(myUid),
             // Per-player deadline: endsAt plus MY banked time_boost bonus.
             // Raw endsAt would expire the countdown early for a boosted player.
             endsAt: DateTime.fromMillisecondsSinceEpoch(

@@ -9,6 +9,8 @@ import '../../../../core/design/tokens/durations.dart';
 import '../../../../core/design/tokens/radii.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../shared/widgets/glyphs/pond_glyph.dart';
+import '../../domain/match.dart' show opponentPresence;
+import '../../domain/match_player.dart';
 import 'match_timer.dart';
 
 /// Max height of the compact match top bar (design budget, Task 7).
@@ -22,8 +24,8 @@ const double kMatchHudHeight = 56;
 /// narrow phone.
 ///
 /// Owns its own countdown tick (the row does not depend on the page's clock):
-/// only the timer pill rebuilds each tick, not the score or the opponent
-/// chip.
+/// only the timer pill and the opponent chip's presence dot rebuild each
+/// tick, not the score.
 class MatchHud extends StatelessWidget {
   const MatchHud({
     super.key,
@@ -32,7 +34,7 @@ class MatchHud extends StatelessWidget {
     required this.opponentName,
     required this.opponentScore,
     required this.opponentWords,
-    required this.opponentConnected,
+    required this.opponent,
     required this.endsAt,
     required this.onDictionary,
     this.onForfeit,
@@ -46,7 +48,18 @@ class MatchHud extends StatelessWidget {
   final String opponentName;
   final int opponentScore;
   final int opponentWords;
-  final bool opponentConnected;
+
+  /// The opponent's live player record (null while the lobby is still
+  /// waiting for one), used ONLY to derive the presence dot via
+  /// [opponentPresence]. Passed as the raw record rather than a precomputed
+  /// bool (issue #46, review follow-up): `lastSeen` freshness is a function
+  /// of the wall clock, not just the match doc, so the dot has to be
+  /// re-evaluated on a live tick (`_TickingOpponentChip` below) rather than
+  /// once per page rebuild - a page that goes fully idle (no submits/casts
+  /// from either player) would otherwise never rebuild at all, and the dot
+  /// would stay frozen at whatever it read on the last rebuild long past the
+  /// staleness threshold.
+  final MatchPlayer? opponent;
   final DateTime endsAt;
   final VoidCallback onDictionary;
 
@@ -86,11 +99,12 @@ class MatchHud extends StatelessWidget {
           _TickingTimer(endsAt: endsAt, now: now ?? DateTime.now),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: _OpponentChip(
+            child: _TickingOpponentChip(
               name: opponentName,
               score: opponentScore,
               words: opponentWords,
-              connected: opponentConnected,
+              opponent: opponent,
+              now: now ?? DateTime.now,
             ),
           ),
           const SizedBox(width: AppSpacing.xs),
@@ -148,6 +162,64 @@ class _TickingTimerState extends State<_TickingTimer> {
   Widget build(BuildContext context) => MatchTimer(
     endsAt: widget.endsAt.millisecondsSinceEpoch,
     nowMillis: _now,
+  );
+}
+
+/// Ticks its own clock so the presence dot reflects `lastSeen` staleness
+/// (issue #46) even when nothing else on the page changes, without
+/// rebuilding the rest of the HUD row. Mirrors [_TickingTimer] above:
+/// `MatchHud` only rebuilds on a Firestore stream emission or a gate
+/// transition, so if BOTH players go idle (no submits, no casts), a
+/// presence bool computed once in `build()` would stay frozen at whatever it
+/// read on the last rebuild, long past the staleness threshold. Owning the
+/// clock here instead means the dot flips within one tick of `now` crossing
+/// `lastSeen + kOpponentPresenceStaleAfterMs`, on its own.
+class _TickingOpponentChip extends StatefulWidget {
+  const _TickingOpponentChip({
+    required this.name,
+    required this.score,
+    required this.words,
+    required this.opponent,
+    required this.now,
+  });
+
+  final String name;
+  final int score;
+  final int words;
+  final MatchPlayer? opponent;
+
+  /// Server-adjusted clock reader (see [MatchHud.now]).
+  final DateTime Function() now;
+
+  @override
+  State<_TickingOpponentChip> createState() => _TickingOpponentChipState();
+}
+
+class _TickingOpponentChipState extends State<_TickingOpponentChip> {
+  Timer? _timer;
+  late int _now = widget.now().millisecondsSinceEpoch;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (!mounted) return;
+      setState(() => _now = widget.now().millisecondsSinceEpoch);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => _OpponentChip(
+    name: widget.name,
+    score: widget.score,
+    words: widget.words,
+    connected: opponentPresence(widget.opponent, _now),
   );
 }
 
