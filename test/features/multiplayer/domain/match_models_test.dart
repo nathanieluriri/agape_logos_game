@@ -57,4 +57,100 @@ void main() {
     expect(MatchResult.fromFinishedMatch(_match(winner: 'draw'), 'a').isDraw, isTrue);
     expect(MatchResult.fromFinishedMatch(_match(), 'a').isWin, isTrue); // 30 > 10
   });
+
+  group('deriveMatchWinReason mirrors computeWinner\'s tier order', () {
+    test('won by words found: equal score, unequal words', () {
+      final reason = deriveMatchWinReason(
+        outcome: 'win',
+        myWordsFound: 6,
+        opponentWordsFound: 4,
+        myLastWordAt: 0,
+        opponentLastWordAt: 0,
+        myScore: 20,
+        opponentScore: 20,
+      );
+      expect(reason, MatchWinReason.wordsFound);
+    });
+
+    test('won by speed: equal words and score, faster time wins', () {
+      final reason = deriveMatchWinReason(
+        outcome: 'win',
+        myWordsFound: 5,
+        opponentWordsFound: 5,
+        myLastWordAt: 1000,
+        opponentLastWordAt: 2000,
+        myScore: 20,
+        opponentScore: 20,
+      );
+      expect(reason, MatchWinReason.speed);
+    });
+
+    test('won by points: words and time both tied, score decides', () {
+      final reason = deriveMatchWinReason(
+        outcome: 'win',
+        myWordsFound: 5,
+        opponentWordsFound: 5,
+        myLastWordAt: 1500,
+        opponentLastWordAt: 1500,
+        myScore: 22,
+        opponentScore: 18,
+      );
+      expect(reason, MatchWinReason.points);
+    });
+
+    test('genuine draw: every tier tied returns null', () {
+      final reason = deriveMatchWinReason(
+        outcome: 'draw',
+        myWordsFound: 5,
+        opponentWordsFound: 5,
+        myLastWordAt: 1500,
+        opponentLastWordAt: 1500,
+        myScore: 20,
+        opponentScore: 20,
+      );
+      expect(reason, isNull);
+    });
+
+    test('wordsFound decides outright even when a later tier would disagree', () {
+      // wa != wb settles it in tier 1; the (tied) score never gets consulted.
+      final reason = deriveMatchWinReason(
+        outcome: 'loss',
+        myWordsFound: 3,
+        opponentWordsFound: 5,
+        myLastWordAt: 500,
+        opponentLastWordAt: 9000,
+        myScore: 20,
+        opponentScore: 20,
+      );
+      expect(reason, MatchWinReason.wordsFound);
+    });
+
+    test('a zero lastWordAt (never found a word) skips the speed tier', () {
+      final reason = deriveMatchWinReason(
+        outcome: 'win',
+        myWordsFound: 5,
+        opponentWordsFound: 5,
+        myLastWordAt: 1200,
+        opponentLastWordAt: 0,
+        myScore: 25,
+        opponentScore: 20,
+      );
+      expect(reason, MatchWinReason.points);
+    });
+
+    test('disagreement with outcome is never shown (defensive guard)', () {
+      // Provisional score-only outcome says 'loss', but words favor me: the
+      // derivation must not contradict the outcome the headline already shows.
+      final reason = deriveMatchWinReason(
+        outcome: 'loss',
+        myWordsFound: 6,
+        opponentWordsFound: 4,
+        myLastWordAt: 0,
+        opponentLastWordAt: 0,
+        myScore: 10,
+        opponentScore: 20,
+      );
+      expect(reason, isNull);
+    });
+  });
 }

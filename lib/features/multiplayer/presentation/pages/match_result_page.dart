@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/design/tokens/colors.dart';
 import '../../../../core/design/tokens/spacing.dart';
+import '../../../../core/design/tokens/typography.dart';
 import '../../../../shared/widgets/pond_background.dart';
 import '../../../../shared/widgets/pond_page_header.dart';
 import '../../../../shared/widgets/pond_pill_button.dart';
@@ -73,10 +74,22 @@ class _ResultBody extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
+          if (result.winReason != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            _WinReasonLine(reason: result.winReason!),
+          ],
           const SizedBox(height: AppSpacing.xl),
-          _ScoreLine(label: 'You', score: result.myScore),
+          _ScoreLine(
+            label: 'You',
+            score: result.myScore,
+            wordsFound: result.myWordsFound,
+          ),
           const SizedBox(height: AppSpacing.sm),
-          _ScoreLine(label: result.opponentName, score: result.opponentScore),
+          _ScoreLine(
+            label: result.opponentName,
+            score: result.opponentScore,
+            wordsFound: result.opponentWordsFound,
+          ),
           const Spacer(),
           PondPillButton(
             label: 'Rematch',
@@ -96,10 +109,35 @@ class _ResultBody extends StatelessWidget {
   }
 }
 
+/// The concise line under the headline explaining which tier of the server's
+/// winner algorithm decided the match (issue: a tied-looking scoreboard with
+/// a decisive winner otherwise reads as unexplained).
+String _winReasonLabel(MatchWinReason reason) => switch (reason) {
+  MatchWinReason.wordsFound => 'Won by words found',
+  MatchWinReason.speed => 'Won by speed',
+  MatchWinReason.points => 'Won by points',
+};
+
+class _WinReasonLine extends StatelessWidget {
+  const _WinReasonLine({required this.reason});
+  final MatchWinReason reason;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    _winReasonLabel(reason),
+    style: AppTypography.bannerSub.copyWith(color: AppColors.padLabelSoft),
+  );
+}
+
 class _ScoreLine extends StatelessWidget {
-  const _ScoreLine({required this.label, required this.score});
+  const _ScoreLine({
+    required this.label,
+    required this.score,
+    required this.wordsFound,
+  });
   final String label;
   final int score;
+  final int wordsFound;
   @override
   Widget build(BuildContext context) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -112,12 +150,22 @@ class _ScoreLine extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
-      Text(
-        '$score',
-        style: const TextStyle(
-          color: AppColors.padLabel,
-          fontSize: 22,
-          fontWeight: FontWeight.w900,
+      Text.rich(
+        TextSpan(
+          style: const TextStyle(
+            color: AppColors.padLabel,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+          ),
+          children: [
+            TextSpan(text: '$score'),
+            TextSpan(
+              text: '  ·  $wordsFound ${wordsFound == 1 ? 'word' : 'words'}',
+              style: AppTypography.bannerSub.copyWith(
+                color: AppColors.padLabelSoft,
+              ),
+            ),
+          ],
         ),
       ),
     ],
