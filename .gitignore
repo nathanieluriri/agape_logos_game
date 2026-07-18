@@ -79,3 +79,8 @@ test/goldens/failures/
 video/linkedin-journey/footage/
 video/linkedin-journey/assets/*.mp4
 video/linkedin-journey/out/
+
+# Video mockup projects (HyperFrames renders, footage, vendored three/gsap) and
+# the Rotato reference clips - local-only, never for the app repo
+/video/
+/rotato*.mp4
