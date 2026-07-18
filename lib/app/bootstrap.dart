@@ -29,6 +29,7 @@ import '../features/social/application/social_providers.dart';
 import '../firebase_options.dart';
 import 'app.dart';
 import 'background_entrypoint.dart';
+import 'resume_refresh_gate.dart';
 import 'sync_reconcilers.dart';
 
 /// Foreground sync is live: the real [HttpMutationSender] replays queued
@@ -243,6 +244,6 @@ class _BootstrapGateState extends ConsumerState<_BootstrapGate>
         unawaited(_scheduler?.requestFlush() ?? Future<void>.value());
       }
     });
-    return const AgapeApp();
+    return const ResumeRefreshGate(child: AgapeApp());
   }
 }
