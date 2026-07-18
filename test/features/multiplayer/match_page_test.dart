@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
+import 'package:agape_logos_game/features/multiplayer/application/resume_providers.dart';
 import 'package:agape_logos_game/features/multiplayer/data/match_remote.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/active_match.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/challenge_outcome.dart';
@@ -11,16 +14,24 @@ import 'package:agape_logos_game/features/multiplayer/domain/match_rack.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_settings.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/pages/match_page.dart';
 import 'package:agape_logos_game/features/puzzles/domain/puzzle.dart';
+import 'package:agape_logos_game/features/social/application/social_providers.dart';
+import 'package:agape_logos_game/features/social/domain/match_history_entry.dart';
 import 'package:agape_logos_game/features/store/application/store_providers.dart';
 import 'package:agape_logos_game/features/store/domain/store_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 /// Records the settling GET the page pokes at each clock boundary.
 class _FakeRemote implements MatchRemote {
   final List<String> settled = <String>[];
   final List<String> left = <String>[];
+
+  /// When set, `leave()` records the call but does not resolve until this
+  /// completes, so a test can assert what happens BEFORE vs AFTER the
+  /// server's forfeit write actually lands.
+  Completer<void>? leaveGate;
 
   @override
   Future<void> settle(String matchId) async => settled.add(matchId);
@@ -43,7 +54,11 @@ class _FakeRemote implements MatchRemote {
     required String eventId,
   }) async => (ok: true, reason: null);
   @override
-  Future<void> leave(String matchId) async => left.add(matchId);
+  Future<void> leave(String matchId) async {
+    left.add(matchId);
+    final gate = leaveGate;
+    if (gate != null) await gate.future;
+  }
 
   @override
   Future<ChallengeOutcome> challenge(String toUid, {required String mode}) async =>
@@ -254,4 +269,96 @@ void main() {
     expect(remote.left, isEmpty); // never forfeited
     expect(find.text('Go'), findsOneWidget); // popped back to the caller
   });
+
+  // Regression for #37: _leaveMatch navigates home before the server's leave()
+  // write resolves, so the match page (and its `ref`) are torn down before the
+  // forfeit's finished transition could ever be observed. Without capturing a
+  // longer-lived container, the Resume list, the "Play with friends" badge, and
+  // history would stay stale until a manual refresh. Drive a real forfeit
+  // through a minimal GoRouter (home is a stub that watches both providers, so
+  // a refresh is directly observable) and assert the refresh happens only once
+  // the leave write actually lands, not before.
+  testWidgets(
+      'forfeiting a live match refreshes resume + history once leave settles',
+      (tester) async {
+    final remote = _FakeRemote()..leaveGate = Completer<void>();
+    var activeMatchesCalls = 0;
+    var matchHistoryCalls = 0;
+
+    final router = GoRouter(
+      initialLocation: '/match',
+      routes: [
+        GoRoute(path: '/', builder: (_, __) => const _HomeStub()),
+        GoRoute(
+          path: '/match',
+          builder: (_, __) => const MatchPage(matchId: 'm1'),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchServiceProvider.overrideWithValue(remote),
+        matchStreamProvider('m1').overrideWith((ref) => Stream.value(_active())),
+        myRackStreamProvider('m1').overrideWith((ref) => Stream.value(_rack())),
+        matchEventsStreamProvider('m1')
+            .overrideWith((ref) => Stream.value(const <MatchEvent>[])),
+        storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+        activeMatchesProvider.overrideWith((ref) async {
+          activeMatchesCalls++;
+          return const <ActiveMatch>[];
+        }),
+        matchHistoryProvider.overrideWith((ref) async {
+          matchHistoryCalls++;
+          return const <MatchHistoryEntry>[];
+        }),
+      ],
+      child: MaterialApp.router(routerConfig: router),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    // Tap the live-match forfeit flag, then confirm.
+    await tester.tap(find.bySemanticsLabel('Leave match'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Forfeit'));
+    await tester.pumpAndSettle();
+
+    // Home is already up (navigation does not wait on the network write), and
+    // the stub's first build has read each provider exactly once.
+    expect(find.text('home'), findsOneWidget);
+    expect(remote.left, <String>['m1']);
+    expect(activeMatchesCalls, 1);
+    expect(matchHistoryCalls, 1);
+
+    // The leave() write has NOT resolved yet: no second refresh fired early.
+    expect(activeMatchesCalls, 1);
+    expect(matchHistoryCalls, 1);
+
+    // Now let the server's forfeit write land.
+    remote.leaveGate!.complete();
+    await tester.pumpAndSettle();
+
+    // Both providers refreshed once the write actually completed, so the
+    // Resume list / badge / history drop the forfeited match without a manual
+    // pull-to-refresh.
+    expect(activeMatchesCalls, 2);
+    expect(matchHistoryCalls, 2);
+  });
+}
+
+/// Stands in for the real home route: just enough to prove that invalidating
+/// [activeMatchesProvider] / [matchHistoryProvider] through a captured
+/// container actually reaches a still-mounted watcher after this page's own
+/// `ref` (the match page's) is gone.
+class _HomeStub extends ConsumerWidget {
+  const _HomeStub();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(activeMatchesProvider);
+    ref.watch(matchHistoryProvider);
+    return const Text('home');
+  }
 }

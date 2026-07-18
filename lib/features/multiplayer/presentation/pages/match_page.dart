@@ -541,10 +541,25 @@ class _MatchPageState extends ConsumerState<MatchPage> {
   /// listener before the status flip lands), then fire the leave without
   /// awaiting; an offline failure must never trap the player behind the
   /// PopScope.
+  ///
+  /// The forfeit never reaches the normal finish-transition listener above
+  /// (this page is already gone by the time the server records it), so the
+  /// Resume list, the "Play with friends" badge, and history would otherwise
+  /// stay stale until a manual refresh. Capture the app's long-lived
+  /// ProviderContainer before navigating away (this page's own `ref` is
+  /// disposed the moment `context.go` tears it down) and invalidate through
+  /// that once the leave completes.
   void _leaveMatch() {
     final service = ref.read(matchServiceProvider);
+    final container = ProviderScope.containerOf(context, listen: false);
     context.go('/');
-    service.leave(widget.matchId).ignore();
+    service
+        .leave(widget.matchId)
+        .then((_) {
+          container.invalidate(activeMatchesProvider);
+          container.invalidate(matchHistoryProvider);
+        })
+        .ignore();
   }
 
   /// Which SLOTS are frozen at [now]: every slot whose letter equals the
