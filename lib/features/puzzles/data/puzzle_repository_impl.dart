@@ -196,10 +196,6 @@ class PuzzleRepositoryImpl
   }
 
   @override
-  Future<Map<String, int>> remainingByTier() =>
-      db.cachedPuzzlesDao.remainingByTier();
-
-  @override
   Future<void> recordPuzzleResult(
     String puzzleId,
     int score,

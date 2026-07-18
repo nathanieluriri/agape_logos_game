@@ -44,10 +44,6 @@ final currentPuzzleProvider = StreamProvider<Puzzle?>(
   (ref) => ref.watch(puzzleRepositoryProvider).watchCurrentPuzzle(),
 );
 
-final remainingCountsProvider = FutureProvider<Map<String, int>>(
-  (ref) => ref.watch(puzzleRepositoryProvider).remainingByTier(),
-);
-
 /// Thin imperative surface for C2 (the gameplay screen).
 class PuzzleController {
   PuzzleController(this._repo);
