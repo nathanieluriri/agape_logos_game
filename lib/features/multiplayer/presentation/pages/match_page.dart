@@ -23,6 +23,7 @@ import '../../../game/presentation/widgets/letter_wheel.dart';
 import '../../../game/presentation/widgets/wheel_action_button.dart';
 import '../../../game/presentation/widgets/word_board.dart';
 import '../../../puzzles/domain/puzzle.dart';
+import '../../../social/application/social_providers.dart';
 import '../../../store/application/store_providers.dart';
 import '../../../store/domain/store_item.dart';
 import '../../application/match_controller.dart';
@@ -454,6 +455,9 @@ class _MatchPageState extends ConsumerState<MatchPage> {
         // Drop this match from the Resume list and the "Play with friends"
         // badge (see #32, #33) without waiting for a manual pull-to-refresh.
         ref.invalidate(activeMatchesProvider);
+        // Also refresh match history so the just-finished match shows up
+        // without a manual pull-to-refresh (see #34).
+        ref.invalidate(matchHistoryProvider);
         context.pushReplacement('/multiplayer/result/$matchId');
       }
     });
