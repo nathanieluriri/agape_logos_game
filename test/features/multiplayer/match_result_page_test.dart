@@ -84,4 +84,54 @@ void main() {
     expect(find.text('Draw'), findsOneWidget);
     expect(find.textContaining('Won by'), findsNothing);
   });
+
+  testWidgets('still loading (no value, no error) shows the spinner',
+      (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchStreamProvider('m1')
+            .overrideWith((ref) => const Stream<Match?>.empty()),
+      ],
+      child: const MaterialApp(home: MatchResultPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Retry'), findsNothing);
+  });
+
+  testWidgets('a failed match stream surfaces a retry, not an endless spinner',
+      (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchStreamProvider('m1').overrideWith(
+          (ref) => Stream<Match?>.error(Exception('permission-denied')),
+        ),
+      ],
+      child: const MaterialApp(home: MatchResultPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Retry'), findsOneWidget);
+  });
+
+  testWidgets(
+      'a settled-but-null match (deleted doc) shows a retry, not an endless spinner',
+      (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+        matchStreamProvider('m1')
+            .overrideWith((ref) => Stream<Match?>.value(null)),
+      ],
+      child: const MaterialApp(home: MatchResultPage(matchId: 'm1')),
+    ));
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Retry'), findsOneWidget);
+  });
 }

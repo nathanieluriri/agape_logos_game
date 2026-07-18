@@ -12,6 +12,7 @@ import '../../../../shared/widgets/pond_stage.dart';
 import '../../../auth/application/auth_providers.dart';
 import '../../application/match_providers.dart';
 import '../../domain/match_result.dart';
+import '../widgets/match_load_error.dart';
 
 class MatchResultPage extends ConsumerWidget {
   const MatchResultPage({super.key, required this.matchId});
@@ -21,11 +22,28 @@ class MatchResultPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final myUid = ref.watch(currentUserProvider)?.uid;
-    final match = ref.watch(matchStreamProvider(matchId)).value;
+    final matchAsync = ref.watch(matchStreamProvider(matchId));
+    final match = matchAsync.value;
 
     final result = (match == null || myUid == null)
         ? null
         : MatchResult.fromFinishedMatch(match, myUid);
+
+    // A listener that errored has no value, so it must not fall through to
+    // the spinner; nor does a settled-but-null value (e.g. the match doc was
+    // deleted). Either way there is nothing to show the result for.
+    final failed = matchAsync.hasError || (matchAsync.hasValue && match == null);
+
+    Widget body;
+    if (result != null) {
+      body = _ResultBody(result: result);
+    } else if (failed) {
+      body = MatchLoadError(
+        onRetry: () => ref.invalidate(matchStreamProvider(matchId)),
+      );
+    } else {
+      body = const Center(child: CircularProgressIndicator());
+    }
 
     return Scaffold(
       backgroundColor: AppColors.transparent,
@@ -35,11 +53,7 @@ class MatchResultPage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const PondPageHeader(title: 'Result'),
-              Expanded(
-                child: result == null
-                    ? const Center(child: CircularProgressIndicator())
-                    : _ResultBody(result: result),
-              ),
+              Expanded(child: body),
             ],
           ),
         ),
