@@ -404,8 +404,16 @@ class _MatchPageState extends ConsumerState<MatchPage> {
     try {
       await ref.read(matchServiceProvider).submit(widget.matchId, word);
     } catch (_) {
-      // The server is authoritative; a failed submit simply does not score.
-      // The optimistic pending word is reconciled away on the next rack tick.
+      // The server rejected the word (frozen / not_active after endsAt /
+      // duplicate / steal race) or the submit never reached it (offline / 5xx).
+      // Either way the word is UNCREDITED, so the optimistic insert must not
+      // linger: syncRack only clears words the server CONFIRMED, so without
+      // this the word would render as found forever while the score never moves
+      // and the duplicate guard would block ever re-submitting it. Roll it back
+      // so the board stops showing a phantom found word and the same word can
+      // be re-traced later (e.g. once a freeze thaws or connectivity returns).
+      if (!mounted) return;
+      ref.read(matchPlayControllerProvider.notifier).rollbackSubmit(word);
     }
   }
 

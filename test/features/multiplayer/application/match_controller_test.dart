@@ -57,6 +57,62 @@ void main() {
     expect(c.read(matchPlayControllerProvider).pendingFound, isEmpty);
   });
 
+  test('a rejected submit rolls the word back and clears the duplicate guard', () {
+    ctrl.touchLetter(0); // T
+    ctrl.touchLetter(1); // E
+    ctrl.touchLetter(2); // A
+    ctrl.touchLetter(3); // R
+    expect(ctrl.endSelection(_rack(), <String>{}), 'TEAR');
+    expect(c.read(matchPlayControllerProvider).pendingFound, contains('TEAR'));
+
+    // Server rejected it (frozen / not_active / duplicate / steal race) or the
+    // submit never arrived (offline / 5xx): roll the optimistic word back.
+    ctrl.rollbackSubmit('TEAR');
+    // The board no longer shows an uncredited word.
+    expect(c.read(matchPlayControllerProvider).pendingFound, isEmpty);
+
+    // The duplicate guard is cleared: the SAME word can be re-traced and
+    // re-submitted later (e.g. once a freeze thaws or connectivity returns).
+    ctrl.touchLetter(0);
+    ctrl.touchLetter(1);
+    ctrl.touchLetter(2);
+    ctrl.touchLetter(3);
+    expect(ctrl.endSelection(_rack(), <String>{}), 'TEAR');
+    expect(c.read(matchPlayControllerProvider).pendingFound, contains('TEAR'));
+  });
+
+  test('a failed submit leaves no phantom found word after a rack tick', () {
+    ctrl.touchLetter(0);
+    ctrl.touchLetter(1);
+    ctrl.touchLetter(2);
+    ctrl.touchLetter(3);
+    ctrl.endSelection(_rack(), <String>{});
+    ctrl.rollbackSubmit('TEAR');
+    // A later rack tick that does NOT confirm the word must not resurrect it.
+    ctrl.syncRack(_rack(found: const []));
+    expect(c.read(matchPlayControllerProvider).pendingFound, isEmpty);
+  });
+
+  test('rollbackSubmit for an absent word is a harmless no-op', () {
+    ctrl.rollbackSubmit('NONE');
+    expect(c.read(matchPlayControllerProvider).pendingFound, isEmpty);
+  });
+
+  test('a successful submit keeps the word until syncRack confirms it', () {
+    ctrl.touchLetter(0);
+    ctrl.touchLetter(1);
+    ctrl.touchLetter(2);
+    ctrl.touchLetter(3);
+    ctrl.endSelection(_rack(), <String>{});
+    // No rollback (submit succeeded). The optimistic word stays put across a
+    // rack tick that has not yet included it.
+    ctrl.syncRack(_rack(found: const []));
+    expect(c.read(matchPlayControllerProvider).pendingFound, contains('TEAR'));
+    // Once the server confirms it, syncRack drops the optimistic copy.
+    ctrl.syncRack(_rack(found: const ['TEAR']));
+    expect(c.read(matchPlayControllerProvider).pendingFound, isEmpty);
+  });
+
   test('scramble + word-steal apply once per event id', () {
     final before = [...c.read(matchPlayControllerProvider).rackOrder];
     ctrl.applyScramble('e1');

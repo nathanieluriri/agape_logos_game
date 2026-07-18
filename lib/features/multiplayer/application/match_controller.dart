@@ -116,6 +116,21 @@ class MatchPlayController extends Notifier<MatchPlayState> {
     return word;
   }
 
+  /// Rolls back the optimistic word recorded by [endSelection] after the server
+  /// REJECTED the submit (frozen / not_active / duplicate / steal race) or the
+  /// submit never arrived (offline / 5xx). Removes it from `pendingFound` so the
+  /// board stops showing an uncredited word AND clears the duplicate guard
+  /// (which keys on `pendingFound.contains(word)`), so the same word can be
+  /// re-traced and re-submitted later once the blocker clears. A no-op if the
+  /// word is not currently pending (already reconciled by a rack tick).
+  void rollbackSubmit(String word) {
+    final w = word.toUpperCase();
+    if (!state.pendingFound.contains(w)) return;
+    state = state.copyWith(
+      pendingFound: {...state.pendingFound}..remove(w),
+    );
+  }
+
   /// Client-only hint: reveal one more letter of the first unfound target that
   /// is not already fully revealed. Local visual aid only (mirrors the
   /// single-player reveal machinery); no server call, no cost, no cap.
