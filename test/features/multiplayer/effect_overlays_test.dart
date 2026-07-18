@@ -155,6 +155,7 @@ void main() {
               myScore: 0,
               myWords: 0,
               opponentName: 'Opponent',
+              opponentScore: 0,
               opponentWords: 0,
               opponentConnected: true,
               endsAt: endsAt,

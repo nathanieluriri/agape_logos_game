@@ -683,6 +683,8 @@ class _MatchPageState extends ConsumerState<MatchPage> {
             opponentName:
                 (myUid == null ? null : match.opponentOf(myUid)?.displayName) ??
                 'Waiting...',
+            opponentScore:
+                myUid == null ? 0 : (match.opponentOf(myUid)?.score ?? 0),
             opponentWords:
                 myUid == null ? 0 : (match.opponentOf(myUid)?.wordsFound ?? 0),
             opponentConnected:

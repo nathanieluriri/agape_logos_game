@@ -30,6 +30,7 @@ class MatchHud extends StatelessWidget {
     required this.myScore,
     required this.myWords,
     required this.opponentName,
+    required this.opponentScore,
     required this.opponentWords,
     required this.opponentConnected,
     required this.endsAt,
@@ -43,6 +44,7 @@ class MatchHud extends StatelessWidget {
   final int myScore;
   final int myWords;
   final String opponentName;
+  final int opponentScore;
   final int opponentWords;
   final bool opponentConnected;
   final DateTime endsAt;
@@ -86,6 +88,7 @@ class MatchHud extends StatelessWidget {
           Expanded(
             child: _OpponentChip(
               name: opponentName,
+              score: opponentScore,
               words: opponentWords,
               connected: opponentConnected,
             ),
@@ -284,16 +287,18 @@ class _MyScorePipState extends State<_MyScorePip> {
   }
 }
 
-/// The opponent's compact chip: presence dot, ellipsized name, word count.
-/// All values come from the match doc (server-authoritative).
+/// The opponent's compact chip: presence dot, ellipsized name, live score,
+/// word count. All values come from the match doc (server-authoritative).
 class _OpponentChip extends StatelessWidget {
   const _OpponentChip({
     required this.name,
+    required this.score,
     required this.words,
     required this.connected,
   });
 
   final String name;
+  final int score;
   final int words;
   final bool connected;
 
@@ -332,7 +337,16 @@ class _OpponentChip extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.xs),
           Text(
-            '$words',
+            '$score',
+            style: const TextStyle(
+              color: AppColors.pillText,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xxs),
+          Text(
+            '· $words',
             style: const TextStyle(
               color: AppColors.padLabelSoft,
               fontSize: 12,

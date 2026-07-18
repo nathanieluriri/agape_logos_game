@@ -16,6 +16,7 @@ void main() {
         myScore: 128,
         myWords: 5,
         opponentName: 'A Really Long Opponent Display Name Here',
+        opponentScore: 42,
         opponentWords: 3,
         opponentConnected: true,
         endsAt: DateTime.now().add(const Duration(minutes: 5)),
@@ -28,6 +29,26 @@ void main() {
     expect(find.text('128'), findsOneWidget);
   });
 
+  testWidgets(
+      "opponent's live score renders in the opponent chip (regression #30)",
+      (tester) async {
+    await tester.pumpWidget(host(
+      MatchHud(
+        myScore: 5,
+        myWords: 1,
+        opponentName: 'Opp',
+        opponentScore: 42,
+        opponentWords: 3,
+        opponentConnected: true,
+        endsAt: DateTime.now().add(const Duration(minutes: 5)),
+        onDictionary: () {},
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.text('42'), findsOneWidget);
+  });
+
   testWidgets('forfeit affordance is hidden when onForfeit is null',
       (tester) async {
     await tester.pumpWidget(host(
@@ -35,6 +56,7 @@ void main() {
         myScore: 1,
         myWords: 0,
         opponentName: 'Opp',
+        opponentScore: 0,
         opponentWords: 0,
         opponentConnected: false,
         endsAt: DateTime.now().add(const Duration(minutes: 5)),
@@ -54,6 +76,7 @@ void main() {
         myScore: 1,
         myWords: 0,
         opponentName: 'Opp',
+        opponentScore: 0,
         opponentWords: 0,
         opponentConnected: false,
         endsAt: DateTime.now().add(const Duration(minutes: 5)),
@@ -76,6 +99,7 @@ void main() {
         myScore: 1,
         myWords: 0,
         opponentName: 'Opp',
+        opponentScore: 0,
         opponentWords: 0,
         opponentConnected: false,
         endsAt: DateTime.now().add(const Duration(minutes: 5)),
@@ -95,6 +119,7 @@ void main() {
         myScore: 1,
         myWords: 0,
         opponentName: 'Opp',
+        opponentScore: 0,
         opponentWords: 0,
         opponentConnected: false,
         endsAt: DateTime.now().add(const Duration(minutes: 5, seconds: 59)),
@@ -113,6 +138,7 @@ void main() {
         myScore: 1,
         myWords: 0,
         opponentName: 'Opp',
+        opponentScore: 0,
         opponentWords: 0,
         opponentConnected: false,
         endsAt:
@@ -131,7 +157,7 @@ void main() {
       home: Scaffold(
         body: MatchHud(
           myScore: 10, myWords: 2,
-          opponentName: 'O', opponentWords: 1, opponentConnected: true,
+          opponentName: 'O', opponentScore: 7, opponentWords: 1, opponentConnected: true,
           endsAt: DateTime.now().add(const Duration(minutes: 2)),
           onDictionary: () {},
           doublePoints: true,
@@ -149,7 +175,7 @@ void main() {
       home: Scaffold(
         body: MatchHud(
           myScore: 10, myWords: 2,
-          opponentName: 'O', opponentWords: 1, opponentConnected: true,
+          opponentName: 'O', opponentScore: 7, opponentWords: 1, opponentConnected: true,
           endsAt: DateTime.now().add(const Duration(minutes: 2)),
           onDictionary: () {},
           doublePoints: true,
@@ -191,7 +217,7 @@ void main() {
       home: Scaffold(
         body: MatchHud(
           myScore: score, myWords: 2,
-          opponentName: 'O', opponentWords: 1, opponentConnected: true,
+          opponentName: 'O', opponentScore: 7, opponentWords: 1, opponentConnected: true,
           endsAt: DateTime.now().add(const Duration(minutes: 2)),
           onDictionary: () {},
           doublePoints: true,
