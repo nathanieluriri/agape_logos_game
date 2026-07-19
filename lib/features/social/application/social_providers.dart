@@ -88,7 +88,14 @@ final userSearchProvider = FutureProvider.family<List<PublicProfile>, String>((
 
 /// `GET /users/:uid/public`. Throws `ProfileNotVisible` for a private target,
 /// which the page surfaces as a "private profile" state.
-final publicProfileProvider = FutureProvider.family<PublicProfileDetail, String>(
+///
+/// `autoDispose`: the only read site is `ref.watch` in `PublicProfilePage`
+/// (never a bare `ref.read` elsewhere), so it is safe to tear down once the
+/// page closes. That way the profile re-fetches every time it is opened
+/// instead of serving a stale snapshot (matches, stats) from earlier in the
+/// session.
+final publicProfileProvider = FutureProvider.autoDispose
+    .family<PublicProfileDetail, String>(
   (ref, uid) => ref.watch(socialRepositoryProvider).publicProfile(uid),
   // Riverpod 3 retries failed providers by default, and a retrying provider
   // reports `AsyncLoading` (carrying the previous error), never `AsyncError`.

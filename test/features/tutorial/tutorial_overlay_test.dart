@@ -5,11 +5,13 @@ import 'package:agape_logos_game/core/storage/storage_providers.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/game/presentation/pages/game_page.dart';
 import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
+import 'package:agape_logos_game/features/profile/application/wallet_sync_providers.dart';
 import 'package:agape_logos_game/features/puzzles/application/puzzle_providers.dart';
 import 'package:agape_logos_game/features/puzzles/domain/puzzle.dart';
 import 'package:agape_logos_game/features/settings/application/settings_providers.dart';
 import 'package:agape_logos_game/features/tutorial/presentation/widgets/tutorial_message_pill.dart';
 import 'package:agape_logos_game/game/ambient/ambient_providers.dart';
+import 'package:agape_logos_game/shared/widgets/sync_status_badge.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -101,6 +103,11 @@ Widget _app(AppDatabase db) => ProviderScope(
         coinsProvider.overrideWithValue(0),
         nextLevelProvider.overrideWithValue(1),
         currentUserProvider.overrideWithValue(null),
+        // Static badge, same reason as the static settings stream above: the
+        // real provider watches a LIVE Drift query (pending mutations), whose
+        // subscription deadlocks db.close() in tearDown under fake-async and
+        // times the whole test out at 10 minutes.
+        walletSyncBadgeProvider.overrideWithValue(SyncBadgeStatus.none),
       ],
       child: MediaQuery(
         data: const MediaQueryData(disableAnimations: true),

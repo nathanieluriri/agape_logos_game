@@ -1,7 +1,10 @@
+import 'package:agape_logos_game/core/storage/app_database.dart';
+import 'package:agape_logos_game/core/storage/storage_providers.dart';
 import 'package:agape_logos_game/features/profile/application/profile_providers.dart';
 import 'package:agape_logos_game/features/profile/domain/handle_outcome.dart';
 import 'package:agape_logos_game/features/profile/domain/profile.dart';
 import 'package:agape_logos_game/features/profile/domain/profile_repository.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -140,5 +143,37 @@ void main() {
 
     expect(repo.updateCalls, 1);
     expect(repo.lastUpdatedName!.length, 30);
+  });
+
+  test('clear() (the sign-out choke point) drops the offline mutation queue',
+      () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await db.pendingMutationsDao.enqueue(
+      PendingMutationsCompanion.insert(
+        id: 'm1',
+        endpoint: '/puzzles/p1/result',
+        method: 'POST',
+        payloadJson: '{"score":10}',
+        idempotencyKey: 'p1',
+        kind: 'puzzle_result',
+        createdAt: 1,
+      ),
+    );
+
+    final repo = _FakeRepo(_profile('u1', 'Player'));
+    final container = ProviderContainer(
+      overrides: [
+        profileRepositoryProvider.overrideWithValue(repo),
+        appDatabaseProvider.overrideWithValue(db),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(profileControllerProvider.notifier).clear();
+
+    // Another account's queued winnings must not survive the sign-out.
+    expect(await db.select(db.pendingMutations).get(), isEmpty);
+    expect(repo._profile, isNull); // cached profile cleared too
   });
 }

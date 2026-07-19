@@ -52,6 +52,12 @@ class StoreItemCard extends ConsumerWidget {
           context,
           'Not enough petals. ${item.name} costs $cost, you have $coins.',
         );
+      case PurchaseCoinsSyncing():
+        haptics.mistakeImpact();
+        showPondSnack(
+          context,
+          'Your newest petals are still syncing. Try again in a moment.',
+        );
       case PurchaseUnknownItem():
         haptics.mistakeImpact();
         showPondSnack(context, 'That item is no longer available.');

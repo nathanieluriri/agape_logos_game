@@ -46,24 +46,46 @@ class _PowerupIncomingBannerState extends State<PowerupIncomingBanner>
   late final AnimationController _controller;
   Timer? _holdTimer;
   bool _leaving = false;
-
-  static const Duration _drop = Duration(milliseconds: 320);
-  static const Duration _exit = Duration(milliseconds: 320);
+  bool _started = false;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: _drop);
-    _controller.forward().whenComplete(() {
-      if (!mounted) return;
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppDurations.powerupBannerTransition,
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    _reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (_reduceMotion) {
+      // Snap into place instead of dropping in with easeOutBack; the card
+      // still registers briefly before it snaps away.
+      _controller.value = 1;
       _holdTimer = Timer(AppDurations.powerupBannerHold, _leave);
-    });
+    } else {
+      _controller.forward().whenComplete(() {
+        if (!mounted) return;
+        _holdTimer = Timer(AppDurations.powerupBannerHold, _leave);
+      });
+    }
   }
 
   void _leave() {
     if (!mounted || _leaving) return;
     _leaving = true;
-    _controller.duration = _exit;
+    if (_reduceMotion) {
+      _controller.value = 0;
+      widget.onDone();
+      return;
+    }
+    _controller.duration = AppDurations.powerupBannerTransition;
     _controller.reverse(from: 1).whenComplete(widget.onDone);
   }
 
@@ -92,13 +114,13 @@ class _PowerupIncomingBannerState extends State<PowerupIncomingBanner>
                 _controller.value.clamp(0.0, 1.0),
               );
               return Transform.translate(
-                offset: Offset(0, (1 - t) * -160),
+                offset: Offset(0, (1 - t) * -AppSpacing.powerupBannerDropDistance),
                 child: child,
               );
             },
             child: RepaintBoundary(
               child: Padding(
-                padding: const EdgeInsets.only(top: 72),
+                padding: const EdgeInsets.only(top: AppSpacing.powerupBannerTopInset),
                 child: _BannerCard(title: title, blocked: d.blocked),
               ),
             ),

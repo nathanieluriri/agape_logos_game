@@ -54,7 +54,16 @@ class WordBoard extends StatelessWidget {
           ),
       ],
     );
-    if (!center) return SingleChildScrollView(child: column);
+    final foundCount = targets
+        .where((answer) => found.contains(answer.word.toUpperCase()))
+        .length;
+    final boardSemantics = Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: '$foundCount of ${targets.length} words found',
+      child: column,
+    );
+    if (!center) return SingleChildScrollView(child: boardSemantics);
     // Center within the region, but keep a scroll fallback for tall puzzles by
     // floor-ing the content to the viewport height.
     return LayoutBuilder(
@@ -65,7 +74,7 @@ class WordBoard extends StatelessWidget {
                 ? constraints.maxHeight
                 : 0,
           ),
-          child: column,
+          child: boardSemantics,
         ),
       ),
     );
@@ -106,24 +115,35 @@ class _WordRowState extends State<_WordRow> {
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < widget.word.length; i++)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizing.boardTileGap / 2,
+    // Found words are safe to read aloud; a partially or fully unfound word
+    // must never leak its letters to a screen reader, so it announces only
+    // its length.
+    final label = widget.found
+        ? widget.word
+        : '${widget.word.length}-letter word, not yet found';
+    return Semantics(
+      label: label,
+      child: RepaintBoundary(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < widget.word.length; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizing.boardTileGap / 2,
+                ),
+                child: ExcludeSemantics(
+                  child: _AnimatedTile(
+                    letter: widget.word[i],
+                    filled: widget.found || i < widget.revealed,
+                    revealDelay: _cascading
+                        ? AppDurations.tileStagger * i
+                        : Duration.zero,
+                  ),
+                ),
               ),
-              child: _AnimatedTile(
-                letter: widget.word[i],
-                filled: widget.found || i < widget.revealed,
-                revealDelay: _cascading
-                    ? AppDurations.tileStagger * i
-                    : Duration.zero,
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

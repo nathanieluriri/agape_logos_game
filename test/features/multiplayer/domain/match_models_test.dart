@@ -5,9 +5,16 @@ import 'package:agape_logos_game/features/multiplayer/domain/match_result.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_settings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-MatchPlayer _p(String uid, {bool ready = false, int score = 0}) => MatchPlayer(
+MatchPlayer _p(
+  String uid, {
+  bool ready = false,
+  int score = 0,
+  bool connected = true,
+  int lastSeen = 0,
+}) => MatchPlayer(
       uid: uid, displayName: uid, avatarId: 'avatar_01', isGuest: false,
-      ready: ready, connected: true, score: score, wordsFound: 0,
+      ready: ready, connected: connected, score: score, wordsFound: 0,
+      lastSeen: lastSeen,
     );
 
 Match _match({
@@ -46,6 +53,49 @@ void main() {
     expect(m.bothReady, isFalse);
   });
 
+  group('opponentPresence (issue #46: dot driven by lastSeen freshness)', () {
+    const now = 1000000;
+
+    test('fresh lastSeen (within the threshold) reads as connected', () {
+      final opp = _p(
+        'b',
+        connected: true,
+        lastSeen: now - (kOpponentPresenceStaleAfterMs ~/ 2),
+      );
+      expect(opponentPresence(opp, now), isTrue);
+    });
+
+    test('stale lastSeen (older than the threshold) reads as disconnected, '
+        'even though the raw connected flag is still true', () {
+      final opp = _p(
+        'b',
+        connected: true,
+        lastSeen: now - kOpponentPresenceStaleAfterMs - 1,
+      );
+      expect(opponentPresence(opp, now), isFalse);
+    });
+
+    test('missing/zero lastSeen falls back to the raw connected flag', () {
+      final connectedOpp = _p('b', connected: true, lastSeen: 0);
+      final disconnectedOpp = _p('b', connected: false, lastSeen: 0);
+      expect(opponentPresence(connectedOpp, now), isTrue);
+      expect(opponentPresence(disconnectedOpp, now), isFalse);
+    });
+
+    test('a null opponent (no one has joined yet) is never connected', () {
+      expect(opponentPresence(null, now), isFalse);
+    });
+
+    test('lastSeen exactly at the threshold boundary reads as stale', () {
+      final opp = _p(
+        'b',
+        connected: true,
+        lastSeen: now - kOpponentPresenceStaleAfterMs,
+      );
+      expect(opponentPresence(opp, now), isFalse);
+    });
+  });
+
   test('event kind round-trips through the wire strings', () {
     expect(matchEventKindFromWire('word_steal'), MatchEventKind.wordSteal);
     expect(matchEventKindToWire(MatchEventKind.fogBank), 'fog_bank');
@@ -56,5 +106,101 @@ void main() {
     expect(MatchResult.fromFinishedMatch(_match(winner: 'b'), 'a').isLoss, isTrue);
     expect(MatchResult.fromFinishedMatch(_match(winner: 'draw'), 'a').isDraw, isTrue);
     expect(MatchResult.fromFinishedMatch(_match(), 'a').isWin, isTrue); // 30 > 10
+  });
+
+  group('deriveMatchWinReason mirrors computeWinner\'s tier order', () {
+    test('won by words found: equal score, unequal words', () {
+      final reason = deriveMatchWinReason(
+        outcome: 'win',
+        myWordsFound: 6,
+        opponentWordsFound: 4,
+        myLastWordAt: 0,
+        opponentLastWordAt: 0,
+        myScore: 20,
+        opponentScore: 20,
+      );
+      expect(reason, MatchWinReason.wordsFound);
+    });
+
+    test('won by speed: equal words and score, faster time wins', () {
+      final reason = deriveMatchWinReason(
+        outcome: 'win',
+        myWordsFound: 5,
+        opponentWordsFound: 5,
+        myLastWordAt: 1000,
+        opponentLastWordAt: 2000,
+        myScore: 20,
+        opponentScore: 20,
+      );
+      expect(reason, MatchWinReason.speed);
+    });
+
+    test('won by points: words and time both tied, score decides', () {
+      final reason = deriveMatchWinReason(
+        outcome: 'win',
+        myWordsFound: 5,
+        opponentWordsFound: 5,
+        myLastWordAt: 1500,
+        opponentLastWordAt: 1500,
+        myScore: 22,
+        opponentScore: 18,
+      );
+      expect(reason, MatchWinReason.points);
+    });
+
+    test('genuine draw: every tier tied returns null', () {
+      final reason = deriveMatchWinReason(
+        outcome: 'draw',
+        myWordsFound: 5,
+        opponentWordsFound: 5,
+        myLastWordAt: 1500,
+        opponentLastWordAt: 1500,
+        myScore: 20,
+        opponentScore: 20,
+      );
+      expect(reason, isNull);
+    });
+
+    test('wordsFound decides outright even when a later tier would disagree', () {
+      // wa != wb settles it in tier 1; the (tied) score never gets consulted.
+      final reason = deriveMatchWinReason(
+        outcome: 'loss',
+        myWordsFound: 3,
+        opponentWordsFound: 5,
+        myLastWordAt: 500,
+        opponentLastWordAt: 9000,
+        myScore: 20,
+        opponentScore: 20,
+      );
+      expect(reason, MatchWinReason.wordsFound);
+    });
+
+    test('a zero lastWordAt (never found a word) skips the speed tier', () {
+      final reason = deriveMatchWinReason(
+        outcome: 'win',
+        myWordsFound: 5,
+        opponentWordsFound: 5,
+        myLastWordAt: 1200,
+        opponentLastWordAt: 0,
+        myScore: 25,
+        opponentScore: 20,
+      );
+      expect(reason, MatchWinReason.points);
+    });
+
+    test('disagreement with outcome is never shown (defensive guard)', () {
+      // Provisional score-only outcome says 'loss', but words favor me: the
+      // derivation must not contradict the outcome the headline already shows.
+      final reason = deriveMatchWinReason(
+        outcome: 'loss',
+        myWordsFound: 6,
+        opponentWordsFound: 4,
+        myLastWordAt: 0,
+        opponentLastWordAt: 0,
+        myScore: 10,
+        opponentScore: 20,
+      );
+      expect(reason, isNull);
+    });
   });
 }

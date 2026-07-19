@@ -21,16 +21,20 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _FakeRepo implements SocialRepository {
   bool? lastPrivacy;
+  int publicProfileCalls = 0;
   @override
   Future<void> setPrivacy(bool isPublic) async => lastPrivacy = isPublic;
   @override
   Future<List<PublicProfile>> searchUsers(String query) async =>
       const [PublicProfile(uid: 'u2', handle: 'grace', displayName: 'Grace', avatarId: 'avatar_01')];
   @override
-  Future<PublicProfileDetail> publicProfile(String uid) async => const PublicProfileDetail(
-        profile: PublicProfile(uid: 'u2', handle: 'grace', displayName: 'Grace', avatarId: 'avatar_01'),
-        recentMatches: <MatchHistoryEntry>[],
-      );
+  Future<PublicProfileDetail> publicProfile(String uid) async {
+    publicProfileCalls++;
+    return const PublicProfileDetail(
+      profile: PublicProfile(uid: 'u2', handle: 'grace', displayName: 'Grace', avatarId: 'avatar_01'),
+      recentMatches: <MatchHistoryEntry>[],
+    );
+  }
   @override
   Future<FriendRequestOutcome> sendFriendRequest({String? toUid, String? handle}) async =>
       const FriendRequestSent();
@@ -130,5 +134,30 @@ void main() {
     final c = _c(signedIn: false);
     addTearDown(c.dispose);
     expect(await c.read(profilePrivacyControllerProvider.future), isFalse);
+  });
+
+  test('publicProfileProvider is autoDispose and refetches once its only '
+      'listener goes away', () async {
+    final repo = _FakeRepo();
+    final c = ProviderContainer(
+      overrides: [socialRepositoryProvider.overrideWithValue(repo)],
+    );
+    addTearDown(c.dispose);
+
+    final sub1 = c.listen(publicProfileProvider('u2'), (_, __) {});
+    await c.read(publicProfileProvider('u2').future);
+    expect(repo.publicProfileCalls, 1);
+
+    // Closing the only subscription (e.g. leaving the profile page) tears the
+    // autoDispose provider down. Watching it again (re-opening the page)
+    // must hit the repository a second time instead of serving the stale
+    // cached snapshot.
+    sub1.close();
+    await Future<void>.delayed(Duration.zero);
+
+    final sub2 = c.listen(publicProfileProvider('u2'), (_, __) {});
+    await c.read(publicProfileProvider('u2').future);
+    expect(repo.publicProfileCalls, 2);
+    sub2.close();
   });
 }

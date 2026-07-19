@@ -71,4 +71,31 @@ void main() {
     await tester.pumpAndSettle();
     expect(infoItemId, 'fog');
   });
+
+  // Issue #69: a slot's semantics label must announce the catalog display
+  // name, not the raw wire id, so a screen-reader user hears "Fog" rather
+  // than "fog".
+  testWidgets('slot semantics use the catalog display name, not the wire id', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PowerupWheel(
+            category: PowerupCategory.offense,
+            ownedCounts: ownedCounts,
+            prices: prices,
+            displayNames: const {'fog': 'Fog Bank'},
+            onFire: (_, __) {},
+            onTapInfo: (_) {},
+            onClose: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel('Fog Bank'), findsOneWidget);
+    expect(find.bySemanticsLabel('fog'), findsNothing);
+  });
 }

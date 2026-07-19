@@ -10,6 +10,7 @@ import '../../../../core/design/tokens/spacing.dart';
 import '../../../../features/player/application/player_controller.dart';
 import '../../../../features/player/application/player_state.dart';
 import '../../../../features/profile/application/profile_providers.dart';
+import '../../../../features/profile/application/wallet_sync_providers.dart';
 import '../../../../shared/widgets/home_button.dart';
 import '../../../../shared/widgets/play_pad_cluster.dart';
 import '../../../../shared/widgets/pond_background.dart';
@@ -79,6 +80,7 @@ class _LevelCompleteBody extends ConsumerWidget {
             children: [
               PondTopBar(
                 coins: coins,
+                syncStatus: ref.watch(walletSyncBadgeProvider),
                 onSettings: () => context.push('/settings'),
                 onAddCoins: () => context.push('/store'),
                 action: HomeButton(onPressed: () => context.go('/')),

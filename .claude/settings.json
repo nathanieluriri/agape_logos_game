@@ -9,10 +9,21 @@
       "Bash(cp index.html /c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/652fbfa9-b022-49ba-a384-450174c3abfc/scratchpad/idx.final.html)",
       "Bash(node -e ' *)",
       "Bash(npx hyperframes *)",
-      "Bash(rm -f \"/c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/652fbfa9-b022-49ba-a384-450174c3abfc/scratchpad/measure-probe.mjs\" && echo removed)"
+      "Bash(rm -f \"/c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/652fbfa9-b022-49ba-a384-450174c3abfc/scratchpad/measure-probe.mjs\" && echo removed)",
+      "Bash(cp \"/c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/3580c9c7-05f4-4245-b3d5-278673afa034/scratchpad/shield_bubble_overlay_fixed.dart.bak\" \"c:/flutter_projects/agape_logos_game/lib/features/multiplayer/presentation/widgets/shield_bubble_overlay.dart\" && echo restored)",
+      "Bash(cd \"c:/flutter_projects/agape_logos_game\" && git show a628bb1:lib/features/multiplayer/presentation/widgets/shield_bubble_overlay.dart > \"/c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/3580c9c7-05f4-4245-b3d5-278673afa034/scratchpad/shield_bubble_overlay_precommit.dart\" && echo saved)",
+      "Bash(cp \"/c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/3580c9c7-05f4-4245-b3d5-278673afa034/scratchpad/shield_bubble_overlay_precommit.dart\" \"c:/flutter_projects/agape_logos_game/lib/features/multiplayer/presentation/widgets/shield_bubble_overlay.dart\" && echo swapped)",
+      "Bash(cp \"/c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/3580c9c7-05f4-4245-b3d5-278673afa034/scratchpad/shield_bubble_overlay_fixed.dart.bak\" \"c:/flutter_projects/agape_logos_game/lib/features/multiplayer/presentation/widgets/shield_bubble_overlay.dart\" && diff \"/c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/3580c9c7-05f4-4245-b3d5-278673afa034/scratchpad/shield_bubble_overlay_fixed.dart.bak\" \"c:/flutter_projects/agape_logos_game/lib/features/multiplayer/presentation/widgets/shield_bubble_overlay.dart\" && echo \"identical, restored\")",
+      "Bash(cp lib/features/multiplayer/presentation/widgets/ward_ring_overlay.dart /c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/3580c9c7-05f4-4245-b3d5-278673afa034/scratchpad/ward_ring_overlay.dart.bak *)",
+      "Bash(cp lib/features/multiplayer/presentation/widgets/ward_ring_overlay.dart /c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/3580c9c7-05f4-4245-b3d5-278673afa034/scratchpad/ward_ring_overlay.dart.restructured.bak *)",
+      "Read(//c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/3580c9c7-05f4-4245-b3d5-278673afa034/scratchpad/**)",
+      "Bash(cp /c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/3580c9c7-05f4-4245-b3d5-278673afa034/scratchpad/ward_ring_overlay.dart.restructured.bak lib/features/multiplayer/presentation/widgets/ward_ring_overlay.dart)",
+      "Bash(mkdir -p \"/c/Users/MRDASH~1/AppData/Local/Temp/claude/c--flutter-projects-agape-logos-game/91d22050-52fb-4a4a-8637-93e2389b1f7b/scratchpad/reports\")"
     ],
     "additionalDirectories": [
-      "C:\\Users\\MRDASH~1\\AppData\\Local\\Temp\\claude\\c--flutter-projects-agape-logos-game\\652fbfa9-b022-49ba-a384-450174c3abfc\\scratchpad"
+      "C:\\Users\\MRDASH~1\\AppData\\Local\\Temp\\claude\\c--flutter-projects-agape-logos-game\\652fbfa9-b022-49ba-a384-450174c3abfc\\scratchpad",
+      "C:\\Users\\MRDASH~1\\AppData\\Local\\Temp\\claude\\c--flutter-projects-agape-logos-game\\3580c9c7-05f4-4245-b3d5-278673afa034\\scratchpad",
+      "C:\\Users\\MRDASH~1\\AppData\\Local\\Temp\\claude\\c--flutter-projects-agape-logos-game\\91d22050-52fb-4a4a-8637-93e2389b1f7b\\scratchpad"
     ]
   }
 }

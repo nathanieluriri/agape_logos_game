@@ -22,11 +22,14 @@ import '../core/storage/app_database.dart';
 import '../core/storage/storage_providers.dart';
 import '../features/auth/application/auth_providers.dart';
 import '../features/auth/domain/auth_user.dart';
+import '../features/multiplayer/application/resume_providers.dart';
 import '../features/multiplayer/presentation/widgets/fog_shader.dart';
 import '../features/profile/application/profile_providers.dart';
+import '../features/social/application/social_providers.dart';
 import '../firebase_options.dart';
 import 'app.dart';
 import 'background_entrypoint.dart';
+import 'resume_refresh_gate.dart';
 import 'sync_reconcilers.dart';
 
 /// Foreground sync is live: the real [HttpMutationSender] replays queued
@@ -96,8 +99,34 @@ Future<void> bootstrap() async {
               );
               return sender.send;
             }),
-            mutationReconcilersProvider.overrideWithValue(
-              buildMutationReconcilers(db),
+            // Give features a real "sync now" kick (no-op by default so tests
+            // need no wiring): a win flushes its queued result immediately.
+            syncKickProvider.overrideWith(
+              (ref) => () => ref.read(syncEngineProvider).flush(),
+            ),
+            // Reconcilers get a coins/level refetch: the server mints petals
+            // when a puzzle result syncs, so each confirmed result pulls the
+            // authoritative profile straight into the cache (pending-delta
+            // aware), closing the loop within the session instead of on the
+            // next restart.
+            mutationReconcilersProvider.overrideWith(
+              (ref) => buildMutationReconcilers(
+                db,
+                onPuzzleResultSynced: () async {
+                  final AuthUser? user =
+                      ref.read(authRepositoryProvider).currentUser;
+                  if (user == null) return;
+                  await ref.read(profileRepositoryProvider).fetch(user.uid);
+                },
+                // A queued forfeit that only reached the server after the
+                // player came back online still drops the match from the
+                // Resume list, the "Play with friends" badge, and history
+                // (issue #38) without a manual pull-to-refresh.
+                onMatchLeaveSynced: () async {
+                  ref.invalidate(activeMatchesProvider);
+                  ref.invalidate(matchHistoryProvider);
+                },
+              ),
             ),
           ],
           child: const _BootstrapGate(),
@@ -116,12 +145,20 @@ class _BootstrapGate extends ConsumerStatefulWidget {
   ConsumerState<_BootstrapGate> createState() => _BootstrapGateState();
 }
 
-class _BootstrapGateState extends ConsumerState<_BootstrapGate> {
+class _BootstrapGateState extends ConsumerState<_BootstrapGate>
+    with WidgetsBindingObserver {
   SyncScheduler? _scheduler;
+  Timer? _flushHeartbeat;
+
+  /// How often the foreground safety net checks for stuck queue rows. Cheap:
+  /// each tick is one local DB read; the network is only touched when rows are
+  /// actually due, and the engine's single-flight guard absorbs overlaps.
+  static const Duration _heartbeatEvery = Duration(seconds: 30);
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (kBackendSyncEnabled) {
       final SyncEngine engine = ref.read(syncEngineProvider);
       _scheduler = createSyncScheduler(
@@ -130,11 +167,46 @@ class _BootstrapGateState extends ConsumerState<_BootstrapGate> {
         backgroundEntryPoint: backgroundFlushEntryPoint,
       );
       unawaited(_scheduler!.initialize());
+      // Foreground heartbeat: syncs must not depend on a restart or a
+      // connectivity flap. Anything sitting in the queue past its backoff gate
+      // gets another delivery attempt while the app is simply open.
+      _flushHeartbeat = Timer.periodic(_heartbeatEvery, (_) async {
+        final due = await ref
+            .read(appDatabaseProvider)
+            .pendingMutationsDao
+            .due(DateTime.now().millisecondsSinceEpoch);
+        if (due.isNotEmpty) {
+          unawaited(_scheduler?.requestFlush() ?? Future<void>.value());
+        }
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    // Coming back to the app: push anything queued, then pull the server's
+    // view of coins/level (pending-delta aware) so both sides converge without
+    // the player ever having to restart.
+    unawaited(_scheduler?.requestFlush() ?? Future<void>.value());
+    final AuthUser? user = ref.read(authRepositoryProvider).currentUser;
+    if (user != null) {
+      unawaited(
+        ref
+            .read(profileRepositoryProvider)
+            .fetch(user.uid)
+            .catchError((Object e) {
+          logger.info('resume profile refetch skipped: $e');
+          return null;
+        }),
+      );
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _flushHeartbeat?.cancel();
     unawaited(_scheduler?.dispose());
     super.dispose();
   }
@@ -172,6 +244,6 @@ class _BootstrapGateState extends ConsumerState<_BootstrapGate> {
         unawaited(_scheduler?.requestFlush() ?? Future<void>.value());
       }
     });
-    return const AgapeApp();
+    return const ResumeRefreshGate(child: AgapeApp());
   }
 }

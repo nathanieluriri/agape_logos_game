@@ -20,6 +20,7 @@ MatchPlayer matchPlayerFromWire(Map<String, dynamic> m) => MatchPlayer(
   endsAtBonusMs: _asInt(m['endsAtBonusMs']),
   lastWordAt: _asInt(m['lastWordAt']),
   finishedAt: _asInt(m['finishedAt']),
+  lastSeen: _asInt(m['lastSeen']),
 );
 
 MatchActiveEffect matchActiveEffectFromWire(Map<String, dynamic> m) =>

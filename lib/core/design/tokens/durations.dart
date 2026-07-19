@@ -92,4 +92,50 @@ abstract final class AppDurations {
   /// How long the incoming-powerup banner holds at center, after dropping in
   /// and before flying away, so "{caster} cast {powerup}!" has time to read.
   static const Duration powerupBannerHold = Duration(milliseconds: 1500);
+
+  /// The fog front rolling down over the board (and lifting back out).
+  static const Duration fogRoll = Duration(milliseconds: 2500);
+
+  /// A powerup's land animation on the board (frost creep, shield bloom,
+  /// ward sweep, aura ignite).
+  static const Duration effectLand = Duration(milliseconds: 600);
+
+  /// A timed effect's expiry animation (ice shatter, ward dissolve,
+  /// shield pop).
+  static const Duration effectExpire = Duration(milliseconds: 400);
+
+  /// The scramble swirl: letters lift, loop the wheel once, and settle.
+  static const Duration scrambleSwirl = Duration(milliseconds: 900);
+
+  /// A stolen word's flight off the board (victim) or into the score
+  /// (caster).
+  static const Duration stealFlight = Duration(milliseconds: 800);
+
+  /// The match timer digits rolling up to the boosted deadline.
+  static const Duration timeBoostClimb = Duration(milliseconds: 800);
+
+  /// How long the formed-word pill's shake + red flash holds after the
+  /// controller rejects a word (invalid or already found) before it reverts
+  /// to its normal display.
+  static const Duration wordRejectFlash = Duration(milliseconds: 520);
+
+  /// The opponent chip's scale bump + color flash when their word count
+  /// increments, so scoring by the opponent reads as a felt moment.
+  static const Duration opponentScorePulse = Duration(milliseconds: 420);
+
+  /// The incoming-powerup banner's drop-in glide and its mirrored fly-away
+  /// exit; both halves of the cast feedback loop share this timing.
+  static const Duration powerupBannerTransition = Duration(milliseconds: 320);
+
+  /// How long the multiplayer lobby waits with no opponent before surfacing
+  /// the "still searching" hint beneath the loader.
+  static const Duration lobbyStillSearchingAfter = Duration(seconds: 15);
+
+  /// How long the "{name} joined!" confirmation holds in the lobby before
+  /// fading away.
+  static const Duration lobbyJoinConfirmHold = Duration(milliseconds: 1800);
+
+  /// A lobby player row's fade + rise entrance when it first appears
+  /// (notably the opponent's row, the moment they join).
+  static const Duration lobbyRowEnter = Duration(milliseconds: 420);
 }

@@ -21,8 +21,12 @@ final incomingChallengesProvider = StreamProvider<List<ChallengeInvite>>((ref) {
   return ref.watch(socialFirestoreProvider).watchChallenges(user.uid);
 });
 
-/// `GET /me/matches/active`: the player's in-progress matches. Invalidate to
-/// refresh (the Resume list pulls to reload).
+/// `GET /me/matches/active`: the player's in-progress matches. A one-shot
+/// fetch, so invalidate to refresh. Refreshed on: pull-to-refresh, accepting a
+/// challenge, a resume tile's own countdown hitting zero, and my own match
+/// transitioning to finished (`match_page.dart`). Also backs the "Play with
+/// friends" resume badge count (`multiplayer_sheet.dart`), so it drops a
+/// settled match on the same refresh.
 final activeMatchesProvider = FutureProvider<List<ActiveMatch>>(
   (ref) => ref.watch(matchServiceProvider).activeMatches(),
 );

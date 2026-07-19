@@ -9,6 +9,7 @@ import '../../core/design/tokens/shadows.dart';
 import '../../core/design/tokens/sizing.dart';
 import '../../core/haptics/haptics.dart';
 import 'petal_icon.dart';
+import 'sync_status_badge.dart';
 
 /// Currency chip: a pink petal coin straddling the pill's left edge, the
 /// animated count-up amount, and a round plus button on the right.
@@ -17,10 +18,20 @@ import 'petal_icon.dart';
 /// only ever paints over the pill, never over a neighbour (e.g. the level title
 /// in the game top bar). Kept compact so it never crowds the rest of a top bar.
 class CoinPill extends StatelessWidget {
-  const CoinPill({super.key, required this.amount, this.onAdd});
+  const CoinPill({
+    super.key,
+    required this.amount,
+    this.onAdd,
+    this.syncStatus = SyncBadgeStatus.none,
+  });
 
   final int amount;
   final VoidCallback? onAdd;
+
+  /// Delivery state of the shown amount (message-tick style): a ticking clock
+  /// while part of the balance is local-only, a green tick right after the
+  /// server confirms, nothing once settled.
+  final SyncBadgeStatus syncStatus;
 
   /// Width reserved to the left of the pill for the petal's overhang, so it
   /// stays inside the CoinPill's own footprint.
@@ -59,18 +70,27 @@ class CoinPill extends StatelessWidget {
               border: Border.all(color: AppColors.pillBorder),
               boxShadow: AppShadows.pill,
             ),
-            child: TweenAnimationBuilder<int>(
-              duration: AppDurations.slow,
-              tween: IntTween(begin: 0, end: amount),
-              builder: (context, value, _) => Text(
-                _grouped(value),
-                style: const TextStyle(
-                  color: AppColors.pillText,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.4,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TweenAnimationBuilder<int>(
+                  duration: AppDurations.slow,
+                  tween: IntTween(begin: 0, end: amount),
+                  builder: (context, value, _) => Text(
+                    _grouped(value),
+                    style: const TextStyle(
+                      color: AppColors.pillText,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
                 ),
-              ),
+                if (syncStatus != SyncBadgeStatus.none) ...[
+                  const SizedBox(width: 5),
+                  SyncStatusBadge(status: syncStatus),
+                ],
+              ],
             ),
           ),
           // Petal straddling the pill's left edge. Its left edge lands at the

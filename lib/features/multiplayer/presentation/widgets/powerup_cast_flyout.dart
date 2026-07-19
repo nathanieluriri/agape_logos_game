@@ -60,8 +60,7 @@ class _PowerupCastFlyoutViewState extends State<_PowerupCastFlyoutView>
         AnimationController(vsync: this, duration: AppDurations.powerupCast)
           ..addStatusListener((status) {
             if (status == AnimationStatus.completed) widget.onDone();
-          })
-          ..forward();
+          });
     _scale = Tween<double>(
       begin: 0.6,
       end: 1.1,
@@ -75,6 +74,23 @@ class _PowerupCastFlyoutViewState extends State<_PowerupCastFlyoutView>
         curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
       ),
     );
+  }
+
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (reduceMotion) {
+      // Snap to the end state: the cue still registers briefly but does not
+      // fly 520px off the top edge.
+      _controller.value = 1;
+    } else {
+      _controller.forward();
+    }
   }
 
   @override

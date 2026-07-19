@@ -19,6 +19,18 @@ const Map<String, int> kFirstDrawComposition = {
 /// Mutation kind for puzzle-result writes; the reconciler keys off this.
 const String kPuzzleResultKind = 'puzzle_result';
 
+/// Coins minted for a completed puzzle: a flat bonus plus the level score.
+/// The single client-side source of truth for the mint formula. Used both for
+/// the optimistic bump on a win AND to compute the wallet delta still
+/// travelling in the offline queue, so a stale `GET /me` can be reconciled
+/// instead of clobbering the optimistic balance.
+///
+/// MUST mirror the server's `coinsForResult` in
+/// `functions/src/services/puzzle_result_service.ts`. If the server formula
+/// changes, change this with it, or the pending delta (and the optimistic
+/// bump) will be briefly wrong until the post-sync refetch corrects it.
+int coinsForScore(int score) => 10 + score;
+
 /// Puzzle-id prefix of the bundled offline starter pack. Results for these
 /// are recorded locally only (never enqueued for backend sync).
 const String kStarterPuzzlePrefix = 'starter-';

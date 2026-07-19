@@ -67,4 +67,35 @@ void main() {
     expect(await db.cachedProfileDao.read('u1'), isNull);
     expect((await db.cachedProfileDao.read('u2'))?.highestLevel, 1);
   });
+
+  test('merge adds pendingCoinDelta on top of the server balance', () async {
+    await db.cachedProfileDao.mergeServerProfile(_server('u1', coins: 233));
+    // A stale server snapshot (win not yet synced) arrives while 68 petals
+    // are still travelling in the queue: the merge must not clobber them.
+    await db.cachedProfileDao.mergeServerProfile(
+      _server('u1', coins: 165),
+      pendingCoinDelta: 68,
+    );
+    expect((await db.cachedProfileDao.read('u1'))?.coins, 233);
+  });
+
+  test('full replace (uid change) writes RAW server coins, ignoring the delta',
+      () async {
+    await db.cachedProfileDao.mergeServerProfile(_server('u1', coins: 500));
+    // Account switch with a leftover delta: the previous account's queued
+    // winnings must not inflate the new account's wallet.
+    await db.cachedProfileDao.mergeServerProfile(
+      _server('u2', coins: 40),
+      pendingCoinDelta: 68,
+    );
+    expect((await db.cachedProfileDao.read('u2'))?.coins, 40);
+  });
+
+  test('first write (no existing row) also ignores the delta', () async {
+    await db.cachedProfileDao.mergeServerProfile(
+      _server('u1', coins: 40),
+      pendingCoinDelta: 68,
+    );
+    expect((await db.cachedProfileDao.read('u1'))?.coins, 40);
+  });
 }

@@ -17,5 +17,6 @@ abstract class MatchPlayer with _$MatchPlayer {
     @Default(0) int endsAtBonusMs,
     @Default(0) int lastWordAt,
     @Default(0) int finishedAt,
+    @Default(0) int lastSeen,
   }) = _MatchPlayer;
 }

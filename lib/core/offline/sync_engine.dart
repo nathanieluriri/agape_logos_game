@@ -24,8 +24,14 @@ class SyncEngine {
     required this._sender,
     this._reconcilers = const {},
     int Function()? clock,
-    this._maxRetries = 5,
+    this._maxRetries = 10,
   }) : _clock = clock ?? _wallClock;
+
+  /// Ceiling for the exponential backoff between attempts. Combined with the
+  /// foreground heartbeat/resume triggers, a transient failure keeps retrying
+  /// at most every 30s while the app is open instead of backing off past the
+  /// session.
+  static const int _maxBackoffMs = 30000;
 
   final AppDatabase _db;
   final ConnectivityService _connectivity;
@@ -85,9 +91,11 @@ class SyncEngine {
           await _db.pendingMutationsDao.markFailed(row.id, 'max retries exceeded');
         } else {
           // Exponential backoff with a clamped exponent (avoids shift overflow,
-          // incl. the 32-bit web int model).
+          // incl. the 32-bit web int model), capped so retries never drift
+          // beyond a session-friendly interval.
           final int shift = (next - 1).clamp(0, 30);
-          final int delayMs = 1000 * (1 << shift);
+          int delayMs = 1000 * (1 << shift);
+          if (delayMs > _maxBackoffMs) delayMs = _maxBackoffMs;
           await _db.pendingMutationsDao.scheduleRetry(row.id, next, _clock() + delayMs);
         }
       case SendOutcome.permanent:

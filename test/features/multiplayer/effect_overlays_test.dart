@@ -1,9 +1,15 @@
 import 'package:agape_logos_game/features/multiplayer/application/server_clock.dart';
+import 'package:agape_logos_game/features/multiplayer/domain/match_player.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/frozen_letter_overlay.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/match_hud.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/match_timer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+const _connectedOpponent = MatchPlayer(
+  uid: 'opp', displayName: 'Opponent', avatarId: 'a', isGuest: false,
+  ready: true, connected: true, score: 0, wordsFound: 0,
+);
 
 void main() {
   testWidgets('frozen overlay shows a frost icon per frozen slot', (tester) async {
@@ -29,6 +35,58 @@ void main() {
     expect(find.byIcon(Icons.ac_unit_rounded), findsNothing);
   });
 
+  testWidgets('a lapsed frost disc lingers to shatter, then leaves the tree',
+      (tester) async {
+    Widget overlay(Set<int> slots) => MaterialApp(
+      home: Scaffold(
+        body: FrozenLetterOverlay(
+          frozenSlots: slots, letterCount: 4, size: const Size(260, 260),
+        ),
+      ),
+    );
+    await tester.pumpWidget(overlay(const {1}));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.ac_unit_rounded), findsOneWidget);
+
+    // The slot thaws: the disc must still be on screen mid-shatter, and
+    // actually visible (a pinned-at-zero icon would still satisfy a bare
+    // findsOneWidget, so assert the rendered size too).
+    await tester.pumpWidget(overlay(const {}));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byIcon(Icons.ac_unit_rounded), findsOneWidget);
+    final sizeAt100ms =
+        tester.widget<Icon>(find.byIcon(Icons.ac_unit_rounded)).size!;
+    expect(sizeAt100ms, greaterThan(0));
+
+    // ...and keeps shrinking as the shatter progresses...
+    await tester.pump(const Duration(milliseconds: 200));
+    final sizeAt300ms =
+        tester.widget<Icon>(find.byIcon(Icons.ac_unit_rounded)).size!;
+    expect(sizeAt300ms, lessThan(sizeAt100ms));
+
+    // ...and gone once the shatter window has fully elapsed.
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byIcon(Icons.ac_unit_rounded), findsNothing);
+  });
+
+  testWidgets('reduced motion drops a thawed disc immediately', (tester) async {
+    Widget overlay(Set<int> slots) => MediaQuery(
+      data: const MediaQueryData(disableAnimations: true),
+      child: MaterialApp(
+        home: Scaffold(
+          body: FrozenLetterOverlay(
+            frozenSlots: slots, letterCount: 4, size: const Size(260, 260),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpWidget(overlay(const {1}));
+    expect(find.byIcon(Icons.ac_unit_rounded), findsOneWidget);
+    await tester.pumpWidget(overlay(const {}));
+    await tester.pump();
+    expect(find.byIcon(Icons.ac_unit_rounded), findsNothing);
+  });
+
   testWidgets('match timer formats remaining m:ss under an hour',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(
@@ -45,6 +103,42 @@ void main() {
       ),
     ));
     expect(find.text('1h 01m'), findsOneWidget);
+  });
+
+  testWidgets('a deadline extension climbs to the new time with a +Ns tag',
+      (tester) async {
+    Widget timer(int endsAt) => MaterialApp(
+      home: Scaffold(body: MatchTimer(endsAt: endsAt, nowMillis: 5000)),
+    );
+    await tester.pumpWidget(timer(95000)); // 1:30 remaining
+    expect(find.text('1:30'), findsOneWidget);
+
+    await tester.pumpWidget(timer(125000)); // boosted to 2:00
+    await tester.pump(const Duration(milliseconds: 200));
+    // Mid-climb: neither endpoint is showing, and the boost tag is.
+    expect(find.text('1:30'), findsNothing);
+    expect(find.text('2:00'), findsNothing);
+    expect(find.text('+30s'), findsOneWidget);
+
+    // Settled: the new time, tag gone.
+    await tester.pumpAndSettle();
+    expect(find.text('2:00'), findsOneWidget);
+    expect(find.text('+30s'), findsNothing);
+  });
+
+  testWidgets('reduced motion snaps straight to the boosted time',
+      (tester) async {
+    Widget timer(int endsAt) => MediaQuery(
+      data: const MediaQueryData(disableAnimations: true),
+      child: MaterialApp(
+        home: Scaffold(body: MatchTimer(endsAt: endsAt, nowMillis: 5000)),
+      ),
+    );
+    await tester.pumpWidget(timer(95000));
+    await tester.pumpWidget(timer(125000));
+    await tester.pump();
+    expect(find.text('2:00'), findsOneWidget);
+    expect(find.text('+30s'), findsNothing);
   });
 
   testWidgets(
@@ -67,8 +161,9 @@ void main() {
               myScore: 0,
               myWords: 0,
               opponentName: 'Opponent',
+              opponentScore: 0,
               opponentWords: 0,
-              opponentConnected: true,
+              opponent: _connectedOpponent,
               endsAt: endsAt,
               onDictionary: () {},
               now: skewedClock.now,

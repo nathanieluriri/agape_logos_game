@@ -22,6 +22,7 @@ class LetterWheel extends StatefulWidget {
     required this.onTouch,
     required this.onEnd,
     this.ids,
+    this.swirlTick = 0,
   });
 
   final List<String> letters;
@@ -35,6 +36,10 @@ class LetterWheel extends StatefulWidget {
   /// index (identity permutation), so callers that don't shuffle get the old
   /// static layout.
   final List<int>? ids;
+
+  /// Increment to make the next reorder swirl one full loop (scramble); plain
+  /// shuffles keep the straight glide.
+  final int swirlTick;
 
   /// Node centers for a wheel rendered at [size], first letter at 12 o'clock.
   ///
@@ -61,11 +66,55 @@ class LetterWheel extends StatefulWidget {
   State<LetterWheel> createState() => _LetterWheelState();
 }
 
-class _LetterWheelState extends State<LetterWheel> {
+class _LetterWheelState extends State<LetterWheel>
+    with SingleTickerProviderStateMixin {
   Offset? _finger;
   int? _lastSlot;
 
   static const double _node = AppSizing.wheelNode;
+
+  /// Drives the scramble swirl: one loop from the old slot angle to the new
+  /// one, over [AppDurations.scrambleSwirl]. Pointer input is ignored while
+  /// this is animating.
+  late final AnimationController _swirl = AnimationController(
+    vsync: this,
+    duration: AppDurations.scrambleSwirl,
+  )..addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) setState(() {});
+    });
+
+  /// slotOfId snapshot from before the swirling reorder (id -> old slot).
+  List<int>? _swirlFrom;
+
+  /// slotOfId[id] = the slot this identity currently occupies. Iterating by
+  /// id (stable order + stable key) means only the target position changes on
+  /// a shuffle, which is exactly what drives the AnimatedPositioned glide.
+  List<int> _slotOfId(List<int>? ids, int count) {
+    final slotOfId = List<int>.generate(count, (i) => i);
+    if (ids != null && ids.length == count) {
+      for (var slot = 0; slot < count; slot++) {
+        slotOfId[ids[slot]] = slot;
+      }
+    }
+    return slotOfId;
+  }
+
+  @override
+  void didUpdateWidget(LetterWheel old) {
+    super.didUpdateWidget(old);
+    if (widget.swirlTick == old.swirlTick) return;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (reduceMotion) return;
+    _swirlFrom = _slotOfId(old.ids, old.letters.length);
+    _swirl.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _swirl.dispose();
+    super.dispose();
+  }
 
   /// Internally the wheel always renders at its fixed diameter, so the node
   /// scale inside [LetterWheel.centersIn] is exactly 1.
@@ -75,6 +124,7 @@ class _LetterWheelState extends State<LetterWheel> {
   );
 
   void _hit(Offset local) {
+    if (_swirl.isAnimating) return;
     final centers = _centers;
     for (var i = 0; i < centers.length; i++) {
       if ((centers[i] - local).distance <= _node / 2) {
@@ -101,17 +151,15 @@ class _LetterWheelState extends State<LetterWheel> {
     // slotOfId[id] = the slot this identity currently occupies. Iterating by
     // id (stable order + stable key) means only the target position changes on
     // a shuffle, which is exactly what drives the AnimatedPositioned glide.
-    final ids = widget.ids;
-    final slotOfId = List<int>.generate(count, (i) => i);
-    if (ids != null && ids.length == count) {
-      for (var slot = 0; slot < count; slot++) {
-        slotOfId[ids[slot]] = slot;
-      }
-    }
+    final slotOfId = _slotOfId(widget.ids, count);
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final moveDuration = reduceMotion ? Duration.zero : AppDurations.shuffle;
-    return SizedBox(
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: 'Letter wheel, drag across letters to form a word',
+      child: SizedBox(
       width: AppSizing.wheelDiameter,
       height: AppSizing.wheelDiameter,
       child: GestureDetector(
@@ -124,7 +172,7 @@ class _LetterWheelState extends State<LetterWheel> {
         onPanEnd: (_) {
           _lastSlot = null;
           setState(() => _finger = null);
-          widget.onEnd();
+          if (!_swirl.isAnimating) widget.onEnd();
         },
         child: RepaintBoundary(
           child: Stack(
@@ -143,23 +191,75 @@ class _LetterWheelState extends State<LetterWheel> {
                   ),
                 ),
               ),
-              for (var id = 0; id < count; id++)
-                AnimatedPositioned(
-                  key: ValueKey<int>(id),
-                  duration: moveDuration,
-                  curve: AppCurves.emphasized,
-                  left: centers[slotOfId[id]].dx - _node / 2,
-                  top: centers[slotOfId[id]].dy - _node / 2,
-                  width: _node,
-                  height: _node,
-                  child: _Node(
-                    letter: widget.letters[slotOfId[id]],
-                    selected: widget.selected.contains(slotOfId[id]),
-                  ),
-                ),
+              if (_swirl.isAnimating &&
+                  _swirlFrom != null &&
+                  _swirlFrom!.length == count)
+                AnimatedBuilder(
+                  animation: _swirl,
+                  builder: (_, _) {
+                    const radius = AppSizing.wheelDiameter / 2;
+                    const rim = radius - _node / 2;
+                    const c = Offset(radius, radius);
+                    double angleOf(int slot) =>
+                        -math.pi / 2 + 2 * math.pi * slot / count;
+                    return Stack(
+                      children: [
+                        for (var id = 0; id < count; id++)
+                          () {
+                            // Stagger: each letter launches slightly later.
+                            final t = Interval(
+                              (id * 0.05).clamp(0.0, 0.4),
+                              1,
+                              curve: AppCurves.emphasized,
+                            ).transform(_swirl.value);
+                            final from = angleOf(_swirlFrom![id]);
+                            // One extra full loop on top of the slot delta.
+                            final to = angleOf(slotOfId[id]) + 2 * math.pi;
+                            final angle = from + (to - from) * t;
+                            final pos =
+                                c + Offset.fromDirection(angle, rim);
+                            final lift =
+                                1 + 0.08 * math.sin(math.pi * t);
+                            return Positioned(
+                              key: ValueKey<int>(id),
+                              left: pos.dx - _node / 2,
+                              top: pos.dy - _node / 2,
+                              width: _node,
+                              height: _node,
+                              child: Transform.scale(
+                                scale: lift,
+                                child: _Node(
+                                  letter: widget.letters[slotOfId[id]],
+                                  selected: false,
+                                ),
+                              ),
+                            );
+                          }(),
+                      ],
+                    );
+                  },
+                )
+              else
+                ...[
+                  for (var id = 0; id < count; id++)
+                    AnimatedPositioned(
+                      key: ValueKey<int>(id),
+                      duration: moveDuration,
+                      curve: AppCurves.emphasized,
+                      left: centers[slotOfId[id]].dx - _node / 2,
+                      top: centers[slotOfId[id]].dy - _node / 2,
+                      width: _node,
+                      height: _node,
+                      child: _Node(
+                        letter: widget.letters[slotOfId[id]],
+                        selected: widget.selected.contains(slotOfId[id]),
+                      ),
+                    ),
+                ],
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -185,22 +285,30 @@ class _Node extends StatelessWidget {
   Widget build(BuildContext context) {
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    return Center(
-      child: AnimatedScale(
-        scale: selected ? _selectedScale : 1,
-        duration: reduceMotion ? Duration.zero : AppDurations.instant,
-        curve: AppCurves.pop,
-        child: Container(
-          alignment: Alignment.center,
-          decoration: selected ? _selectedDecoration : null,
-          width: AppSizing.wheelNode,
-          height: AppSizing.wheelNode,
-          child: Text(
-            letter,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
-              color: selected ? AppColors.padLabel : AppColors.wheelLetter,
+    return Semantics(
+      container: true,
+      label: selected ? '$letter, selected' : letter,
+      child: Center(
+        child: AnimatedScale(
+          scale: selected ? _selectedScale : 1,
+          duration: reduceMotion ? Duration.zero : AppDurations.instant,
+          curve: AppCurves.pop,
+          child: Container(
+            alignment: Alignment.center,
+            decoration: selected ? _selectedDecoration : null,
+            width: AppSizing.wheelNode,
+            height: AppSizing.wheelNode,
+            child: ExcludeSemantics(
+              child: Text(
+                letter,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? AppColors.padLabel
+                      : AppColors.wheelLetter,
+                ),
+              ),
             ),
           ),
         ),

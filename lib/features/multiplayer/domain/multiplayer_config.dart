@@ -11,3 +11,8 @@ const int kMatchCodeLength = 4;
 /// draw untethered words (`settings.theme = null`). Flip to true once plan 11
 /// ships `GET /themes` with a non-empty list.
 const bool kThemeSystemEnabled = false;
+
+/// Mutation `kind` for a durably-queued match forfeit (`POST /matches/:id/leave`).
+/// The sync engine replays it with backoff, and the optional reconciler keys off
+/// this to refresh the Resume list / badge / history once the server finalizes.
+const String kMatchLeaveKind = 'match_leave';

@@ -112,6 +112,18 @@ void main() {
     expect(rows.map((r) => r.id), ['a']);
   });
 
+  test('clearAll drops every row regardless of kind or status', () async {
+    await enqueueKind('a', 'puzzle_result');
+    await enqueueKind('b', 'level_result');
+    await db.pendingMutationsDao.claim('a'); // inFlight
+    await db.pendingMutationsDao.markFailed('b', 'boom');
+
+    await db.pendingMutationsDao.clearAll();
+
+    expect(await db.select(db.pendingMutations).get(), isEmpty);
+    expect(await db.pendingMutationsDao.due(10000), isEmpty);
+  });
+
   test('resetFailed flips failed rows back to pending and re-arms them',
       () async {
     await enqueueKind('a', 'puzzle_result');

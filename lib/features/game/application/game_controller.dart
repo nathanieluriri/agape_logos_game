@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/haptics/haptic_providers.dart';
+import '../../../core/offline/offline_providers.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../player/application/player_controller.dart';
 import '../../profile/application/profile_providers.dart';
@@ -11,9 +14,6 @@ import 'game_session.dart';
 
 /// Free hints granted at the start of each level.
 const int kStartingHints = 3;
-
-/// Coins awarded on level completion (flat bonus plus the level score).
-int _coinsFor(int score) => 10 + score;
 
 class GameController extends Notifier<GameSession?> {
   @override
@@ -126,9 +126,14 @@ class GameController extends Notifier<GameSession?> {
       final user = ref.read(currentUserProvider);
       if (user != null) {
         final repo = ref.read(profileRepositoryProvider);
-        await repo.addCoinsLocally(user.uid, _coinsFor(s.score));
+        await repo.addCoinsLocally(user.uid, coinsForScore(s.score));
         await repo.advanceLevelLocally(user.uid, completedLevel);
       }
+      // Deliver the queued result NOW rather than waiting for a connectivity
+      // flap, the heartbeat, or (worst) an app restart. Fire-and-forget:
+      // offline or failing just re-arms the engine's capped backoff, and the
+      // reconciler refetches coins/level the moment the server confirms.
+      unawaited(ref.read(syncKickProvider)());
     }
 
     ref

@@ -69,4 +69,9 @@ abstract final class AppSizing {
 
   /// Diameter of the blooming-lotus completion flash (LotusBloom default).
   static const double loaderBloom = 96;
+
+  /// Backdrop blur under the fog shader, so thin mist patches read as
+  /// looking through moisture. Fixed (never animated): re-recording an
+  /// animated sigma every frame is the classic BackdropFilter jank.
+  static const double fogBlurSigma = 7;
 }

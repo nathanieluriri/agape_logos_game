@@ -23,10 +23,22 @@ class CachedProfileDao extends DatabaseAccessor<AppDatabase>
   /// cached row with [server], EXCEPT `highestLevel` and `totalScore`, which take
   /// the max of the existing cached value and the server value. This stops a
   /// stale `GET /me` (server behind an offline win that has not synced yet) from
-  /// clobbering the locally-advanced level. Server-owned columns (coins, name,
-  /// avatar, locale, timestamps) follow the server. A full replace is used when
-  /// no row exists or the existing row belongs to a different account.
-  Future<void> mergeServerProfile(CachedProfileCompanion server) =>
+  /// clobbering the locally-advanced level.
+  ///
+  /// Coins follow the server PLUS [pendingCoinDelta]: the petals still
+  /// travelling in the offline queue that the server has not minted yet. This
+  /// is what keeps the balance stable across a restart: a stale server value
+  /// no longer erases winnings that are merely in transit, and the recompute
+  /// from `server + delta` also self-heals any optimistic drift. Other
+  /// server-owned columns (name, avatar, locale, timestamps) follow the server.
+  ///
+  /// A full server replace (no delta) is used when no row exists or the row
+  /// belongs to a different account, so a leftover queue can never inflate a
+  /// freshly signed-in account's wallet.
+  Future<void> mergeServerProfile(
+    CachedProfileCompanion server, {
+    int pendingCoinDelta = 0,
+  }) =>
       transaction(() async {
         final existing = await (select(cachedProfile)
               ..where((t) => t.id.equals(0)))
@@ -41,6 +53,7 @@ class CachedProfileDao extends DatabaseAccessor<AppDatabase>
                 Value(max(existing.highestLevel, server.highestLevel.value)),
             totalScore:
                 Value(max(existing.totalScore, server.totalScore.value)),
+            coins: Value(server.coins.value + pendingCoinDelta),
           ),
         );
       });

@@ -1,6 +1,7 @@
 // lib/shared/widgets/lily_pad.dart
 import 'dart:math' as math;
 import 'dart:typed_data' show Float64List;
+import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
 
@@ -252,10 +253,48 @@ class _PadBodyPainter extends CustomPainter {
       old.rotationDegrees != rotationDegrees;
 }
 
+/// The resting cast shadow, blurred once and cached as an image keyed by
+/// (shape, rotation, pixel size). The blur is the single most expensive op a
+/// pad draws, so baking it means a bobbing pad blits a cached raster each frame
+/// instead of re-running a `MaskFilter.blur`, and a revealed pad pays no blur at
+/// all. Sizes on screen are a handful of fixed constants, so the cache is tiny.
+class _BakedShadow {
+  const _BakedShadow(this.image, this.bleed);
+
+  /// A `size + 2*bleed` square: the resting silhouette at full alpha, blurred.
+  final ui.Image image;
+
+  /// Padding around the pad inside the image, room for the blur to spread.
+  final double bleed;
+}
+
+final Map<(PadShape, double, int), _BakedShadow> _shadowCache = {};
+
+_BakedShadow _bakedShadowFor(PadShape shape, double rotationDegrees, double size) {
+  return _shadowCache.putIfAbsent((shape, rotationDegrees, size.round()), () {
+    final cast = AppShadows.pad.first;
+    final sigma = Shadow.convertRadiusToSigma(cast.blurRadius);
+    final bleed = (sigma * 3).ceilToDouble();
+    final dim = (size + bleed * 2).ceil();
+    final recorder = ui.PictureRecorder();
+    // Full alpha here; the real (lift-faded) alpha is applied when the cached
+    // image is drawn, so opacity stays a cheap per-frame knob.
+    final paint = Paint()
+      ..color = cast.color.withValues(alpha: 1)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, sigma);
+    Canvas(recorder)
+      ..translate(bleed, bleed)
+      ..scale(size / PadGeometry.viewBox)
+      ..drawPath(_pathsFor(shape, rotationDegrees).outline, paint);
+    return _BakedShadow(recorder.endRecording().toImageSync(dim, dim), bleed);
+  });
+}
+
 /// The soft cast shadow on the water. As the pad lifts (0..1) the shadow grows
-/// and softens (blur), drops further from the pad (offset), and fades
-/// (opacity), which reads as the pad floating higher above the surface. At
-/// lift 0 this is byte-identical to the resting recipe.
+/// and softens, drops further from the pad, and fades, which reads as the pad
+/// floating higher. Draws a pre-blurred cached image (see [_bakedShadowFor]):
+/// lift scales it (a rising pad casts a larger, softer shadow), offsets it
+/// (drop), and fades it (alpha). At lift 0 it sits at rest.
 class _PadShadowPainter extends CustomPainter {
   const _PadShadowPainter({
     required this.shape,
@@ -267,28 +306,41 @@ class _PadShadowPainter extends CustomPainter {
   final double rotationDegrees;
   final double lift;
 
+  /// How much the baked shadow enlarges at full lift: a stand-in for the growth
+  /// and softening the live blur used to gain with height.
+  static const double _liftGrowth = 0.06;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final scale = size.width / PadGeometry.viewBox;
+    final baked = _bakedShadowFor(shape, rotationDegrees, size.width);
     final cast = AppShadows.pad.first;
     final t = lift.clamp(0.0, 1.0);
-    final blur = cast.blurRadius * (1 + t * PadElevation.shadowBlurGain);
     final dropY = cast.offset.dy + t * PadElevation.shadowDrop;
-    final shadowPaint = Paint()
-      ..color = cast.color.withValues(
+    final grow = 1 + t * _liftGrowth;
+
+    final natural = size.width + baked.bleed * 2;
+    final drawn = natural * grow;
+    // Keep the pad centred as the shadow grows, then apply the resting offset
+    // and the lift drop; the baked image already carries the resting blur.
+    final left = -baked.bleed - (drawn - natural) / 2;
+    final top = left + dropY;
+    final dst = Rect.fromLTWH(left, top, drawn, drawn);
+    final paint = Paint()
+      ..color = const Color(0xFFFFFFFF).withValues(
         alpha: cast.color.a * (1 - t * PadElevation.shadowFade),
       )
-      ..maskFilter = MaskFilter.blur(
-        BlurStyle.normal,
-        Shadow.convertRadiusToSigma(blur) / scale,
-      );
-
-    canvas
-      ..save()
-      ..scale(scale)
-      ..translate(0, dropY / scale)
-      ..drawPath(_pathsFor(shape, rotationDegrees).outline, shadowPaint)
-      ..restore();
+      ..filterQuality = FilterQuality.low;
+    canvas.drawImageRect(
+      baked.image,
+      Rect.fromLTWH(
+        0,
+        0,
+        baked.image.width.toDouble(),
+        baked.image.height.toDouble(),
+      ),
+      dst,
+      paint,
+    );
   }
 
   @override

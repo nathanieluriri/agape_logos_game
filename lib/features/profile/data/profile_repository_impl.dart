@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
@@ -11,6 +12,7 @@ import '../domain/handle_outcome.dart';
 import '../domain/profile.dart';
 import '../domain/profile_repository.dart';
 import '../profile_config.dart';
+import 'pending_wallet.dart';
 import 'profile_mappers.dart';
 import 'profile_remote.dart';
 
@@ -32,8 +34,26 @@ class ProfileRepositoryImpl
   Future<Profile?> fetch(String uid) async {
     try {
       final Profile profile = await _remote.me();
-      await db.cachedProfileDao.mergeServerProfile(profileToCompanion(profile));
-      return profile;
+      // Petals still in the offline queue are added on top of the server
+      // balance, so a server snapshot taken before the queued winnings synced
+      // can never clobber the optimistic balance the player is looking at.
+      final int delta = await pendingCoinDelta(db);
+      await db.cachedProfileDao.mergeServerProfile(
+        profileToCompanion(profile),
+        pendingCoinDelta: delta,
+      );
+      // Return what the merge produced, not the raw server snapshot: coins
+      // carry the in-transit delta, and the level is max-protected the same
+      // way the cache merge protects it, so direct readers of the returned
+      // profile (profileControllerProvider) can never see a stale level.
+      final row = await db.cachedProfileDao.read(uid);
+      final int level = row == null
+          ? profile.highestLevel
+          : max(row.highestLevel, profile.highestLevel);
+      return profile.copyWith(
+        coins: profile.coins + delta,
+        highestLevel: level,
+      );
     } on DioException catch (e) {
       // Offline or transient: serve the cached profile for this account.
       logger.info('profile fetch offline, serving cache: ${e.message}');
@@ -51,11 +71,13 @@ class ProfileRepositoryImpl
   Future<int?> fetchCoins(String uid) async {
     try {
       final int coins = await _remote.coins();
-      // Write through only when a cached profile for this account exists; the
-      // coins column lives on that single row. If none exists yet, a full
-      // `fetch` (GET /me) will seed the row on the next call.
-      await db.cachedProfileDao.setCoins(uid, coins);
-      return coins;
+      // Same reconciliation as [fetch]: the server balance plus whatever the
+      // offline queue still owes it. Write through only when a cached profile
+      // for this account exists; the coins column lives on that single row. If
+      // none exists yet, a full `fetch` (GET /me) will seed the row.
+      final int delta = await pendingCoinDelta(db);
+      await db.cachedProfileDao.setCoins(uid, coins + delta);
+      return coins + delta;
     } on DioException catch (e) {
       logger.info('coins fetch offline, serving cache: ${e.message}');
       final row = await db.cachedProfileDao.read(uid);

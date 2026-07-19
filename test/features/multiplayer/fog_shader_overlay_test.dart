@@ -107,4 +107,25 @@ void main() {
       expect(scrimFinder, findsNothing);
     },
   );
+
+  testWidgets('reduced motion never mounts a BackdropFilter', (tester) async {
+    final fogUntil = DateTime.now().add(const Duration(seconds: 8));
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: MaterialApp(
+          home: Scaffold(
+            body: FogShaderOverlay(fogUntil: fogUntil, now: DateTime.now),
+          ),
+        ),
+      ),
+    );
+    expect(
+      find.descendant(
+        of: find.byType(FogShaderOverlay),
+        matching: find.byType(BackdropFilter),
+      ),
+      findsNothing,
+    );
+  });
 }

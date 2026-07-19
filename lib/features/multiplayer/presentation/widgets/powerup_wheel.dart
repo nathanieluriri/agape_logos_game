@@ -48,6 +48,7 @@ class PowerupWheel extends StatelessWidget {
     required this.onTapInfo,
     required this.onClose,
     this.firstSlotKey,
+    this.displayNames = const {},
   });
 
   final PowerupCategory category;
@@ -57,6 +58,11 @@ class PowerupWheel extends StatelessWidget {
 
   /// Petal cost per store item id.
   final Map<String, int> prices;
+
+  /// Catalog display name per store item id (e.g. "Fog Bank"), used for
+  /// screen-reader labels instead of the raw wire id. A missing entry falls
+  /// back to the item id inside [PowerupWheelSlot].
+  final Map<String, String> displayNames;
 
   /// Fires the WIRE kind (letter_freeze, fog_bank, ...), not the item id.
   final void Function(String kind, Offset releaseGlobal) onFire;
@@ -135,6 +141,7 @@ class PowerupWheel extends StatelessWidget {
                         itemId: ids[i],
                         owned: ownedCounts[ids[i]] ?? 0,
                         price: prices[ids[i]] ?? 0,
+                        displayName: displayNames[ids[i]],
                         onFire: (itemId, releaseGlobal) {
                           final kind = powerupWireKind(itemId);
                           if (kind != null) onFire(kind, releaseGlobal);

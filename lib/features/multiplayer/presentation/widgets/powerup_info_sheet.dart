@@ -81,6 +81,11 @@ abstract final class PowerupInfoSheet {
           context,
           'Not enough petals. ${item.name} costs $cost, you have $coins.',
         );
+      case PurchaseCoinsSyncing():
+        showPondSnack(
+          context,
+          'Your newest petals are still syncing. Try again in a moment.',
+        );
       case PurchaseUnknownItem():
         showPondSnack(context, 'That item is no longer available.');
       case PurchaseUnavailable():

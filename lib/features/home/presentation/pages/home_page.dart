@@ -7,6 +7,7 @@ import '../../../../app/play_flow.dart';
 import '../../../../core/design/tokens/sizing.dart';
 import '../../../../core/design/tokens/spacing.dart';
 import '../../../../features/profile/application/profile_providers.dart';
+import '../../../../features/profile/application/wallet_sync_providers.dart';
 import '../../../../features/rewards/presentation/widgets/reward_gift_button.dart';
 import '../../../../shared/widgets/friends_button.dart';
 import '../../../multiplayer/presentation/widgets/multiplayer_pad.dart';
@@ -48,6 +49,7 @@ class HomePage extends ConsumerWidget {
               children: [
                 PondTopBar(
                   coins: coins,
+                  syncStatus: ref.watch(walletSyncBadgeProvider),
                   onSettings: () => context.push('/settings'),
                   onAddCoins: () => context.push('/store'),
                   action: Row(

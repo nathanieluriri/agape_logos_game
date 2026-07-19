@@ -1,7 +1,11 @@
 import 'dart:async';
 
+import 'package:agape_logos_game/core/haptics/haptic_service.dart';
+import 'package:agape_logos_game/core/haptics/haptics.dart';
 import 'package:agape_logos_game/features/auth/application/auth_providers.dart';
 import 'package:agape_logos_game/features/auth/domain/auth_user.dart';
+import 'package:agape_logos_game/features/game/presentation/widgets/formed_word_pill.dart';
+import 'package:agape_logos_game/features/game/presentation/widgets/letter_wheel.dart';
 import 'package:agape_logos_game/features/multiplayer/application/match_providers.dart';
 import 'package:agape_logos_game/features/multiplayer/data/match_remote.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/active_match.dart';
@@ -13,13 +17,43 @@ import 'package:agape_logos_game/features/multiplayer/domain/match_rack.dart';
 import 'package:agape_logos_game/features/multiplayer/domain/match_settings.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/pages/match_page.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/active_effect_chips.dart';
+import 'package:agape_logos_game/features/multiplayer/presentation/widgets/powerup_cast_flyout.dart';
 import 'package:agape_logos_game/features/multiplayer/presentation/widgets/powerup_incoming_banner.dart';
 import 'package:agape_logos_game/features/puzzles/domain/puzzle.dart';
 import 'package:agape_logos_game/features/store/application/store_providers.dart';
 import 'package:agape_logos_game/features/store/domain/store_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+/// Records which haptic calls fired, so a test can assert the incoming-attack
+/// buzz (heavyImpact) never fires for a self-cast event.
+class _RecordingHaptics implements HapticService {
+  final calls = <String>[];
+  @override
+  Future<void> init() async {}
+  @override
+  Future<void> lightImpact() async => calls.add('light');
+  @override
+  Future<void> mediumImpact() async => calls.add('medium');
+  @override
+  Future<void> heavyImpact() async => calls.add('heavy');
+  @override
+  Future<void> gameImpact() async => calls.add('game');
+  @override
+  Future<void> streakImpact() async => calls.add('streak');
+  @override
+  Future<void> mistakeImpact() async => calls.add('mistake');
+  @override
+  Future<void> selectionClick() async => calls.add('selection');
+  @override
+  Future<void> successPattern() async => calls.add('success');
+  @override
+  Future<void> tickImpact() async => calls.add('tick');
+  @override
+  void setMuted(bool muted) {}
+}
 
 class _FakeRemote implements MatchRemote {
   @override
@@ -125,6 +159,66 @@ void main() {
       expect(find.text('Shield blocked Fog Bank!'), findsOneWidget);
       expect(find.text('Grace cast Fog Bank!'), findsNothing);
     });
+
+    testWidgets(
+      'under reduced motion the banner snaps in, still holds, then snaps '
+      'away and self-removes',
+      (tester) async {
+        var done = false;
+        await tester.pumpWidget(
+          MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: MaterialApp(
+              home: Scaffold(
+                body: PowerupIncomingBanner(
+                  data: const IncomingBannerData(
+                    casterName: 'Grace',
+                    powerupName: 'Fog Bank',
+                  ),
+                  onDone: () => done = true,
+                ),
+              ),
+            ),
+          ),
+        );
+        // No drop-in animation frames needed: the card is already in place.
+        await tester.pump();
+        expect(find.text('Grace cast Fog Bank!'), findsOneWidget);
+        expect(done, isFalse);
+
+        // Still holds for the message to read.
+        await tester.pump(const Duration(milliseconds: 1600));
+        expect(done, isTrue);
+      },
+    );
+  });
+
+  group('PowerupCastFlyout', () {
+    testWidgets(
+      'under reduced motion the flyout snaps to the end state and '
+      'self-removes without a 520px travel',
+      (tester) async {
+        late BuildContext ctx;
+        await tester.pumpWidget(
+          MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: MaterialApp(
+              home: Scaffold(
+                body: Builder(builder: (c) {
+                  ctx = c;
+                  return const SizedBox.expand();
+                }),
+              ),
+            ),
+          ),
+        );
+        PowerupCastFlyout.show(ctx, 'shield', from: const Offset(100, 500));
+        await tester.pump();
+        // Snapped straight to completed: self-removes by the next frame.
+        await tester.pump();
+        expect(find.byType(SvgPicture), findsNothing);
+      },
+    );
   });
 
   group('MatchPage event animation dedup', () {
@@ -252,6 +346,263 @@ void main() {
         expect(find.byType(PowerupIncomingBanner), findsOneWidget);
       },
     );
+
+    // Regression: the events stream is a doc-query replay (every emission
+    // repeats ALL historical events, not just new ones). A scramble that has
+    // already been applied must not re-arm the wheel's 900ms swirl a second
+    // time, or an unrelated re-emission would relock the wheel's input for
+    // the rest of the match.
+    testWidgets(
+      'a replayed scramble event does not re-arm the wheel swirl',
+      (tester) async {
+        final events = StreamController<List<MatchEvent>>();
+        addTearDown(events.close);
+        final scramble = MatchEvent(
+          id: 's1',
+          at: DateTime.now().millisecondsSinceEpoch,
+          byUid: 'opp',
+          targetUid: 'me',
+          kind: MatchEventKind.scramble,
+          payload: const {},
+          expiresAt: 0,
+        );
+
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+            matchServiceProvider.overrideWithValue(_FakeRemote()),
+            matchStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_active())),
+            myRackStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_rack())),
+            matchEventsStreamProvider('m1').overrideWith((ref) => events.stream),
+            storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+          ],
+          child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+        ));
+        await tester.pump(); // match + rack streams emit
+        await tester.pump(); // rack sync + rebuild
+
+        // Seed: the first snapshot is historical, not new.
+        events.add(const []);
+        await tester.pump();
+
+        // A genuinely new scramble: arms the wheel's 900ms swirl from here.
+        events.add([scramble]);
+        await tester.pump();
+
+        // Mid-flight: halfway through the swirl.
+        await tester.pump(const Duration(milliseconds: 500));
+
+        // The doc query re-emits the SAME event (a Firestore snapshot
+        // replay, e.g. from an unrelated field changing). The buggy version
+        // re-armed the swirl on every such replay, pushing completion out
+        // another 900ms from THIS point and leaving the wheel permanently
+        // locked; the fix recognizes the id as already-seen and leaves the
+        // in-flight swirl alone.
+        events.add([scramble]);
+        await tester.pump();
+
+        // Past the ORIGINAL completion (900ms after the first, genuine arm).
+        // Fixed: the swirl has settled and the wheel accepts input again.
+        // Buggy: the replay pushed completion to 1400ms, so a drag here
+        // would still be ignored and the formed-word pill would stay empty.
+        await tester.pump(const Duration(milliseconds: 450));
+
+        final wheelFinder = find.byType(LetterWheel);
+        final wheelTopLeft = tester.getTopLeft(wheelFinder);
+        final wheelSize = tester.getSize(wheelFinder);
+        // Slot 0 (12 o'clock) on the 2-letter rack, in the wheel's actual
+        // on-screen geometry (the FittedBox around it may scale it down).
+        final slot0 = wheelTopLeft + LetterWheel.centersIn(wheelSize, 2)[0];
+
+        final gesture = await tester.startGesture(slot0);
+        await gesture.moveBy(const Offset(6, 6));
+        await tester.pump();
+
+        expect(
+          find.descendant(
+            of: find.byType(FormedWordPill),
+            matching: find.byType(Text),
+          ),
+          findsWidgets,
+        );
+
+        await gesture.up();
+        await tester.pump();
+      },
+    );
+
+    // Regression: same doc-query replay hazard as the scramble case above,
+    // but for word_steal. `ctrl.applyWordSteal` already dedupes the rack
+    // side effect internally; this pins down that the VISUAL flyout also
+    // fires at most once per event id, not once per stream emission.
+    testWidgets(
+      'a replayed word-steal event does not re-fire the flyout',
+      (tester) async {
+        final events = StreamController<List<MatchEvent>>();
+        addTearDown(events.close);
+        final steal = MatchEvent(
+          id: 'w1',
+          at: DateTime.now().millisecondsSinceEpoch,
+          byUid: 'opp',
+          targetUid: 'me',
+          kind: MatchEventKind.wordSteal,
+          payload: const {'word': 'lotus'},
+          expiresAt: 0,
+        );
+
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+            matchServiceProvider.overrideWithValue(_FakeRemote()),
+            matchStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_active())),
+            myRackStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_rack())),
+            matchEventsStreamProvider('m1').overrideWith((ref) => events.stream),
+            storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+          ],
+          child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+        ));
+        await tester.pump(); // match + rack streams emit
+        await tester.pump(); // rack sync + rebuild
+
+        // Seed: the first snapshot is historical, not new.
+        events.add(const []);
+        await tester.pump();
+
+        // A genuinely new steal: fires the flyout.
+        events.add([steal]);
+        await tester.pump();
+        expect(find.text('LOTUS'), findsOneWidget);
+
+        // The doc query re-emits the SAME event while the first flyout is
+        // still mid-flight. A second flyout stacked on top would still read
+        // as one 'LOTUS' text via findsOneWidget below only if the dedup
+        // gate held; the buggy version inserts a second overlay entry here.
+        events.add([steal]);
+        await tester.pump();
+        expect(find.text('LOTUS'), findsOneWidget);
+
+        // Let the flyout finish (AppDurations.stealFlight = 800ms); it
+        // self-removes.
+        await tester.pump(const Duration(milliseconds: 800));
+        await tester.pumpAndSettle();
+        expect(find.text('LOTUS'), findsNothing);
+      },
+    );
+  });
+
+  group('MatchPage self-cast suppression (#45)', () {
+    late _RecordingHaptics haptics;
+    late HapticService previousHaptics;
+
+    setUp(() {
+      previousHaptics = Haptics.instance;
+      haptics = _RecordingHaptics();
+      Haptics.instance = haptics;
+    });
+    tearDown(() => Haptics.instance = previousHaptics);
+
+    // Self-target powerups (shield, double_points, combo_lock, time_boost) are
+    // written server-side with targetUid == the caster, so casting one on
+    // yourself reaches `watchEventsForMe` with byUid == myUid too. Before the
+    // fix, the client's enum has no case for these wire kinds so they mapped
+    // to `unknown`, whose non-empty wire string slipped past the
+    // `wireKind.isEmpty` guard and queued a false "you got hit" banner
+    // (labeled "unknown") with the incoming SFX and a heavy haptic buzz.
+    testWidgets(
+      'casting a self-buff does not queue the incoming banner or heavy haptic',
+      (tester) async {
+        final events = StreamController<List<MatchEvent>>();
+        addTearDown(events.close);
+        final selfBuff = MatchEvent(
+          id: 'self-1',
+          at: DateTime.now().millisecondsSinceEpoch,
+          byUid: 'me',
+          targetUid: 'me',
+          kind: MatchEventKind.unknown, // shield/double_points/etc: no case
+          payload: const {},
+          expiresAt: DateTime.now().millisecondsSinceEpoch + 8000,
+        );
+
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+            matchServiceProvider.overrideWithValue(_FakeRemote()),
+            matchStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_active())),
+            myRackStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_rack())),
+            matchEventsStreamProvider('m1').overrideWith((ref) => events.stream),
+            storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+          ],
+          child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+        ));
+        await tester.pump(); // match + rack streams emit
+        await tester.pump(); // rack sync + rebuild
+
+        // Seed: the first snapshot is historical, not new.
+        events.add(const []);
+        await tester.pump();
+
+        // The self-cast buff arrives as a genuinely new event.
+        events.add([selfBuff]);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400)); // drop-in window
+
+        expect(find.byType(PowerupIncomingBanner), findsNothing);
+        expect(find.textContaining('cast'), findsNothing);
+        expect(haptics.calls, isNot(contains('heavy')));
+      },
+    );
+
+    // Control: the opponent's OWN offensive cast (byUid == opponent, targeting
+    // me) must be entirely unaffected by the self-cast suppression above.
+    testWidgets(
+      "an opponent's offensive cast still shows the incoming banner and buzzes",
+      (tester) async {
+        final events = StreamController<List<MatchEvent>>();
+        addTearDown(events.close);
+        final opponentAttack = MatchEvent(
+          id: 'opp-1',
+          at: DateTime.now().millisecondsSinceEpoch,
+          byUid: 'opp',
+          targetUid: 'me',
+          kind: MatchEventKind.fogBank,
+          payload: const {},
+          expiresAt: DateTime.now().millisecondsSinceEpoch + 8000,
+        );
+
+        await tester.pumpWidget(ProviderScope(
+          overrides: [
+            currentUserProvider.overrideWithValue(const AuthUser(uid: 'me')),
+            matchServiceProvider.overrideWithValue(_FakeRemote()),
+            matchStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_active())),
+            myRackStreamProvider('m1')
+                .overrideWith((ref) => Stream.value(_rack())),
+            matchEventsStreamProvider('m1').overrideWith((ref) => events.stream),
+            storeCatalogProvider.overrideWith((ref) async => const <StoreItem>[]),
+          ],
+          child: const MaterialApp(home: MatchPage(matchId: 'm1')),
+        ));
+        await tester.pump();
+        await tester.pump();
+
+        events.add(const []);
+        await tester.pump();
+
+        events.add([opponentAttack]);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byType(PowerupIncomingBanner), findsOneWidget);
+        expect(find.textContaining('opp cast'), findsOneWidget);
+        expect(haptics.calls, contains('heavy'));
+      },
+    );
   });
 
   group('ActiveEffectChips', () {
@@ -259,7 +610,9 @@ void main() {
     final effects = MatchActiveEffects(
       fog: true,
       fogUntil: DateTime.fromMillisecondsSinceEpoch(now + 4000),
-      frozenLetter: 'A',
+      frozenLetterExpiries: {
+        'A': DateTime.fromMillisecondsSinceEpoch(now + 2500),
+      },
       freezeUntil: DateTime.fromMillisecondsSinceEpoch(now + 2500),
       doublePoints: true,
       doublePointsUntil: DateTime.fromMillisecondsSinceEpoch(now + 6000),
@@ -282,7 +635,7 @@ void main() {
       expect(find.text('Fog 4s'), findsOneWidget);
       expect(find.text('Frozen 3s'), findsOneWidget); // ceil(2500ms) -> 3s
       expect(find.text('2x points 6s'), findsOneWidget);
-      expect(find.text('Warded 9s'), findsOneWidget);
+      expect(find.text('Steal ward 9s'), findsOneWidget);
       expect(find.text('Shield'), findsOneWidget);
     });
 
@@ -314,8 +667,23 @@ void main() {
       expect(find.textContaining('Fog'), findsNothing);
       expect(find.textContaining('Frozen'), findsNothing);
       expect(find.text('Shield'), findsOneWidget);
-      expect(find.textContaining('Warded'), findsOneWidget);
+      expect(find.textContaining('Steal ward'), findsOneWidget);
       expect(find.textContaining('2x points'), findsOneWidget);
+    });
+
+    testWidgets('ward chip names Word Steal, not a generic Warded label', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ActiveEffectChips(effects: effects, nowMillis: now),
+          ),
+        ),
+      );
+
+      expect(find.textContaining('Steal'), findsOneWidget);
+      expect(find.text('Warded 9s'), findsNothing);
     });
   });
 }

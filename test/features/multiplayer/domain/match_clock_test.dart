@@ -7,6 +7,7 @@ Match _match({
   required MatchStatus status,
   required int startedAt,
   required int endsAt,
+  int bonusMs = 0,
 }) =>
     Match(
       matchId: 'm1', code: 'ABCD', status: status,
@@ -14,9 +15,10 @@ Match _match({
       createdBy: 'me', createdAt: 0, startedAt: startedAt, endsAt: endsAt,
       settings: MatchSettings.defaults(),
       players: {
-        'me': const MatchPlayer(
+        'me': MatchPlayer(
           uid: 'me', displayName: 'me', avatarId: 'a', isGuest: false,
           ready: true, connected: true, score: 0, wordsFound: 0,
+          endsAtBonusMs: bonusMs,
         ),
       },
       winner: null,
@@ -57,5 +59,34 @@ void main() {
     final m = _match(status: MatchStatus.lobby, startedAt: 0, endsAt: 0);
     expect(m.playableAt(5000), isFalse);
     expect(m.countingDownAt(5000), isFalse);
+  });
+
+  test('playableFor keeps a boosted player playable past raw endsAt', () {
+    final m = _match(
+      status: MatchStatus.active, startedAt: 1000, endsAt: 9000,
+      bonusMs: 30000,
+    );
+    // Raw clock says time is up, but MY deadline is endsAt + 30s.
+    expect(m.playableAt(9000), isFalse);
+    expect(m.playableFor('me', 9000), isTrue);
+    expect(m.playableFor('me', 38999), isTrue);
+    expect(m.playableFor('me', 39000), isFalse);
+  });
+
+  test('playableFor matches playableAt for a player with no bonus', () {
+    final m = _match(status: MatchStatus.active, startedAt: 1000, endsAt: 9000);
+    expect(m.playableFor('me', 8999), isTrue);
+    expect(m.playableFor('me', 9000), isFalse);
+    // Unknown uid: deadlineFor falls back to raw endsAt.
+    expect(m.playableFor('ghost', 9000), isFalse);
+  });
+
+  test('playableFor stays clock-driven before the server settles to active', () {
+    final m = _match(
+      status: MatchStatus.countdown, startedAt: 1000, endsAt: 9000,
+      bonusMs: 30000,
+    );
+    expect(m.playableFor('me', 500), isFalse);
+    expect(m.playableFor('me', 1000), isTrue);
   });
 }
