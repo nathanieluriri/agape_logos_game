@@ -18,7 +18,10 @@
     "stats": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/stats.js\"",
     "export:starter": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/export_starter_pack.js\"",
     "backfill:random": "node lib/scripts/backfill_random.js",
-    "seed:themes": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/seed_themes.js\""
+    "seed:themes": "npm run build && firebase emulators:exec --only firestore \"node lib/scripts/seed_themes.js\"",
+    "demo:emulators": "firebase emulators:start --only auth,firestore --project agape-logos --import .demo-emulator --export-on-exit .demo-emulator",
+    "demo:seed": "npm run build && node lib/scripts/demo_seed.js",
+    "demo:api": "npm run build && node lib/scripts/demo_server.js"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.0",

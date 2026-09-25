@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/audio/audio_providers.dart';
 import '../core/audio/audio_service.dart';
+import '../core/firebase/emulator_config.dart';
 import '../core/haptics/haptic_providers.dart';
 import '../core/haptics/haptic_service.dart';
 import '../core/haptics/haptics.dart';
@@ -55,6 +58,10 @@ Future<void> bootstrap() async {
   GoRouter.optionURLReflectsImperativeAPIs = true;
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  if (kUseFirebaseEmulators) {
+    await FirebaseAuth.instance.useAuthEmulator(kEmulatorHost, 9099);
+    FirebaseFirestore.instance.useFirestoreEmulator(kEmulatorHost, 8080);
+  }
 
   final AppDatabase db = AppDatabase();
 

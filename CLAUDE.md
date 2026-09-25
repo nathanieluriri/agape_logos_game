@@ -157,6 +157,15 @@ uses a different, correct registrant, so **this reproduces only in a release bui
 - Fix / prevention: `flutter clean` before `flutter build web --release`. Verify with
   `grep -ci firestore .dart_tool/flutter_build/*/web_plugin_registrant.dart` (must be > 0).
 
+## Local demo stack (recordings, trying the game with no production anything)
+
+Everything runs on the Firebase emulators with seeded, fictional data; nothing can reach the live project.
+
+1. `cd functions && npm ci`, then `npm run demo:emulators` (Auth 9099, Firestore 8080; data persists in `functions/.demo-emulator/`).
+2. `npm run demo:seed`: generates the puzzle pool on first run, then the personas (Amara `amara@example.com`, Lv.38, 1,285 petals, four friends, a pending request, match history; next puzzle CEIOV). Emulator-only password: `demo-pond-2026`. Re-run it to reset.
+3. `npm run demo:api`: the real Express app on `http://127.0.0.1:5055`. `demo_env.ts` pins every demo script to the emulators.
+4. Web: `flutter build web --release --no-web-resources-cdn --dart-define=USE_FIREBASE_EMULATORS=true --dart-define=EMULATOR_HOST=127.0.0.1 --dart-define=API_BASE_URL=http://127.0.0.1:5055` (or `flutter run -d chrome` with the same defines). Without the defines the build is unchanged.
+
 ## Current state (playable core loop)
 
 The game is live end to end on Android: Play gates on Firebase auth (email, Google, or

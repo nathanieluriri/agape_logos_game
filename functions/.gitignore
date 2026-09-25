@@ -6,3 +6,6 @@ lib/
 .env
 .env.*
 !.env.example
+
+# Local demo stack: emulator data exported on exit by `npm run demo:emulators`.
+.demo-emulator/
